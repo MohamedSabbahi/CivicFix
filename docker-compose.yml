@@ -1,0 +1,47 @@
+
+services:
+  # 1. Database Service (PostgreSQL)
+  db:
+    image: postgres:15
+    container_name: civicfix_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: civicfix
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. Backend API Service
+  server:
+    build: ./server
+    container_name: civicfix_server
+    restart: always
+    ports:
+      - "5001:5000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/civicfix
+      PORT: 5000
+      JWT_SECRET: temporary_secret_key
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  # 3. Web App Service
+  web:
+    build: ./web
+    container_name: civicfix_web
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+
+volumes:
+  pgdata:
