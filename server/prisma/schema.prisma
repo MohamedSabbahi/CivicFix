@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  // This looks at your .env file to find the database URL
+  url      = env("DATABASE_URL")
+}
+
+// 1. User Model
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("citizen") // 'citizen', 'admin'
+  createdAt DateTime @default(now())
+  
+  reports   Report[]
+  comments  Comment[]
+}
+
+// 2. Report Model
+model Report {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  photoUrl    String?   
+  latitude    Float
+  longitude   Float
+  status      String    @default("PENDING") // 'PENDING', 'IN_PROGRESS', 'RESOLVED'
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  resolvedAt  DateTime? 
+
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  comments    Comment[]
+}
+
+// 3. Comment Model
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  createdAt DateTime @default(now())
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  reportId  Int
+  report    Report   @relation(fields: [reportId], references: [id])
+}
+
+// 4. Department Model
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String   
+  email     String   @unique
+}
