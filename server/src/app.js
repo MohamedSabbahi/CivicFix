@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -26,5 +27,7 @@ app.get('/', (req, res) => {
     message: 'CivicFix Backend is Running!'
   })
 });
+
+app.use('/api/auth', authRoutes);
 
 module.exports = app;
