@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
+
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));

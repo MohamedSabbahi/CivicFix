@@ -1,6 +1,7 @@
-const { PrismClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { validationResult } = require('express-validator');
 
 const prisma = new PrismaClient();
 
@@ -40,5 +41,33 @@ exports.register = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error during Registration' });
+    }
+};
+
+exports.login = async (req, res) => {
+
+    //We check if there are validation errors. if any, we return 400 with the errors array.
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try{
+        const { email, password } = req.body;
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if(!user || !(await bcrypt.compare(password, user.password))){
+            return res.status(400).json({ message: 'Invalid credentials'});
+        }
+        res.json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            token: generateToken(user.id),
+        });
+        
+    } catch (error) {
+        res.status(500).json({ message: 'Server error during Login' });
     }
 };
