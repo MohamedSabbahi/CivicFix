@@ -1,47 +1,95 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
-  // This looks at your .env file to find the database URL
   url      = env("DATABASE_URL")
 }
 
-// 1. User Model
+// 1. Enums (Better than strings)
+enum Role {
+  CITIZEN
+  ADMIN
+}
+
+enum ReportStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
+// 2. User Model
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   password  String
-  name      String?
-  role      String   @default("citizen") // 'citizen', 'admin'
+  name      String   // Made required as requested
+  role      Role     @default(CITIZEN)
   createdAt DateTime @default(now())
   
   reports   Report[]
   comments  Comment[]
 }
 
-// 2. Report Model
+// 3. Report Model
 model Report {
-  id          Int       @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   title       String
-  description String?
-  photoUrl    String?   
+  description String?      // Shown in the "SPA" detail view
+  photoUrl    String       // Made required (Main UI element)
   latitude    Float
   longitude   Float
-  status      String    @default("PENDING") // 'PENDING', 'IN_PROGRESS', 'RESOLVED'
+  status      ReportStatus @default(PENDING)
   
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  // Security for "Magic Links"
+  // This random string is generated when report is created.
+  // The email link will look like: mysite.com/api/resolve?id=1&secret=abc-123-xyz
+  accessSecret String      @default(uuid())
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   resolvedAt  DateTime? 
 
+  // RELATIONS
   userId      Int
-  user        User      @relation(fields: [userId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+  
+  categoryId  Int
+  category    Category     @relation(fields: [categoryId], references: [id])
+  
   comments    Comment[]
+
+  // INDEXES (Optimized for your Search/Filter bars)
+  @@index([status])                 // Fast filtering by status
+  @@index([userId])                 // Fast "My Reports"
+  @@index([categoryId])             // Fast filtering by Category
+  @@index([latitude, longitude])    // Fast "Nearby" calculations
+  @@index([title])                  // Fast Search Bar lookups
 }
 
-// 3. Comment Model
+// 4. Category Model (The bridge between Report and Department)
+model Category {
+  id           Int        @id @default(autoincrement())
+  name         String     // e.g., "Potholes", "Garbage", "Noise"
+  
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+  
+  reports      Report[]
+}
+
+// 5. Department Model
+model Department {
+  id         Int        @id @default(autoincrement())
+  name       String     // e.g., "Road Maintenance", "Sanitation"
+  email      String     @unique // Where the Nodemailer emails go
+  
+  categories Category[] // One dept can handle multiple categories
+}
+
+// 6. Comment Model
 model Comment {
   id        Int      @id @default(autoincrement())
   text      String
@@ -49,13 +97,7 @@ model Comment {
 
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
+  
   reportId  Int
   report    Report   @relation(fields: [reportId], references: [id])
-}
-
-// 4. Department Model
-model Department {
-  id        Int      @id @default(autoincrement())
-  name      String   
-  email     String   @unique
 }

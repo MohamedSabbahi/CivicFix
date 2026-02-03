@@ -1,11 +1,10 @@
-const express = require('express');
-const app = express();
-const port = process.env.PORT || 5000;
+require('dotenv').config();
 
-app.get('/', (req, res) => {
-  res.send('CivicFix Backend is Running!');
-});
+const app = require('./app');
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+
+const PORT = process.env.PORT || 5001;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
