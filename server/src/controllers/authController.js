@@ -71,3 +71,12 @@ exports.login = async (req, res) => {
         res.status(500).json({ message: 'Server error during Login' });
     }
 };
+
+exports.getMe = async (req, res) => {
+    res.status(200).json({
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+    });
+};
