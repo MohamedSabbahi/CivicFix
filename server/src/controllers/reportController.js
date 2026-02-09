@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, ReportStatus } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { validationResult } = require('express-validator');
 
@@ -25,7 +25,7 @@ exports.createReport = async (req, res) => {
                 categoryId: parseInt(categoryId),
                 userId: req.user.id,
                 photoUrl,
-                status: 'pending',
+                status: 'PENDING'
             },
         });
         res.status(201).json(report);
