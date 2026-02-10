@@ -1,19 +1,13 @@
-const { PrismaClient, ReportStatus } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { validationResult } = require('express-validator');
 
 exports.createReport = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-    if(!req.file){
+    if (!req.file) {
         return res.status(400).json({ error: 'Image is required' });
     }
 
-    try{
+    try {
         const { title, description, latitude, longitude, categoryId } = req.body;
-
         const photoUrl = `/uploads/${req.file.filename}`;
 
         const report = await prisma.report.create({
@@ -25,9 +19,9 @@ exports.createReport = async (req, res) => {
                 categoryId: parseInt(categoryId),
                 userId: req.user.id,
                 photoUrl,
-                status: 'PENDING'
             },
         });
+
         res.status(201).json(report);
     } catch (error) {
         console.error("Report Creation Error:", error);
