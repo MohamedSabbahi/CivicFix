@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { register, login, getMe } = require('../controllers/authController');
+//getme responsable for getting the user profile information
 const { protect } = require('../middleware/authMiddleware');
 const { check } = require('express-validator');
 
