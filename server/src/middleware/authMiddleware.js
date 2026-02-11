@@ -38,7 +38,7 @@ const admin = (req, res, next) => {
     if (req.user && req.user.role === 'ADMIN') {
         next(); // Authorization success!
     } else {
-        res.status(403).json({ message: 'Not authorized as an admin' }); // 403 = Forbidden
+        res.status(403).json({ message: 'Not authorized as a citizen' }); // 403 = Forbidden
     }
 };
 
