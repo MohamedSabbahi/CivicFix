@@ -7,7 +7,7 @@ async function main(){
     const hiereachies =[
         {
             name: 'Roads & infrastructure',
-            email: 'roads@civicfix.com',
+            email: 'zakariaeelyaakoubi437@gmail.com',
             categories: [
                 'Potholes',
                 'Damaged sidewalks',
@@ -19,7 +19,7 @@ async function main(){
         },
         {
             name: 'Sanitation & waste',
-            email: 'sanitation@civicfix.com',
+            email: 'mohamed.sabbahi21@gmail.com',
             categories: [
                 'Overflowing garbage bins',
                 'Illegal dumping',
@@ -31,7 +31,7 @@ async function main(){
         },
         {
             name: 'Public safety',
-            email: 'safety@civicfix.com',
+            email: 'hamzaair380@gmail.com',
             categories: [
                 'Broken traffic lights',
                 'Vandalism',
@@ -43,7 +43,7 @@ async function main(){
         },
         {
             name: 'Parks & Green spaces',
-            email: 'parks@civicfix.com',
+            email: 'zakariae.elyaakoubi1@gmail.com',
             categories: [
                 'Fallen trees',
                 'Damaged park equipment',
