@@ -4,7 +4,7 @@ const { protect ,admin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 const { validateReport } = require('../middleware/reportValidator'); 
 const { createReport,
-       updateStatusByMagicLink,
+        updateStatusByMagicLink,
         getAllReports,
         getReportById,
         updateReport ,
