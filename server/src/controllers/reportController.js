@@ -1,5 +1,4 @@
 const { PrismaClient } = require('@prisma/client');
-const fs = require('fs');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 
@@ -50,21 +49,110 @@ const createReport = async (req, res) => {
 
 const getAllReports = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    // 1. Extraction propre des paramètres (destructuring)
+    const { category_id, status, date_debut, date_fin, search, sort, order ,page, limit } = req.query;
 
+    const pageNum = Math.max(parseInt(page) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
+    const skip = (pageNum - 1) * limitNum;
+
+    // 2. Construction dynamique de la condition WHERE
+    const whereCondition = {};
+
+    // Filtrer par catégorie (Task 2.1)
+    if (category_id) {
+      const categoryIdNum = parseInt(category_id);
+      if (!isNaN(categoryIdNum)) {
+  whereCondition.categoryId = categoryIdNum;
+      } else {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid category_id. It must be a number."
+        });
+      }
+    }
+    
+    // Filtrer par statut (Task 2.2)
+    if (status) {
+        const upperStatus = status.toUpperCase();
+
+      if (!ReportStatus[upperStatus]) {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid status value."
+          });
+        }
+
+        whereCondition.status = upperStatus;
+    }
+    
+
+    // TASK 2.3 : FILTRER PAR DATE 
+    if (date_debut || date_fin) {
+      const start = date_debut ? new Date(date_debut) : null;
+      const end = date_fin ? new Date(`${date_fin}T23:59:59.999Z`) : null;
+    
+    if ((start && isNaN(start.getTime())) || (end && isNaN(end.getTime())))  {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid date format. Use YYYY-MM-DD." 
+        });
+      }
+    if(start && end && start > end) {
+        return res.status(400).json({
+          status: "error",
+          message: "The start date must be before the end date."
+        });
+      }
+      whereCondition.createdAt = {};
+      if (start) whereCondition.createdAt.gte = start;
+      if (end) whereCondition.createdAt.lte = end;
+    }
+
+    // TASK 2.4 : FILTRER PAR RECHERCHE PAR MOT-CLÉ
+    if (search) {
+        const trimmedSearch = search.trim();
+          
+          if(trimmedSearch.length > 0 && trimmedSearch.length < 3) {
+            return res.status(400).json({
+              status: "error",
+              message: "Search term must be at least 3 characters long."
+            });
+          }
+          const forbiddenChars = /[;'"$¿\\]/;
+          if (forbiddenChars.test(trimmedSearch)) {
+            return res.status(400).json({
+              status: "error",
+              message: "Search term contains invalid characters."
+            });
+          }
+          whereCondition.OR = [
+              { title: { contains: trimmedSearch, mode: "insensitive" } },
+              { description: { contains: trimmedSearch, mode: "insensitive" } }
+            ];
+          }
+    // TASK 2.5 : DAYNAMIC SORTING 
+    let orderByCondition = { createdAt: "desc" };
+    if (sort === "date"){
+      const sortOrder = order === "asc" ? "asc" : "desc";
+      orderByCondition = { createdAt: sortOrder };
+    }
+
+    // 3. Exécution parallèle de la requête de données et du comptage total 
     const [reports, totalReports] = await Promise.all([
       prisma.report.findMany({
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
+        where: whereCondition,
+        skip: skip,
+        take: limitNum,
+        orderBy: orderByCondition,
         include: {
           category: true,
           user: { select: { name: true, email: true } },
         },
       }),
-      prisma.report.count(),
+      prisma.report.count({
+        where: whereCondition,
+      }),
     ]);
 
     res.status(200).json({
@@ -72,8 +160,8 @@ const getAllReports = async (req, res) => {
       results: reports.length,
       metadata: {
         total: totalReports,
-        page,
-        totalPages: Math.ceil(totalReports / limit),
+        page: pageNum,
+        totalPages: Math.ceil(totalReports / limitNum),
       },
       data: reports,
     });
