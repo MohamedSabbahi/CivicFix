@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const fs = require('fs');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 
