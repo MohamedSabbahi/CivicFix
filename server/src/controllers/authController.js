@@ -2,6 +2,8 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail');
 
 const prisma = new PrismaClient();
 
@@ -79,4 +81,112 @@ exports.getMe = async (req, res) => {
         email: req.user.email,
         role: req.user.role,
     });
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    // 1. Get user by email
+    const user = await prisma.user.findUnique({
+      where: { email: req.body.email },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'There is no user with that email' });
+    }
+
+    // 2. Generate the Random Token (Raw)
+    // This is what the user will type into the app
+    const resetToken = crypto.randomBytes(20).toString('hex');
+
+    // 3. Hash the token for the Database
+    // Security: If DB is hacked, they only see the hash, not the key.
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // 4. Save Hash + Expiration to DB
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken,
+        resetPasswordExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 Minutes
+      },
+    });
+
+    // 5. Create the Message
+    // Since this is a mobile app, we send them the TOKEN to copy-paste.
+    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. \n\n
+        Please enter the following token in your app to reset your password:\n\n
+        ${resetToken}\n\n
+        This token expires in 10 minutes.`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Reset Token',
+        message,
+      });
+
+      res.status(200).json({ success: true, data: 'Email sent' });
+    } catch (err) {
+      console.log(err);
+      // Rollback: If email fails, clear the token fields so the user isn't locked
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        },
+      });
+      return res.status(500).json({ message: 'Email could not be sent' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Reset Password - Validates token and updates password
+// @route   PUT /api/auth/resetpassword/:resettoken
+exports.resetPassword = async (req, res) => {
+  try {
+    // 1. Hash the incoming token to compare with DB
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(req.params.resettoken)
+      .digest('hex');
+
+    // 2. Find user with valid token AND valid expiration
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken,
+        resetPasswordExpires: { gt: new Date() }, // Check if expiration is in the future
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid token' });
+    }
+
+    // 3. Set new password
+    // (Bcrypt hashing happens here usually, or if you have a middleware)
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+
+    // 4. Update User & Clear Fields
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    res.status(200).json({ success: true, data: 'Password updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
 };

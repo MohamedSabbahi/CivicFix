@@ -1,9 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
-const fs = require('fs');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
-const { calculateDistance } = require('../utils/geoUtils');
-const { parse } = require('path');
+
 const prisma = new PrismaClient();
 
 const createReport = async (req, res) => {
@@ -52,10 +50,7 @@ const createReport = async (req, res) => {
 const getAllReports = async (req, res) => {
   try {
     // 1. Extraction propre des paramètres (destructuring)
-    const { category_id, status, date_debut,
-            date_fin, search, sort, order ,
-            user_lat, user_lng , page, limit }
-            = req.query;
+    const { category_id, status, date_debut, date_fin, search, sort, order ,page, limit } = req.query;
 
     const pageNum = Math.max(parseInt(page) || 1, 1);
     const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
@@ -68,7 +63,7 @@ const getAllReports = async (req, res) => {
     if (category_id) {
       const categoryIdNum = parseInt(category_id);
       if (!isNaN(categoryIdNum)) {
-      whereCondition.categoryId = categoryIdNum;
+  whereCondition.categoryId = categoryIdNum;
       } else {
         return res.status(400).json({
           status: "error",
@@ -142,7 +137,7 @@ const getAllReports = async (req, res) => {
       const sortOrder = order === "asc" ? "asc" : "desc";
       orderByCondition = { createdAt: sortOrder };
     }
-    
+
     // 3. Exécution parallèle de la requête de données et du comptage total 
     const [reports, totalReports] = await Promise.all([
       prisma.report.findMany({
@@ -160,51 +155,24 @@ const getAllReports = async (req, res) => {
       }),
     ]);
 
-    // GEOLOCATION LOGIC
-
-    let finalData = reports;
-    // If coordinates are provided, calculate distance for each report
-    if (user_lat && user_lng) {      
-        const lat = parseFloat(user_lat);
-        const lng = parseFloat(user_lng);
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-          finalData = reports.map(report => {
-            const distance = calculateDistance(
-              lat,
-              lng,
-              report.latitude,
-              report.longitude
-            );
-            return { ...report, distance };
-          });
-          // If sorting by distance is requested
-          if (sort === "distance") {
-            finalData.sort((a, b) => {
-              return order === "desc" ? b.distance - a.distance : a.distance - b.distance;
-            });
-          }
-        }
-      }
-          res.status(200).json({
-            status: "success",
-            results: finalData.length,
-            metadata: {
-              total: totalReports,
-              page: pageNum,
-              totalPages: Math.ceil(totalReports / limitNum),
-            },
-            data: finalData,
-          });
-        } catch (error) {
-          res.status(500).json({
-            status: "error",
-            message: "Failed to fetch reports with distance calculation",
-            details: error.message,
-          });
-        }
-    };
-    
+    res.status(200).json({
+      status: "success",
+      results: reports.length,
+      metadata: {
+        total: totalReports,
+        page: pageNum,
+        totalPages: Math.ceil(totalReports / limitNum),
+      },
+      data: reports,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch reports",
+      details: error.message,
+    });
+  }
+};
 
 const getReportById = async (req, res) => {
   try {
