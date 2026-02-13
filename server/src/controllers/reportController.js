@@ -1,14 +1,19 @@
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require('@prisma/client');
+const fs = require('fs');
+const { generateMagicLinks } = require('../utils/linkGenerator');
+const { sendStatusEmail } = require('../utils/mailer');
+const { calculateDistance } = require('../utils/geoUtils');
+const { parse } = require('path');
 const prisma = new PrismaClient();
 
 const createReport = async (req, res) => {
-
   if (!req.file) {
     return res.status(400).json({ error: "Image is required" });
   }
 
   try {
     const { title, description, latitude, longitude, categoryId } = req.body;
+    
     const photoUrl = `/uploads/${req.file.filename}`;
 
     const report = await prisma.report.create({
@@ -21,7 +26,20 @@ const createReport = async (req, res) => {
         userId: req.user.id,
         photoUrl,
       },
+      include: {
+        category: {
+          include: {
+            department: true
+          }
+        }
+      }
     });
+    
+    // Automated Dispatch Logic
+    const links = generateMagicLinks(report);
+    if (report.category?.department?.email) {
+        await sendStatusEmail(report.category.department.email, report, links);
+    }
 
     res.status(201).json(report);
 
@@ -33,60 +51,178 @@ const createReport = async (req, res) => {
 
 const getAllReports = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    // 1. Extraction propre des paramètres (destructuring)
+    const { category_id, status, date_debut,
+            date_fin, search, sort, order ,
+            user_lat, user_lng , page, limit }
+            = req.query;
 
+    const pageNum = Math.max(parseInt(page) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
+    const skip = (pageNum - 1) * limitNum;
+
+    // 2. Construction dynamique de la condition WHERE
+    const whereCondition = {};
+
+    // Filtrer par catégorie (Task 2.1)
+    if (category_id) {
+      const categoryIdNum = parseInt(category_id);
+      if (!isNaN(categoryIdNum)) {
+      whereCondition.categoryId = categoryIdNum;
+      } else {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid category_id. It must be a number."
+        });
+      }
+    }
+    
+    // Filtrer par statut (Task 2.2)
+    if (status) {
+        const upperStatus = status.toUpperCase();
+
+      if (!ReportStatus[upperStatus]) {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid status value."
+          });
+        }
+
+        whereCondition.status = upperStatus;
+    }
+    
+
+    // TASK 2.3 : FILTRER PAR DATE 
+    if (date_debut || date_fin) {
+      const start = date_debut ? new Date(date_debut) : null;
+      const end = date_fin ? new Date(`${date_fin}T23:59:59.999Z`) : null;
+    
+    if ((start && isNaN(start.getTime())) || (end && isNaN(end.getTime())))  {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid date format. Use YYYY-MM-DD." 
+        });
+      }
+    if(start && end && start > end) {
+        return res.status(400).json({
+          status: "error",
+          message: "The start date must be before the end date."
+        });
+      }
+      whereCondition.createdAt = {};
+      if (start) whereCondition.createdAt.gte = start;
+      if (end) whereCondition.createdAt.lte = end;
+    }
+
+    // TASK 2.4 : FILTRER PAR RECHERCHE PAR MOT-CLÉ
+    if (search) {
+        const trimmedSearch = search.trim();
+          
+          if(trimmedSearch.length > 0 && trimmedSearch.length < 3) {
+            return res.status(400).json({
+              status: "error",
+              message: "Search term must be at least 3 characters long."
+            });
+          }
+          const forbiddenChars = /[;'"$¿\\]/;
+          if (forbiddenChars.test(trimmedSearch)) {
+            return res.status(400).json({
+              status: "error",
+              message: "Search term contains invalid characters."
+            });
+          }
+          whereCondition.OR = [
+              { title: { contains: trimmedSearch, mode: "insensitive" } },
+              { description: { contains: trimmedSearch, mode: "insensitive" } }
+            ];
+          }
+    // TASK 2.5 : DAYNAMIC SORTING 
+    let orderByCondition = { createdAt: "desc" };
+    if (sort === "date"){
+      const sortOrder = order === "asc" ? "asc" : "desc";
+      orderByCondition = { createdAt: sortOrder };
+    }
+    
+    // 3. Exécution parallèle de la requête de données et du comptage total 
     const [reports, totalReports] = await Promise.all([
       prisma.report.findMany({
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
+        where: whereCondition,
+        skip: skip,
+        take: limitNum,
+        orderBy: orderByCondition,
         include: {
           category: true,
           user: { select: { name: true, email: true } },
         },
       }),
-      prisma.report.count(),
+      prisma.report.count({
+        where: whereCondition,
+      }),
     ]);
 
-    res.status(200).json({
-      status: "success",
-      results: reports.length,
-      metadata: {
-        total: totalReports,
-        page,
-        totalPages: Math.ceil(totalReports / limit),
-      },
-      data: reports,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch reports",
-      details: error.message,
-    });
-  }
-};
+    // GEOLOCATION LOGIC
+
+    let finalData = reports;
+    // If coordinates are provided, calculate distance for each report
+    if (user_lat && user_lng) {      
+        const lat = parseFloat(user_lat);
+        const lng = parseFloat(user_lng);
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          finalData = reports.map(report => {
+            const distance = calculateDistance(
+              lat,
+              lng,
+              report.latitude,
+              report.longitude
+            );
+            return { ...report, distance };
+          });
+          // If sorting by distance is requested
+          if (sort === "distance") {
+            finalData.sort((a, b) => {
+              return order === "desc" ? b.distance - a.distance : a.distance - b.distance;
+            });
+          }
+        }
+      }
+          res.status(200).json({
+            status: "success",
+            results: finalData.length,
+            metadata: {
+              total: totalReports,
+              page: pageNum,
+              totalPages: Math.ceil(totalReports / limitNum),
+            },
+            data: finalData,
+          });
+        } catch (error) {
+          res.status(500).json({
+            status: "error",
+            message: "Failed to fetch reports with distance calculation",
+            details: error.message,
+          });
+        }
+    };
+    
 
 const getReportById = async (req, res) => {
   try {
-    // Validate ID format
     const { id } = req.params;
-    // Fetch report with related category, user, and comments
+    // FIXED: Cleaned up the nested includes and braces
     const report = await prisma.report.findUnique({
       where: { id: parseInt(id) },
       include: {
-      category: true,
-      user: { select: { name: true, email: true } },
-      comments: {
-        include: {
-          user: { select: { name: true, email: true } },
-    },
-  },
-}
-
+        category: true,
+        user: { select: { name: true, email: true } },
+        comments: {
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+        },
+      }
     });
+
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
     }
@@ -95,7 +231,8 @@ const getReportById = async (req, res) => {
       data: report
     });
 
-  } catch (error) {    res.status(500).json({
+  } catch (error) {
+    res.status(500).json({
       status: "error",
       message: "Failed to fetch report",
       details: error.message,
@@ -108,7 +245,6 @@ const updateReport = async (req, res) => {
     const { id } = req.params;
     const { title, description, categoryId } = req.body || {};
 
-    // 1. Find the report to check ownership
     const existingReport = await prisma.report.findUnique({
       where: { id: parseInt(id) } 
     });
@@ -117,7 +253,6 @@ const updateReport = async (req, res) => {
       return res.status(404).json({ message: "Report not found" });
     }
 
-    // 2. Authorization Check: Is the user the citizen OR an admin?
     const isOwner = existingReport.userId === req.user.id;
     const isAdmin = req.user.role === 'ADMIN';
     if (!isOwner && !isAdmin) {
@@ -126,7 +261,7 @@ const updateReport = async (req, res) => {
         message: "You do not have permission to modify this report"
       });
     }
-    // 3. Perform the Update
+
     const updatedReport = await prisma.report.update({
       where: { id: parseInt(id) },
       data: {
@@ -155,17 +290,16 @@ const updateReport = async (req, res) => {
 const deleteReport = async (req, res) => {
   try {
     const { id } = req.params;
-
     const reportId = parseInt(id);
 
-    // 1.Verify report exists
     const existingReport = await prisma.report.findUnique({
       where: { id: reportId }
     });
     if (!existingReport) {
       return res.status(404).json({ message: "Report not found" });
     }
-    // 2.Supression des donnees associees 
+
+    // Deleting associated data within a transaction
     await prisma.$transaction([
       prisma.comment.deleteMany({ where: { reportId } }),
       prisma.report.delete({ where: { id: reportId } })
@@ -182,12 +316,50 @@ const deleteReport = async (req, res) => {
       details: error.message,
     });
   }
-}
+};
+
+const updateStatusByMagicLink = async (req, res) => {
+    const { id, secret, status } = req.query;
+    try {
+        const report = await prisma.report.findFirst({
+            where: {
+                id: parseInt(id),
+                accessSecret: secret
+            }
+        });
+
+        if (!report) {
+            return res.status(403).send("<h1>Invalid Link</h1><p>This update link is no longer valid or has expired.</p>");
+        }
+
+        const updateData = { status: status };
+        if (status === 'RESOLVED') {
+            updateData.resolvedAt = new Date();
+        }
+
+        await prisma.report.update({
+            where: { id: parseInt(id) },
+            data: updateData
+        });
+
+        res.send(`
+            <div style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+                <h1 style="color: #059669;">Status Updated Successfully!</h1>
+                <p>Report #${id} is now marked as: <strong>${status}</strong>.</p>
+                <p>You can now close this tab.</p>
+            </div>
+        `);
+    } catch (error) {
+        console.error("Magic Link Update Error:", error);
+        res.status(500).send("An error occurred while updating the status.");
+    }
+};
 
 module.exports = {
     createReport, 
     getAllReports,
     getReportById,
     updateReport,
-    deleteReport
+    deleteReport,
+    updateStatusByMagicLink
 };
