@@ -1,9 +1,9 @@
 import { View, Text } from 'react-native';
 
-export default function ReportCard() {
+export default function MainFeedScreen() {
   return (
     <View>
-      <Text>Report Card</Text>
+      <Text>Main Feed Screen</Text>
     </View>
   );
 }
