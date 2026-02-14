@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
+const crypto = require('crypto');
 
 const prisma = new PrismaClient();
 
@@ -14,6 +15,12 @@ const createReport = async (req, res) => {
     
     const photoUrl = `/uploads/${req.file.filename}`;
 
+    const secret = crypto.randomUUID();
+    
+    const expiration = new Date();
+    expiration.setHours(expiration.getHours()+24);
+
+
     const report = await prisma.report.create({
       data: {
         title,
@@ -23,6 +30,8 @@ const createReport = async (req, res) => {
         categoryId: parseInt(categoryId),
         userId: req.user.id,
         photoUrl,
+        accessSecret: secret,
+        expiresAt: expiration,
       },
       include: {
         category: {
@@ -297,10 +306,18 @@ const updateStatusByMagicLink = async (req, res) => {
         });
 
         if (!report) {
-            return res.status(403).send("<h1>Invalid Link</h1><p>This update link is no longer valid or has expired.</p>");
+            return res.status(403).send("<h1>Invalid Link</h1><p>This link is no longer valid or has already been used.</p>");
         }
 
-        const updateData = { status: status };
+        if (new Date() > report.expiresAt) {
+            return res.status(403).send("<h1>Expired Link</h1><p>This link has expired (24h limit).</p>");
+        }
+
+        const updateData = { 
+          status: status,
+          accessSecret: null
+        };
+
         if (status === 'RESOLVED') {
             updateData.resolvedAt = new Date();
         }

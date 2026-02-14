@@ -51,6 +51,7 @@ model Report {
   // This random string is generated when report is created.
   // The email link will look like: mysite.com/api/resolve?id=1&secret=abc-123-xyz
   accessSecret String      @default(uuid())
+  expiresAt    DateTime?
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
