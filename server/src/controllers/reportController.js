@@ -246,69 +246,71 @@ const getNearbyReports = async (req, res) => {
   try {
     const { latitude, longitude, radius, category_id } = req.query;
 
-    // 1. Validation des coordonnées
-    if (!latitude || !longitude ) {
-      return res.status(400).json({
-        status: "error",
-        message: "Latitude and longitude are required" 
-      });
+    // 1. Validation
+    if (!latitude || !longitude) {
+      return res.status(400).json({ status: "error", message: "Coordinates required" });
     }
+
     const userLat = parseFloat(latitude);
     const userLng = parseFloat(longitude);
-    if (isNaN(userLat) || isNaN(userLng)) {
-      return res.status(400).json({
-        status: "error",
-        message: "latitude and longitude must be valid numbers"
-      });
-    }    
-    // Raduis validation (we put limite max reduis for performance reason)
-    const searchRadius =Math.min(Math.max(parseFloat(radius) || 5, 1), 100); // Default 5km, min 100m, max 100km
-    // now Min 1km , Max 100km 
+    
+    // limited in Min 1km, Max 100km ( Protects server performance)
+    const searchRadius = Math.min(Math.max(parseFloat(radius) || 5, 1), 100);
 
-    // 2. build Where condition for non-resolved reports and optional category filter
+    // 2. Bounding Box Calculation (The "Magic" Optimization)
+    // 1 degree of latitude is ~111km. 
+    const latDelta = searchRadius / 111;
+    const lngDelta = searchRadius / (111 * Math.cos(userLat * (Math.PI / 180)));
+
+    // 3. Build optimized WHERE condition
     const whereCondition = {
       status: { not: "RESOLVED" },
+      // The Database uses the index on these two lines:
+      latitude: { gte: userLat - latDelta, lte: userLat + latDelta },
+      longitude: { gte: userLng - lngDelta, lte: userLng + lngDelta },
     };
 
     if (category_id) {
       const categoryIdNum = parseInt(category_id);
-      if (!isNaN(categoryIdNum)) {
-        whereCondition.categoryId = categoryIdNum;
-      }
+      if (!isNaN(categoryIdNum)) whereCondition.categoryId = categoryIdNum;
     }
-    // 3. Fetch Report
-      const reports = await prisma.report.findMany({
-        where: whereCondition,
-        include: {
-          category: true,
-          user: { select: { name: true } }
-        }
-      });
-      //  4. Distance Calculation
-      const nearbyReports = reports.map(report => {
-        const distance = calculateDistance(
-          userLat,
-          userLng,
-          report.latitude,
-          report.longitude
-        );
-        return { ...report, distance };
-      }).filter(report => report.distance <= searchRadius)
-      .sort((a, b) => a.distance - b.distance);;
 
-      // 5. Response
-      res.status(200).json({
-        status: "success",
-        results: nearbyReports.length,
-        data: nearbyReports
-      });
-    } catch (error) {
-      res.status(500).json({
-        status: "error",
-        message: "Failed to fetch nearby reports",
-        details: error.message,
-      });
-    }
+    // 4. Fetch only relevant reports
+    const reports = await prisma.report.findMany({
+      where: whereCondition,
+      include: {
+        category: true,
+        user: { select: { name: true } }
+      }
+    });
+
+    // 5. Precise Haversine Calculation (Final Polish)
+    // The Database gave us a "Square", now we filter for a "Circle" and sort
+    const nearbyReports = reports
+      .map(report => {
+        const distance = calculateDistance(userLat, userLng, report.latitude, report.longitude);
+        return { ...report, distance };
+      })
+      .filter(report => report.distance <= searchRadius)
+      .sort((a, b) => a.distance - b.distance);
+
+    res.status(200).json({
+      status: "success",
+      results: nearbyReports.length,
+      metadata: {
+        radius_used: `${searchRadius}km`,
+        center: { userLat, userLng }
+      },
+      data: nearbyReports
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch nearby reports",
+      details: error.message
+    });
+  }
 };
 
 const updateReport = async (req, res) => {
