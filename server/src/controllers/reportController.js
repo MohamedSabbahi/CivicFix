@@ -52,6 +52,7 @@ const createReport = async (req, res) => {
 const getAllReports = async (req, res) => {
   try {
     // 1. Extraction propre des paramètres (destructuring)
+
     const { category_id, status, date_debut,
             date_fin, search, sort, order ,
             user_lat, user_lng , page, limit }
@@ -131,6 +132,7 @@ const getAllReports = async (req, res) => {
               message: "Search term contains invalid characters."
             });
           }
+
           whereCondition.AND = [{
           OR: [
           { title: { contains: trimmedSearch, mode: "insensitive" } },
@@ -144,7 +146,6 @@ const getAllReports = async (req, res) => {
       const sortOrder = order === "asc" ? "asc" : "desc";
       orderByCondition = { createdAt: sortOrder };
     }
-    
     // 3. Exécution parallèle de la requête de données et du comptage total 
     const [reports, totalReports] = await Promise.all([
       prisma.report.findMany({
@@ -427,7 +428,6 @@ const updateStatusByMagicLink = async (req, res) => {
         res.status(500).send("An error occurred while updating the status.");
     }
 };
-
 
 
 module.exports = {
