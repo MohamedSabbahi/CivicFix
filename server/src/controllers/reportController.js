@@ -16,10 +16,6 @@ const createReport = async (req, res) => {
     const photoUrl = `/uploads/${req.file.filename}`;
 
     const secret = crypto.randomUUID();
-    
-    const expiration = new Date();
-    expiration.setHours(expiration.getHours()+24);
-
 
     const report = await prisma.report.create({
       data: {
@@ -31,7 +27,6 @@ const createReport = async (req, res) => {
         userId: req.user.id,
         photoUrl,
         accessSecret: secret,
-        expiresAt: expiration,
       },
       include: {
         category: {
@@ -297,6 +292,7 @@ const deleteReport = async (req, res) => {
 
 const updateStatusByMagicLink = async (req, res) => {
     const { id, secret, status } = req.query;
+
     try {
         const report = await prisma.report.findFirst({
             where: {
@@ -309,17 +305,13 @@ const updateStatusByMagicLink = async (req, res) => {
             return res.status(403).send("<h1>Invalid Link</h1><p>This link is no longer valid or has already been used.</p>");
         }
 
-        if (new Date() > report.expiresAt) {
-            return res.status(403).send("<h1>Expired Link</h1><p>This link has expired (24h limit).</p>");
-        }
-
         const updateData = { 
           status: status,
-          accessSecret: null
         };
 
         if (status === 'RESOLVED') {
             updateData.resolvedAt = new Date();
+            updateData.accessSecret = null; 
         }
 
         await prisma.report.update({
