@@ -9,7 +9,9 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(cors());
 app.use(morgan('dev'));
 
@@ -21,6 +23,9 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use(express.json());
+
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // Define routes here
 app.get('/', (req, res) => {

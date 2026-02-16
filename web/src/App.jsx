@@ -1,35 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './features/auth/pages/Login';
+
+/**
+ * ???????????????????????????
+ */
+const PrivateRoute = ({ children }) => {
+  const isAuthenticated = !!localStorage.getItem('token');
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+// Placeholder components 
+const Home = () => <div className="p-8 text-2xl font-bold">Dashboard / Home (Protected)</div>;
+const Register = () => <div className="p-8"><h1>Register Page</h1></div>;
+const Reports = () => <div className="p-8"><h1>Reports List</h1></div>;
+const ReportDetail = () => <div className="p-8"><h1>Report Details</h1></div>;
+const CreateReport = () => <div className="p-8"><h1>Create New Report</h1></div>;
+const NotFound = () => <div className="p-8 text-red-500"><h1>404 - Page Not Found</h1></div>;
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <BrowserRouter>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Protected Routes: Wrapped in PrivateRoute */}
+        <Route 
+          path="/" 
+          element={<PrivateRoute><Home /></PrivateRoute>} 
+        />
+        <Route 
+          path="/reports" 
+          element={<PrivateRoute><Reports /></PrivateRoute>} 
+        />
+        <Route 
+          path="/reports/:id" 
+          element={<PrivateRoute><ReportDetail /></PrivateRoute>} 
+        />
+        <Route 
+          path="/create-report" 
+          element={<PrivateRoute><CreateReport /></PrivateRoute>} 
+        />
+
+        {/* Fallback Routes */}
+        <Route path="/404" element={<NotFound />} />
+        <Route path="*" element={<Navigate to="/404" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
