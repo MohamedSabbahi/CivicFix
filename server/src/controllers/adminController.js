@@ -67,7 +67,7 @@ const getDepartmentStats = async (req, res) => {
 
 const getOverviewStats = async (req, res) => {
     try {
-        // 1. عدد التقارير حسب الحالة
+
         const statusCounts = await prisma.report.groupBy({
             by: ['status'],
             _count: true
@@ -78,13 +78,13 @@ const getOverviewStats = async (req, res) => {
         const inProgressReports = statusCounts.find(s => s.status === 'IN_PROGRESS')?._count || 0;
         const resolvedReports = statusCounts.find(s => s.status === 'RESOLVED')?._count || 0;
 
-        // 2. عدد المستخدمين
+
         const totalUsers = await prisma.user.count();
         const citizensCount = await prisma.user.count({ 
             where: { role: 'CITIZEN' } 
         });
 
-        // 3. التقارير المحلولة
+
         const resolvedWithTime = await prisma.report.findMany({
             where: {
                 status: 'RESOLVED',
@@ -96,7 +96,7 @@ const getOverviewStats = async (req, res) => {
             }
         });
 
-        // 4. حساب متوسط الوقت العام
+
         let overallAvgHours = 0;
         if (resolvedWithTime.length > 0) {
             const totalTime = resolvedWithTime.reduce((sum, r) => {

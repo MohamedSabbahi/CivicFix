@@ -59,7 +59,7 @@ model Report {
   user         User         @relation(fields: [userId], references: [id])
   
   categoryId   Int
-  // Correction : Ajout de onDelete: Cascade ici pour supprimer les rapports si la catégorie disparait
+
   category     Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   
   comments     Comment[]
@@ -77,7 +77,7 @@ model Category {
   name         String
   
   departmentId Int
-  // Correction : Bien relié au département avec Cascade
+
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   
   reports      Report[]
@@ -89,8 +89,7 @@ model Department {
   name       String
   email      String     @unique
   
-  // Correction : Un département possède plusieurs catégories (Liste)
-  // On ne met pas de categoryId ici, c'est Category qui détient la clé étrangère
+
   categories Category[] 
 }
 
@@ -104,6 +103,6 @@ model Comment {
   user      User     @relation(fields: [userId], references: [id])
   
   reportId  Int
-  // Optionnel : Ajout de Cascade ici pour nettoyer les commentaires si le rapport est supprimé
+
   report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
 }
