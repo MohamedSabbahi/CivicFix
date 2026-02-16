@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/authRoutes');
 const reportRoutes = require('./routes/reportRoutes');
-
+const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
 
@@ -37,5 +37,6 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/admin', adminRoutes); 
 
 module.exports = app;

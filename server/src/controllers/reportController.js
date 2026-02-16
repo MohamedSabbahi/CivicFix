@@ -4,6 +4,7 @@ const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 const { calculateDistance } = require('../utils/geoUtils');
 const { parse } = require('path');
+const crypto = require('crypto');
 const prisma = new PrismaClient();
 
 const createReport = async (req, res) => {
@@ -16,6 +17,8 @@ const createReport = async (req, res) => {
     
     const photoUrl = `/uploads/${req.file.filename}`;
 
+    const secret = crypto.randomUUID();
+
     const report = await prisma.report.create({
       data: {
         title,
@@ -25,6 +28,7 @@ const createReport = async (req, res) => {
         categoryId: parseInt(categoryId),
         userId: req.user.id,
         photoUrl,
+        accessSecret: secret,
       },
       include: {
         category: {
@@ -394,6 +398,7 @@ const deleteReport = async (req, res) => {
 
 const updateStatusByMagicLink = async (req, res) => {
     const { id, secret, status } = req.query;
+
     try {
         const report = await prisma.report.findFirst({
             where: {
@@ -403,12 +408,16 @@ const updateStatusByMagicLink = async (req, res) => {
         });
 
         if (!report) {
-            return res.status(403).send("<h1>Invalid Link</h1><p>This update link is no longer valid or has expired.</p>");
+            return res.status(403).send("<h1>Invalid Link</h1><p>This link is no longer valid or has already been used.</p>");
         }
 
-        const updateData = { status: status };
+        const updateData = { 
+          status: status,
+        };
+
         if (status === 'RESOLVED') {
             updateData.resolvedAt = new Date();
+            updateData.accessSecret = null; 
         }
 
         await prisma.report.update({
