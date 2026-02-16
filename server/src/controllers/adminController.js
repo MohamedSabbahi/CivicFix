@@ -106,12 +106,10 @@ const getOverviewStats = async (req, res) => {
             overallAvgHours = (avgMs / (1000 * 60 * 60)).toFixed(2);
         }
 
-        // 5. معدل الحل
         const resolutionRate = totalReports > 0 
             ? ((resolvedReports / totalReports) * 100).toFixed(2) 
             : '0.00';
 
-        // 6. التقارير اليوم
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayReports = await prisma.report.count({
@@ -144,4 +142,90 @@ const getOverviewStats = async (req, res) => {
     }
 };
 
-module.exports = { getDepartmentStats , getOverviewStats};
+const addDepartment = async (req, res) => {
+    try {
+        const { name, email, categories } = req.body;
+
+        if (!name || !email) {
+            return res.status(400).json({ error: "Le nom et l'email sont obligatoires" });
+        }
+
+        const department = await prisma.department.upsert({
+            where: { email: email },
+            update: { name: name },
+            create: {
+                name: name,
+                email: email
+            }
+        });
+
+        if (categories && Array.isArray(categories)) {
+            for (const catName of categories) {
+                const existingCategory = await prisma.category.findFirst({
+                    where: { 
+                        name: catName, 
+                        departmentId: department.id 
+                    }
+                });
+
+                if (!existingCategory) {
+                    await prisma.category.create({
+                        data: {
+                            name: catName,
+                            departmentId: department.id
+                        }
+                    });
+                }
+            }
+        }
+
+        res.status(201).json({ 
+            status: "success", 
+            message: "Département configuré avec succès",
+            data: department 
+        });
+
+    } catch (error) {
+        console.error("Erreur addDepartment:", error);
+        res.status(500).json({ error: "Erreur serveur lors de la configuration du département" });
+    }
+};
+
+// --- 2. Supprimer un Département ---
+const deleteDepartment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deptId = parseInt(id);
+
+        // ÉTAPE 1 : Supprimer tous les rapports liés aux catégories de ce département
+        await prisma.report.deleteMany({
+            where: {
+                category: {
+                    departmentId: deptId
+                }
+            }
+        });
+
+        // ÉTAPE 2 : Supprimer les catégories
+        await prisma.category.deleteMany({
+            where: { departmentId: deptId }
+        });
+
+        // ÉTAPE 3 : Supprimer le département
+        await prisma.department.delete({
+            where: { id: deptId }
+        });
+
+        res.status(200).json({ 
+            status: "success", 
+            message: "Department and all related data deleted successfully" 
+        });
+
+    } catch (error) {
+        console.error("Delete Error:", error);
+        res.status(500).json({ error: "Server error during deletion. Ensure the ID is correct." });
+    }
+};
+
+module.exports = { getDepartmentStats , getOverviewStats , addDepartment,
+    deleteDepartment};

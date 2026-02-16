@@ -8,7 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 1. Enums (Better than strings)
+// 1. Enums
 enum Role {
   CITIZEN
   ADMIN
@@ -22,65 +22,63 @@ enum ReportStatus {
 
 // 2. User Model
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String   // Made required as requested
-  role      Role     @default(CITIZEN)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  password     String
+  name         String
+  role         Role      @default(CITIZEN)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  resetPasswordToken String?  // For "Forgot Password" flow
-  resetPasswordExpires DateTime? // Token expiration time
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
   
-  reports   Report[]
-  comments  Comment[]
+  reports      Report[]
+  comments     Comment[]
 }
 
 // 3. Report Model
 model Report {
-  id          Int          @id @default(autoincrement())
-  title       String
-  description String?      // Shown in the "SPA" detail view
-  photoUrl    String       // Made required (Main UI element)
-  latitude    Float
-  longitude   Float
-  status      ReportStatus @default(PENDING)
+  id           Int          @id @default(autoincrement())
+  title        String
+  description  String?
+  photoUrl     String
+  latitude     Float
+  longitude    Float
+  status       ReportStatus @default(PENDING)
   
-  // Security for "Magic Links"
-  // This random string is generated when report is created.
-  // The email link will look like: mysite.com/api/resolve?id=1&secret=abc-123-xyz
   accessSecret String?      @default(uuid())
   expiresAt    DateTime?
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  resolvedAt  DateTime? 
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  resolvedAt   DateTime? 
 
   // RELATIONS
-  userId      Int
-  user        User         @relation(fields: [userId], references: [id])
+  userId       Int
+  user         User         @relation(fields: [userId], references: [id])
   
-  categoryId  Int
-  category    Category     @relation(fields: [categoryId], references: [id])
+  categoryId   Int
+  // Correction : Ajout de onDelete: Cascade ici pour supprimer les rapports si la catégorie disparait
+  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   
-  comments    Comment[]
+  comments     Comment[]
 
-  // INDEXES (Optimized for your Search/Filter bars)
-  @@index([status])                 // Fast filtering by status
-  @@index([userId])                 // Fast "My Reports"
-  @@index([categoryId])             // Fast filtering by Category
-  @@index([latitude, longitude])    // Fast "Nearby" calculations
-  @@index([title])                  // Fast Search Bar lookups
+  @@index([status])
+  @@index([userId])
+  @@index([categoryId])
+  @@index([latitude, longitude])
+  @@index([title])
 }
 
-// 4. Category Model (The bridge between Report and Department)
+// 4. Category Model
 model Category {
   id           Int        @id @default(autoincrement())
-  name         String     // e.g., "Potholes", "Garbage", "Noise"
+  name         String
   
   departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id])
+  // Correction : Bien relié au département avec Cascade
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   
   reports      Report[]
 }
@@ -88,10 +86,12 @@ model Category {
 // 5. Department Model
 model Department {
   id         Int        @id @default(autoincrement())
-  name       String     // e.g., "Road Maintenance", "Sanitation"
-  email      String     @unique // Where the Nodemailer emails go
+  name       String
+  email      String     @unique
   
-  categories Category[] // One dept can handle multiple categories
+  // Correction : Un département possède plusieurs catégories (Liste)
+  // On ne met pas de categoryId ici, c'est Category qui détient la clé étrangère
+  categories Category[] 
 }
 
 // 6. Comment Model
@@ -104,5 +104,6 @@ model Comment {
   user      User     @relation(fields: [userId], references: [id])
   
   reportId  Int
-  report    Report   @relation(fields: [reportId], references: [id])
+  // Optionnel : Ajout de Cascade ici pour nettoyer les commentaires si le rapport est supprimé
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
 }
