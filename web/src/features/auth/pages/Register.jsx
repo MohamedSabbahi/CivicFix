@@ -36,11 +36,10 @@ const Register = () => {
             });
             navigate('/'); // Redirect to Map/Home
         } catch (err) {
-    console.error('Register Error:', err);
-    const message = err?.response?.data?.message || err.message || 'Registration failed';
-    setError(message);
-}
-finally {
+            console.error('Register Error:', err);
+            const message = err.message || 'Registration failed';
+            setError(message);
+        } finally {
             setIsLoading(false);
         }
     };
@@ -113,7 +112,7 @@ finally {
                             className="w-full bg-[#1e293b] border border-slate-700 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
                             onChange={handleChange}
                         />
-                        <p className="text-slate-500 text-[10px] mt-2">Must be at least 8 characters with one special character.</p>
+                        <p className="text-slate-500 text-[10px] mt-2">Must be at least 8 characters with 1 uppercase letter & 1 number.</p>
                     </div>
                     <button
                         type="submit"

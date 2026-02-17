@@ -14,6 +14,12 @@ const generateToken = (id) => {
 }
 
 exports.register = async (req, res) => {
+    // Check if there are validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
     try{
         const { name, email, password } = req.body;
 
@@ -35,11 +41,13 @@ exports.register = async (req, res) => {
         });
 
         res.status(201).json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role:user.role,
             token: generateToken(user.id),
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            }
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error during Registration' });
@@ -62,11 +70,13 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials'});
         }
         res.json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
             token: generateToken(user.id),
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            }
         });
         
     } catch (error) {

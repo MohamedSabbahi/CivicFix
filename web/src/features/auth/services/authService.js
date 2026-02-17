@@ -21,8 +21,13 @@ const authService = {
             }
             return response.data;
         } catch (error) {
-            // Throw the exact message from the backend
-            throw error.response?.data || { message: 'Login failed' };
+            // Handle validation error array from backend
+            if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+                const firstError = error.response.data.errors[0]?.msg;
+                throw new Error(firstError || 'Login failed');
+            }
+            const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+            throw new Error(errorMessage);
         }
     },
 
@@ -41,7 +46,13 @@ const authService = {
             }
             return response.data;
         } catch (error) {
-            throw error.response?.data || { message: 'Registration failed' };
+            // Handle validation error array from backend
+            if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+                const firstError = error.response.data.errors[0]?.msg;
+                throw new Error(firstError || 'Registration failed');
+            }
+            const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+            throw new Error(errorMessage);
         }
     },
 
