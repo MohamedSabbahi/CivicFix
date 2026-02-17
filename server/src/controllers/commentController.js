@@ -1,5 +1,4 @@
-const {PrismaClient} = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma');
 
 // Task 1 : Get all comments for a specific report
 const getReportComments = async (req, res) => {
