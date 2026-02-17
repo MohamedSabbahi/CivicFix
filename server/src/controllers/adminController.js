@@ -1,65 +1,34 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../utils/prisma');
 
 const getDepartmentStats = async (req, res) => {
     try {
-        // 1. Récupérer uniquement les rapports résolus avec les infos de département
-        const resolvedReports = await prisma.report.findMany({
-            where: {
-                status: 'RESOLVED',
-                resolvedAt: { not: null } // Sécurité supplémentaire
-            },
-            include: {
-                category: {
-                    include: { department: true }
-                }
-            }
-        });
+        // 1. Ask the Database for the final numbers directly
+        const stats = await prisma.$queryRaw`
+            SELECT 
+                d.name as department,
+                COUNT(r.id) as "resolvedReportsCount",
+                AVG(EXTRACT(EPOCH FROM (r."resolvedAt" - r."createdAt")) / 3600) as "averageResolutionTime"
+            FROM "Report" r
+            JOIN "Category" c ON r."categoryId" = c.id
+            JOIN "Department" d ON c."departmentId" = d.id
+            WHERE r.status = 'RESOLVED'
+            GROUP BY d.name;
+        `;
 
-        // 2. Organiser les données par département
-        const statsMap = {};
+        // 2. Format the numbers (BigInt to Number)
+        const formattedStats = stats.map(stat => ({
+            department: stat.department,
+            resolvedReportsCount: Number(stat.resolvedReportsCount),
+            averageResolutionTime: parseFloat(stat.averageResolutionTime).toFixed(2) + " hours",
+            reportsDetail: [] // Kept empty for performance
+        }));
 
-        resolvedReports.forEach(report => {
-            const deptName = report.category.department.name;
-            const timeDiff = new Date(report.resolvedAt) - new Date(report.createdAt); // Résultat en millisecondes
+        res.status(200).json(formattedStats);
 
-            const durationInHours = (timeDiff / (1000 * 60 * 60)).toFixed(2);
-
-            if (!statsMap[deptName]) {
-                statsMap[deptName] = { totalTime: 0, count: 0, individualReports: []};
-            }
-
-            statsMap[deptName].totalTime += timeDiff;
-            statsMap[deptName].count += 1;
-
-
-            statsMap[deptName].individualReports.push({
-                reportId: report.id,
-                title: report.title,
-                duration: `${durationInHours} hours`
-            });
-        });
-
-        // 3. Calculer la moyenne pour chaque département
-        const finalStats = Object.keys(statsMap).map(name => {
-            const averageMs = statsMap[name].totalTime / statsMap[name].count;
-            
-            // Convertir les millisecondes en format lisible (ex: Heures)
-            const averageHours = (averageMs / (1000 * 60 * 60)).toFixed(2);
-
-            return {
-                department: name,
-                resolvedReportsCount: statsMap[name].count,
-                averageResolutionTime: `${averageHours} hours`,
-                reportsDetail: statsMap[name].individualReports
-            };
-        });
-
-        res.status(200).json(finalStats);
     } catch (error) {
-        console.error("Stats Error:", error);
-        res.status(500).json({
-            message: "Erreur lors du calcul des statistiques" 
+        console.error("Stats Calculation Error:", error);
+        res.status(500).json({ 
+            message: "Failed to calculate department statistics" 
         });
     }
 };

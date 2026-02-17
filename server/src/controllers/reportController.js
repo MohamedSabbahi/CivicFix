@@ -1,11 +1,8 @@
-const { PrismaClient } = require('@prisma/client');
-const fs = require('fs');
+const prisma = require('../utils/prisma');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 const { calculateDistance } = require('../utils/geoUtils');
-const { parse } = require('path');
 const crypto = require('crypto');
-const prisma = new PrismaClient();
 
 const createReport = async (req, res) => {
   if (!req.file) {
@@ -42,7 +39,8 @@ const createReport = async (req, res) => {
     // Automated Dispatch Logic
     const links = generateMagicLinks(report);
     if (report.category?.department?.email) {
-        await sendStatusEmail(report.category.department.email, report, links);
+        sendStatusEmail(report.category.department.email, report, links)
+            .catch(err => console.error("Async Email Error:", err));
     }
 
     res.status(201).json(report);

@@ -1,11 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../utils/prisma');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 
-const prisma = new PrismaClient();
 
 const generateToken = (id) => {
     return jwt.sign({id}, process.env.JWT_SECRET, {
@@ -142,7 +141,7 @@ exports.forgotPassword = async (req, res) => {
       return res.status(500).json({ message: 'Email could not be sent' });
     }
   } catch (err) {
-    console.error(err);
+    console.error("Forgot PW Error:", err);
     res.status(500).json({ message: 'Server Error' });
   }
 };
@@ -166,7 +165,7 @@ exports.resetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid token' });
+      return res.status(400).json({ message: 'Invalid token or expired token' });
     }
 
     // 3. Set new password
@@ -186,7 +185,7 @@ exports.resetPassword = async (req, res) => {
 
     res.status(200).json({ success: true, data: 'Password updated successfully' });
   } catch (err) {
-    console.error(err);
+    console.error("Reset Password Error:", err);
     res.status(500).json({ message: 'Server Error' });
   }
 };
