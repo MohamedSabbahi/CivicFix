@@ -1,7 +1,5 @@
 const multer = require('multer');
-//multer is a middleware for handling multipart/form-data, which is primarily used for uploading files. It makes it easy to handle file uploads in Node.js applications. In this code, we are configuring multer to store uploaded files on disk and to filter the uploaded files to only allow images. We also set a file size limit of 5MB.
 const path = require('path');
-// The 'path' module provides utilities for working with file and directory paths. We use it here to ensure that the uploaded files have the correct file extension when we save them to disk.
 const fs = require('fs');
 
 const storage = multer.diskStorage({
