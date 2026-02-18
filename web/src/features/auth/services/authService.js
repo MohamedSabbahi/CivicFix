@@ -10,7 +10,6 @@ const authService = {
                 ...credentials,
                 email: credentials.email.trim().toLowerCase()
             };
-
             const response = await api.post('/auth/login', sanitizedData);
             const { token, user } = response.data;
             
