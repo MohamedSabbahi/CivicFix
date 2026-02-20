@@ -1,23 +1,30 @@
-// App.js
 import "./global.css"; // KEEP THIS (NativeWind)
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
+import { View, Text } from 'react-native'; // 1. Added these imports
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useColorScheme } from 'nativewind'; // 2. Added NativeWind hook
+
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 
 // Import Screens
 import LoginScreen from './src/screens/auth/LoginScreen';
-// import RegisterScreen from './src/screens/auth/RegisterScreen'; (Create this similar to Login)
-// import HomeScreen from './src/screens/feed/MainFeedScreen';
+import RegisterScreen from './src/screens/auth/RegisterScreen'; // 3. Uncommented this
 
 const Stack = createNativeStackNavigator();
 
 // This component decides which stack to show
 const AppNav = () => {
   const { userToken, isLoading } = useContext(AuthContext);
+  const { setColorScheme } = useColorScheme();
+
+  useEffect(() => {
+    // 4. Force NativeWind into dark mode on boot
+    setColorScheme('dark');
+  }, []);
 
   if (isLoading) {
-    // You can put a splash screen here
+    // You can put a splash screen or an ActivityIndicator here later
     return null; 
   }
 
@@ -27,13 +34,18 @@ const AppNav = () => {
         {userToken !== null ? (
             // User is Logged In
              <Stack.Screen name="Home">
-                 {() => <View><Text>Home Screen Placeholder</Text></View>} 
+                 {/* Styled the placeholder so you can actually see it in dark mode! */}
+                 {() => (
+                   <View className="flex-1 items-center justify-center bg-background-dark">
+                     <Text className="text-white text-xl">Home Screen Placeholder</Text>
+                   </View>
+                 )} 
              </Stack.Screen>
         ) : (
             // User is NOT Logged In
             <Stack.Group>
                 <Stack.Screen name="Login" component={LoginScreen} />
-                {/* <Stack.Screen name="Register" component={RegisterScreen} /> */}
+                <Stack.Screen name="Register" component={RegisterScreen} />
             </Stack.Group>
         )}
       </Stack.Navigator>

@@ -59,6 +59,25 @@ describe('Auth Controller Tests', () => {
       expect(response.body.message).toBe('User already exists');
     });
 
+    it('should return 400 if there are validation errors (e.g., weak password)', async () => {
+      // 1. Temporarily override the mock to simulate a validation error
+      const { validationResult } = require('express-validator');
+      validationResult.mockReturnValueOnce({
+        isEmpty: () => false,
+        array: () => [{ msg: 'Password must be 8+ characters, with at least 1 uppercase and 1 number', param: 'password' }]
+      });
+
+      // 2. Make the request
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({ name: 'Test', email: 'test@test.com', password: 'weak' });
+
+      // 3. Assertions
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toBeDefined();
+      expect(response.body.errors[0].msg).toBe('Password must be 8+ characters, with at least 1 uppercase and 1 number');
+    });
+
     it('should hash password and create user', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue({

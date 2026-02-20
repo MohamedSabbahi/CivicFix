@@ -1,6 +1,6 @@
-// src/screens/auth/LoginScreen.js
 import React, { useContext, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from '../../context/AuthContext'; // Import the logic we just made
 
 export default function LoginScreen({ navigation }) {
@@ -9,7 +9,7 @@ export default function LoginScreen({ navigation }) {
   const { login, isLoading } = useContext(AuthContext);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100 justify-center px-6">
+    <SafeAreaView className="flex-1 bg-background-dark justify-center px-6">
       
       <View className="items-center mb-10">
         <Text className="text-3xl font-bold text-blue-600">CivicFix</Text>
