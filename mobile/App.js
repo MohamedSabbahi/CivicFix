@@ -1,10 +1,9 @@
-import "./global.css"; // KEEP THIS (NativeWind)
+import "./global.css";
 import React, { useContext, useEffect } from 'react';
-import { View, Text } from 'react-native'; // 1. Added these imports
+import { View, Text } from 'react-native'; 
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useColorScheme } from 'nativewind'; // 2. Added NativeWind hook
-
+import { useColorScheme } from 'nativewind'; 
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 
 // Import Screens
