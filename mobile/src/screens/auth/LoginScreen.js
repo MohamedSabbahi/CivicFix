@@ -71,7 +71,10 @@ export default function LoginScreen({ navigation }) {
         </View>
 
         {/* ── Forgot Password ── */}
-        <TouchableOpacity className="self-end mt-2">
+        <TouchableOpacity 
+          className="self-end mt-2"
+          onPress={() => navigation.navigate('ForgotPassword')} // Add this exact line!
+        >
           <Text className="text-primary text-sm font-medium">Forgot Password?</Text>
         </TouchableOpacity>
 

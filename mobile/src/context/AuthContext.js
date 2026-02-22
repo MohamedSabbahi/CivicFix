@@ -8,21 +8,27 @@ export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSplashLoading, setIsSplashLoading] = useState(true);
 
   // Check if user is already logged in when app starts
   const isLoggedIn = async () => {
     try {
+      setIsSplashLoading(true);
       setIsLoading(true);
       let token = await SecureStore.getItemAsync('userToken');
       let userInfo = await SecureStore.getItemAsync('userInfo');
 
       if (token) {
         setUserToken(token);
-        setUserInfo(JSON.parse(userInfo));
+        if (userInfo) {
+            setUserInfo(JSON.parse(userInfo));
+        }
       }
-      setIsLoading(false);
     } catch (e) {
       console.log(`isLogged in error ${e}`);
+    } finally{
+      setIsLoading(false);
+      setIsSplashLoading(false);
     }
   };
 
@@ -85,7 +91,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ login, logout, register, isLoading, userToken, userInfo }}>
+    <AuthContext.Provider value={{ login, logout, register, isLoading, userToken, userInfo, isSplashLoading }}>
       {children}
     </AuthContext.Provider>
   );
