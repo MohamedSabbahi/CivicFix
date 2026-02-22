@@ -1,4 +1,5 @@
 import React from 'react';
+import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Login from './features/auth/pages/Login';
 import Register from './features/auth/pages/Register';
@@ -17,6 +18,17 @@ const NotFound = () => <div className="p-8 text-red-500"><h1>404 - Page Not Foun
 function App() {
   return (
     <BrowserRouter>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid #334155'
+          }
+        }}
+      />
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
