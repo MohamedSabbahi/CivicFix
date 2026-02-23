@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -29,7 +30,7 @@ const schema = z.object({
 const Register = () => {    
 
     const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const {
@@ -104,12 +105,10 @@ const Register = () => {
             </h2>
         </div>
 
-
         {/* Title */}
         <h1 className="text-3xl font-bold text-white mb-6">
             Create Account
         </h1>
-
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -151,7 +150,6 @@ const Register = () => {
             {...register("confirmPassword")}
             />
 
-
           {/* Submit */}
                 <button
             disabled={isLoading}
@@ -159,16 +157,12 @@ const Register = () => {
                 >
             {isLoading ? "Creating..." : "Create Account"}
                 </button>
-
-
           {/* Divider */}
             <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-px bg-slate-700"></div>
             <span className="text-slate-400 text-sm">OR</span>
             <div className="flex-1 h-px bg-slate-700"></div>
             </div>
-
-
           {/* Google Login */}
                 <button
             type="button"
@@ -182,10 +176,7 @@ const Register = () => {
             />
             Continue with Google
                 </button>
-
         </form>
-
-
         {/* Footer */}
         <p className="text-slate-400 text-sm mt-6 text-center">
             Already have an account?{" "}
@@ -193,7 +184,6 @@ const Register = () => {
             Login
             </Link>
         </p>
-
         </motion.div>
     </div>
     );
