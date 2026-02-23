@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
+
 import authService from '../services/authService';
+import AuthInput from '../../../components/ui/AuthInput';
+
 import bgImage from '../../../assets/background-CivicFix.img.png';
 
 const Login = () => {
@@ -8,7 +13,9 @@ const Login = () => {
     const [fieldErrors, setFieldErrors] = useState({});
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-
+    const [showPassword, setShowPassword] = useState(false);
+    const [remember, setRemember] = useState(false);
+    
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -16,21 +23,34 @@ const Login = () => {
     }, [navigate]);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-        if (fieldErrors[e.target.name]) {
-            setFieldErrors({ ...fieldErrors, [e.target.name]: '' });
+        const { name, value } = e.target;
+        setFormData({
+            ...formData,
+            [name] : name ==="email" ? value.trim() :value,
+        })
+        if (fieldErrors[name]) {
+            setFieldErrors({ ...fieldErrors, [name]:"" });
         }
-        if (error) setError('');
+        if (error) setError("");
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if(loading ) return ;
+        
         setFieldErrors({});
         setError('');
 
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const newErrors = {};
-        if (!formData.email.includes('@')) newErrors.email = 'Please enter a valid email';
-        if (!formData.password) newErrors.password = 'Password is required';
+
+        if(!emailRegex.test(formData.email.trim())){
+            newErrors.email = 'Please enter a valid email address';
+        }
+        if(!formData.password.trim()){
+            newErrors.password = 'Password is required';
+        }
 
         if (Object.keys(newErrors).length > 0) {
             setFieldErrors(newErrors);
@@ -39,157 +59,234 @@ const Login = () => {
 
         setLoading(true);
         try {
-            await authService.login(formData);
+        await authService.login({
+        email: formData.email,
+        password: formData.password,
+        remember,
+        });
+            toast.success("Welcome back 👋");
             navigate('/');
         } catch (err) {
-            setError(err.message || 'Login failed. Please check your credentials.');
+            const message =
+            err.response?.data?.message ||
+            err.message ||
+            "Login failed. Please check your credentials.";
+            toast.error(message);
+            setError(err.message);
         } finally {
             setLoading(false);
         }
     };
 
 return (
-    /* Change 1: Added h-screen and overflow-hidden to the main wrapper */
-    <div className="relative h-screen w-full bg-[#0a0f1d] overflow-hidden">
-        
-        {/* BACKGROUND LAYER */}
-        <div 
-            className="absolute inset-0 z-0"
-            style={{
-                backgroundImage: `url(${bgImage})`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center center',
-                backgroundSize: 'cover',
-                opacity: 0.5 
-            }}
-        />
 
-        {/* CONTENT WRAPPER - Change 2: Changed min-h-screen to h-full */}
-        <div className="relative z-10 h-full flex flex-col lg:flex-row">
-            
-            {/* LEFT SIDE — POSITIONED MID/TOP */}
-            <div className="hidden lg:flex lg:w-1/2 items-start justify-center p-12 pt-[12vh]">
-                <div className="max-w-md space-y-8">
-                    <div className="space-y-2">
-                        <h2 className="text-4xl font-bold text-white tracking-tight">
-                            Join CivicFix today
-                        </h2>
-                        <p className="text-slate-400 text-lg">
-                            Your tool for a better community
-                        </p>
-                    </div>
+<div className="relative h-screen w-full bg-[#0a0f1d] overflow-hidden">
 
-                    <ul className="space-y-6">
-                        <li className="flex items-center gap-4 group">
-                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/40">
-                                <span className="text-blue-400 text-sm font-bold">✓</span>
-                            </div>
-                            <p className="text-slate-200 text-lg">
-                                <span className="font-bold text-white">Report local</span> issues quickly and easily
-                            </p>
-                        </li>
-                        <li className="flex items-center gap-4 group">
-                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/40">
-                                <span className="text-blue-400 text-sm font-bold">✓</span>
-                            </div>
-                            <p className="text-slate-200 text-lg">
-                                Track the progress of your reports
-                            </p>
-                        </li>
-                        <li className="flex items-center gap-4 group">
-                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/40">
-                                <span className="text-blue-400 text-sm font-bold">✓</span>
-                            </div>
-                            <p className="text-slate-200 text-lg">
-                                Help improve your neighborhood
-                            </p>
-                        </li>
-                    </ul>
+    {/* BACKGROUND */}
+    <div
+        className="absolute inset-0 z-0"
+        style={{
+            backgroundImage: `url(${bgImage})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center center',
+            backgroundSize: 'cover',
+            opacity: 0.5
+        }}
+    />
 
-                    <div className="pt-8 opacity-40">
-                        <div className="w-32 h-1 bg-gradient-to-r from-blue-600 to-transparent rounded-full"></div>
-                    </div>
-                </div>
-            </div>
+    <div className="relative z-10 h-full flex flex-col lg:flex-row">
 
-            {/* RIGHT SIDE — LOGIN FORM */}
-            <div className="flex w-full lg:w-1/2 items-center justify-center px-6 py-8">
-                {/* Change 3: Slightly reduced padding (p-8 instead of p-10) to ensure it fits small screens */}
-                <div className="w-full max-w-md backdrop-blur-2xl bg-[#0b1220]/80 rounded-[2.5rem] p-8 lg:p-10 shadow-2xl border border-white/10 transition-all hover:border-white/20">
-                    
-                    <div className="text-center mb-8">
-                        <div className="bg-blue-600 p-4 rounded-2xl inline-flex mb-4 shadow-lg shadow-blue-600/40">
-                            <span className="text-white text-3xl">🏢</span>
-                        </div>
-                        <h1 className="text-3xl font-bold text-white tracking-tight mb-1">CivicFix</h1>
-                        <p className="text-slate-400 text-sm">Your tool for a better community</p>
-                        <h2 className="text-xl font-semibold text-white mt-6">Welcome Back</h2>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
-                            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl text-center">
-                                {error}
-                            </div>
-                        )}
-
-                        <div className="space-y-1">
-                            <label className="text-slate-400 text-xs uppercase font-bold tracking-widest ml-1">Email</label>
-                            <input
-                                name="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                className={`w-full bg-[#020617]/60 border ${
-                                    fieldErrors.email ? 'border-red-500' : 'border-slate-700'
-                                } text-white rounded-2xl px-5 py-3 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-600`}
-                                placeholder="name@example.com"
-                            />
-                            {fieldErrors.email && <p className="text-red-500 text-[10px] mt-1 ml-1">{fieldErrors.email}</p>}
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-slate-400 text-xs uppercase font-bold tracking-widest ml-1">Password</label>
-                            <input
-                                name="password"
-                                type="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                className={`w-full bg-[#020617]/60 border ${
-                                    fieldErrors.password ? 'border-red-500' : 'border-slate-700'
-                                } text-white rounded-2xl px-5 py-3 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-600`}
-                                placeholder="••••••••••••"
-                            />
-                            <div className="flex justify-end">
-                                <button type="button" className="text-blue-500 text-[11px] font-semibold hover:text-blue-400 transition">
-                                    Forgot password?
-                                </button>
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`w-full py-4 rounded-2xl font-bold text-white transition-all transform active:scale-95 mt-2 ${
-                                loading
-                                    ? 'bg-blue-800 opacity-70 cursor-not-allowed'
-                                    : 'bg-blue-600 hover:bg-blue-500 shadow-xl shadow-blue-600/40'
-                            }`}
-                        >
-                            {loading ? 'Connecting...' : 'Login'}
-                        </button>
-                    </form>
-
-                    <p className="text-center text-slate-500 text-xs mt-8 font-medium">
-                        Don’t have an account?{' '}
-                        <Link to="/register" className="text-blue-500 font-bold hover:text-blue-400 transition">
-                            Register
-                        </Link>
+        {/* LEFT SIDE */}
+        <div className="hidden lg:flex lg:w-1/2 items-start justify-center p-12 pt-[12vh]">
+            <div className="max-w-md space-y-8">
+                <div className="space-y-2">
+                    <h2 className="text-4xl font-bold text-white tracking-tight">
+                        Join CivicFix today
+                    </h2>
+                    <p className="text-slate-400 text-lg">
+                        Your tool for a better community
                     </p>
                 </div>
+
+                <ul className="space-y-6">
+                    <li className="flex items-center gap-4">
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/40">
+                            <span className="text-blue-400 text-sm font-bold">✓</span>
+                        </div>
+                        <p className="text-slate-200 text-lg">
+                            <span className="font-bold text-white">Report local</span> issues quickly
+                        </p>
+                    </li>
+
+                    <li className="flex items-center gap-4">
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/40">
+                            <span className="text-blue-400 text-sm font-bold">✓</span>
+                        </div>
+                        <p className="text-slate-200 text-lg">
+                            Track the progress of your reports
+                        </p>
+                    </li>
+
+                    <li className="flex items-center gap-4">
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/40">
+                            <span className="text-blue-400 text-sm font-bold">✓</span>
+                        </div>
+                        <p className="text-slate-200 text-lg">
+                            Help improve your neighborhood
+                        </p>
+                    </li>
+                </ul>
             </div>
         </div>
+
+
+        {/* RIGHT SIDE */}
+        <div className="flex w-full lg:w-1/2 items-center justify-center px-6 py-8">
+
+            <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="w-full max-w-md backdrop-blur-2xl bg-[#0b1220]/80 rounded-[2.5rem] p-8 lg:p-10 shadow-2xl border border-white/10 hover:border-white/20"
+            >
+
+                {/* HEADER */}
+                <div className="text-center mb-8">
+                    <div className="bg-blue-600 p-4 rounded-2xl inline-flex mb-4 shadow-lg shadow-blue-600/40">
+                        <span className="text-white text-3xl">🏢</span>
+                    </div>
+
+                    <h1 className="text-3xl font-bold text-white">CivicFix</h1>
+                    <p className="text-slate-400 text-sm">Your tool for a better community</p>
+                    <h2 className="text-xl font-semibold text-white mt-6">Welcome Back</h2>
+                </div>
+
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-xl text-center">
+                            {error}
+                        </div>
+                    )}
+
+                {/* EMAIL */}
+                <AuthInput
+                id="email"
+                label="Email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={fieldErrors.email}
+                placeholder="name@example.com"
+                disabled={loading}
+                autoComplete="email"
+                />
+
+                    {/* PASSWORD */}
+                    <AuthInput
+                id="password"
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={handleChange}
+                error={fieldErrors.password}
+                placeholder="••••••••"
+                disabled={loading}
+                autoComplete="current-password"
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(!showPassword)
+                    }
+                    className="text-slate-400"
+                    aria-label={
+                      showPassword
+                        ? "Hide password"
+                        : "Show password"
+                    }
+                  >
+                    {showPassword ? "🙈" : "👁️"}
+                  </button>
+                }
+            />
+
+            {/* Remember + Forgot */}
+            <div className="flex items-center justify-between text-xs">
+                <label className="flex items-center gap-2 text-slate-400">
+                <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) =>
+                    setRemember(e.target.checked)
+                    }
+                    className="accent-blue-600"
+                />
+                Remember me
+                </label>
+
+                <Link
+                to="/forgot-password"
+                className="text-blue-500 font-semibold hover:text-blue-400"
+                >
+                Forgot password?
+                </Link>
+            </div>
+
+              {/* Submit */}
+                <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-4 rounded-2xl font-bold text-white transition ${
+                loading
+                ? "bg-blue-800 opacity-70 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-500 shadow-xl shadow-blue-600/40"
+                }`}
+                >
+                {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                Connecting...
+                </span> ) : ("Login"
+                )}
+                </button>
+
+                    {/* DIVIDER */}
+                    <div className="flex items-center gap-3 my-4">
+                        <div className="flex-1 h-px bg-slate-700"></div>
+                        <span className="text-slate-400 text-sm">OR</span>
+                        <div className="flex-1 h-px bg-slate-700"></div>
+                    </div>
+
+
+                    {/* GOOGLE LOGIN */}
+                    <button
+                        type="button"
+                        className="w-full bg-white text-black py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition"
+                    >
+                        <img
+                            src="https://www.svgrepo.com/show/475656/google-color.svg"
+                            alt="google"
+                            className="w-5 h-5"
+                        />
+                        Continue with Google
+                    </button>
+                </form>
+                <p className="text-center text-slate-500 text-xs mt-8 font-medium">
+                    Don’t have an account?{' '}
+                    <Link
+                        to="/register"
+                        className="text-blue-500 font-bold hover:text-blue-400"
+                    >
+                        Register
+                    </Link>
+                </p>
+            </motion.div>
+        </div>
     </div>
+</div>
+
 );
 };
 

@@ -1,46 +1,59 @@
 import React from "react";
 
 const AuthInput = ({
+    id,
     label,
+    type = "text",
+    value,
+    onChange,
     error,
-    icon, 
+    placeholder,
+    disabled,
+    autoComplete,
     rightElement,
-    ...props
 }) => {
         return (
-    <div>
-            <label className="text-slate-400 text-xs font-bold mb-2 block">
+    <div className="space-y-1 relative">
+        <label
+        htmlFor={id}
+        className="text-slate-400 text-xs uppercase font-bold tracking-widest ml-1"
+        >
         {label}
-            </label>
-
-            <div className="relative">
-        {icon && (
-                <div className="absolute left-3 top-3 text-slate-400">
-            {icon}
-                </div>
-        )}
+        </label>
 
         <input
-                {...props}
-                className={`w-full bg-[#1e293b] border ${
-            error ? "border-red-500" : "border-slate-700"
-            } text-white rounded-xl px-4 py-3 ${
-            icon ? "pl-10" : ""
-            } focus:ring-2 focus:ring-blue-500 outline-none`}
+        id={id}
+        name={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        autoComplete={autoComplete}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
+        placeholder={placeholder}
+        className={`w-full bg-[#020617]/60 border ${
+        error ? "border-red-500" : "border-slate-700"
+        } text-white rounded-2xl px-5 py-3 pr-12 focus:ring-2 focus:ring-blue-500/50 outline-none`}
         />
 
         {rightElement && (
-            <div className="absolute right-3 top-3">
-            {rightElement}
-            </div>
-        )}
+        <div className="absolute right-4 top-[38px]">
+        {rightElement}
         </div>
+        )}
 
         {error && (
-        <p className="text-red-500 text-xs mt-1">{error}</p>
-        )}
+        <p
+        id={`${id}-error`}
+        role="alert"
+        className="text-red-500 text-[10px] mt-1 ml-1"
+        >
+        {error}
+        </p>
+    )}
     </div>
-    );
+);
 };
 
 export default AuthInput;

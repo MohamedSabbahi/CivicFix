@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 
 import authService from "../services/authService";
 import AuthInput from "../../../components/ui/AuthInput";
@@ -116,6 +117,7 @@ const Register = () => {
             <AuthInput
             label="Full Name"
             placeholder="John Doe"
+            icon={<User size={18} />}
             error={errors.name?.message}
             {...register("name")}
             />
@@ -123,13 +125,16 @@ const Register = () => {
             <AuthInput
             label="Email"
             placeholder="email@example.com"
+            icon={<Mail size={18} />}
             error={errors.email?.message}
             {...register("email")}
             />
 
             <AuthInput
             label="Password"
+            placeholder="••••••••••••"
             type={showPassword ? "text" : "password"}
+            icon={<Lock size={18} />}  
             error={errors.password?.message}
             {...register("password")}
             rightElement={
@@ -138,14 +143,16 @@ const Register = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="text-slate-400"
                 >
-                👁️
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
             }
             />
 
             <AuthInput
             label="Confirm Password"
+            placeholder="••••••••••••"
             type="password"
+            icon={<Lock size={18} />}
             error={errors.confirmPassword?.message}
             {...register("confirmPassword")}
             />
