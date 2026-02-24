@@ -5,6 +5,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../services/api';
 import ReportCard from '../../components/ReportCard';
 import { AuthContext } from '../../context/AuthContext';
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function MainFeedScreen({ navigation }){
 
@@ -14,11 +16,16 @@ export default function MainFeedScreen({ navigation }){
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isChatModalVisible, setIsChatModalVisible] = useState(false);
-    const [isSidebarVisible, setIsSidebarVisible] = useState(false); 
+    const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+    const [userLocation, setUserLocation] = useState(null);
 
-    const fetchReports = async () => {
+    const fetchReports = async (lat = null, lng = null) => {
         try{
-            const response = await api.get('/reports');
+            let endpoint = "/reports";
+            if (lat && lng) {
+                endpoint = `/reports/nearby?latitude=${lat}&longitude=${lng}&radius=15`;
+            }
+            const response = await api.get(endpoint);
             setReports(response.data.data);
         } catch (error) {
             console.error("Error fetching reports:", error);
@@ -28,14 +35,72 @@ export default function MainFeedScreen({ navigation }){
         }
     };
 
-useEffect(() => {
-    fetchReports();
-},[]);
+    const getPermissionsAndLoadFeed = async () => {
+        setIsLoading(true);
+        try {
+            // Ask for GPS permissions
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            
+            if (status !== 'granted') {
+                console.log('Permission to access location was denied');
+                // Fallback: Fetch general reports if they say no
+                await fetchReports(); 
+                return;
+            }
 
-const onRefresh = () => {
-    setIsRefreshing(true);
-    fetchReports();
-};
+            // Grab the actual coordinates
+            let locationData = await Location.getCurrentPositionAsync({});
+            setUserLocation(locationData.coords);
+
+            // Fetch reports, passing the coordinates to the API!
+            await fetchReports(locationData.coords.latitude, locationData.coords.longitude);
+
+        } catch (error) {
+            console.error("Location error:", error);
+            await fetchReports(); // Fallback on error
+        }
+    };
+
+    const handleCreateReportFlow = async () => {
+        // 1. Ask for Camera Permissions
+        const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+        if (cameraStatus !== 'granted') {
+            alert('We need camera permissions to capture the issue.');
+            return;
+        }
+
+        // 2. Launch the Native Camera with 0.4 compression for the 5MB limit
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'], 
+            quality: 0.4, 
+        });
+
+        // 3. If they took a picture, navigate to the next screen!
+        if (!result.canceled) {
+            navigation.navigate('CreateReport', { 
+                photoUri: result.assets[0].uri,
+                latitude: userLocation?.latitude,
+                longitude: userLocation?.longitude
+            });
+        }
+    };
+
+// Change this to call the new function instead of fetchReports()
+    useEffect(() => {
+        getPermissionsAndLoadFeed();
+    }, []);
+
+    // Update this to use the saved location
+    const onRefresh = () => {
+        setIsRefreshing(true);
+        if (userLocation) {
+            // Re-fetch using the coordinates we already have
+            fetchReports(userLocation.latitude, userLocation.longitude);
+        } else {
+            // If we don't have location yet, try to get it
+            getPermissionsAndLoadFeed();
+        }
+    };
 
     return (
         <SafeAreaView className="flex-1 bg-background-dark">
@@ -84,8 +149,8 @@ const onRefresh = () => {
 
         {/* FAB */}
         <TouchableOpacity 
-        className="absolute bottom-6 left-6 w-14 h-14 bg-primary rounded-full items-center justify-center shadow-lg shadow-primary/30 active:scale-95"
-        // onPress={() => navigation.navigate('CreateReport')}
+            className="absolute bottom-6 left-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95"
+            onPress={handleCreateReportFlow}
         >
             <MaterialIcons name="add" size={30} color="#fff" />
         </TouchableOpacity>

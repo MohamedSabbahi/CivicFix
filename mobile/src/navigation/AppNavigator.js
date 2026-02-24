@@ -10,6 +10,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import MainFeedScreen from '../screens/feed/MainFeedScreen';
+import CreateReportScreen from '../screens/feed/CreateReportScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,7 +30,10 @@ export default function AppNavigation(){
         <NavigationContainer>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {userToken !== null ? (
-                    <Stack.Screen name="feed" component={MainFeedScreen} />
+                    <Stack.Group>
+                        <Stack.Screen name="feed" component={MainFeedScreen} />
+                        <Stack.Screen name = "CreateReport" component={CreateReportScreen} />
+                    </Stack.Group>
             ) : (
                 <Stack.Group>
                     <Stack.Screen name="Login" component={LoginScreen} />
