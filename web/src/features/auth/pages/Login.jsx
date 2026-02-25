@@ -228,11 +228,10 @@ return (
 
                 <Link
                 to="/forgot-password"
-                className="text-blue-500 font-semibold hover:text-blue-400"
-                >
+                className="text-sm text-blue-500 hover:underline">
                 Forgot password?
                 </Link>
-            </div>
+                </div>
 
               {/* Submit */}
                 <button

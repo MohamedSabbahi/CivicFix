@@ -5,6 +5,8 @@ import Login from './features/auth/pages/Login';
 import Register from './features/auth/pages/Register';
 import PrivateRoute from './features/auth/components/PrivateRoute';
 import Profile from './features/auth/pages/Profile';
+import ForgotPassword from './features/auth/pages/ForgotPassword';
+import ResetPassword from './features/auth/pages/ResetPassword';
 // Placeholder components 
 const Home = () => <div className="p-8 text-2xl font-bold">Dashboard / Home (Protected)</div>;
 const Admin = () => <div className="p-8"><h1>Admin Dashboard</h1></div>;
@@ -33,7 +35,9 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
         {/* Protected Routes */}
         <Route element={<PrivateRoute />}>
           <Route path="/" element={<Home />} />

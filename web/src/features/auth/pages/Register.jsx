@@ -38,9 +38,15 @@ const Register = () => {
     register,
     handleSubmit,
     formState: { errors },
-    } = useForm({
+} = useForm({
     resolver: zodResolver(schema),
-    });
+    defaultValues: {
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    },
+});
 
     useEffect(() => {
     window.scrollTo(0, 0);
@@ -115,14 +121,16 @@ const Register = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
             <AuthInput
+            id="name"
             label="Full Name"
-            placeholder="John Doe"
+            placeholder="Full Namenow for "
             icon={<User size={18} />}
             error={errors.name?.message}
             {...register("name")}
             />
 
             <AuthInput
+            id="email"
             label="Email"
             placeholder="email@example.com"
             icon={<Mail size={18} />}
@@ -131,6 +139,7 @@ const Register = () => {
             />
 
             <AuthInput
+            id="password"
             label="Password"
             placeholder="••••••••••••"
             type={showPassword ? "text" : "password"}
@@ -149,6 +158,7 @@ const Register = () => {
             />
 
             <AuthInput
+            id="confirmPassword"
             label="Confirm Password"
             placeholder="••••••••••••"
             type="password"
@@ -185,6 +195,7 @@ const Register = () => {
                 </button>
         </form>
         {/* Footer */}
+
         <p className="text-slate-400 text-sm mt-6 text-center">
             Already have an account?{" "}
             <Link to="/login" className="text-blue-500 font-bold">
