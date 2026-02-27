@@ -7,7 +7,7 @@ import PrivateRoute from './features/auth/components/PrivateRoute';
 import Profile from './features/auth/pages/Profile';
 import ForgotPassword from './features/auth/pages/ForgotPassword';
 import ResetPassword from './features/auth/pages/ResetPassword';
-import HomePage from "./features/home/pages/HomePage";
+import Dashboard from "./features/home/pages/Dashboard";
 // Placeholder components 
 const Admin = () => <div className="p-8"><h1>Admin Dashboard</h1></div>;
 const Reports = () => <div className="p-8"><h1>Reports List</h1></div>;
@@ -40,7 +40,7 @@ function App() {
 
         {/* Protected Routes */}
         <Route element={<PrivateRoute />}>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/reports" element={<Reports />} />
