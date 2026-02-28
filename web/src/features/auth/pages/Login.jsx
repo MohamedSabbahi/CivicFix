@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
-
+import { useAuth } from '../../../context/AuthContext';
 import authService from '../services/authService';
 import AuthInput from '../../../components/ui/AuthInput';
 
@@ -18,6 +18,8 @@ const Login = () => {
     
     const navigate = useNavigate();
 
+    const { login } = useAuth();
+    
     useEffect(() => {
         if (authService.isAuthenticated()) navigate('/');
     }, [navigate]);
@@ -59,7 +61,7 @@ const Login = () => {
 
         setLoading(true);
         try {
-        await authService.login({
+        await login({
         email: formData.email,
         password: formData.password,
         remember,

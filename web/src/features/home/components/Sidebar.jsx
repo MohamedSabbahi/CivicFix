@@ -1,30 +1,46 @@
 import { Home, FileText, Map, Bell, User, Settings } from "lucide-react";
-
+import { NavLink } from "react-router-dom";
 const Sidebar = () => {
   return (
-    <aside className="fixed left-6 top-6 bottom-6 w-56 glass p-5 space-y-6">
-      <h1 className="text-xl font-bold">🏠 CivicFix</h1>
+    <aside className="fixed left-0 top-0 bottom-0 w-56 p-5  flex flex-col">
+      
+      {/* HEADER */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/10">
+          🏠
+        </div>
+        <span className="text-lg font-semibold tracking-wide">
+          CivicFix
+        </span>
+      </div>
 
-      <nav className="space-y-3 text-sm">
-        <SidebarItem icon={<Home size={18} />} label="Dashboard" active />
-        <SidebarItem icon={<FileText size={18} />} label="My Reports" />
-        <SidebarItem icon={<Map size={18} />} label="Map" />
-        <SidebarItem icon={<Bell size={18} />} label="Notifications" />
-        <SidebarItem icon={<User size={18} />} label="Profile" />
-        <SidebarItem icon={<Settings size={18} />} label="Settings" />
+      {/* NAV */}
+      <nav className="space-y-2 text-sm text-white/80">
+        <SidebarItem icon={<Home size={18} />}     label="Dashboard"     to="/" />
+        <SidebarItem icon={<FileText size={18} />} label="My Reports"    to="/reports" />
+        <SidebarItem icon={<Map size={18} />}      label="Map"           to="/map" />
+        <SidebarItem icon={<Bell size={18} />}     label="Notifications" to="/notifications" />
+        <SidebarItem icon={<User size={18} />}     label="Profile"       to="/profile" />
+        <SidebarItem icon={<Settings size={18} />} label="Settings"      to="/settings" />
       </nav>
+
+      {/* SPACER */}
+      <div className="flex-1" />
     </aside>
   );
 };
 
-const SidebarItem = ({ icon, label, active }) => (
-  <div
-    className={`flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer transition
-      ${active ? "bg-white/10" : "hover:bg-white/5"}`}
+const SidebarItem = ({ icon, label, to }) => (
+  <NavLink
+    to={to}
+    className={({ isActive }) =>
+      `flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition
+      ${isActive ? "bg-white/15 text-white shadow-inner" : "hover:bg-white/10 text-white/70"}`
+    }
   >
     {icon}
-    {label}
-  </div>
+    <span>{label}</span>
+  </NavLink>
 );
 
 export default Sidebar;

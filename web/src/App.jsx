@@ -1,6 +1,6 @@
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './features/auth/pages/Login';
 import Register from './features/auth/pages/Register';
 import PrivateRoute from './features/auth/components/PrivateRoute';
@@ -14,12 +14,14 @@ const Reports = () => <div className="p-8"><h1>Reports List</h1></div>;
 const ReportDetail = () => <div className="p-8"><h1>Report Details</h1></div>;
 const CreateReport = () => <div className="p-8"><h1>Create New Report</h1></div>;
 const NotFound = () => <div className="p-8 text-red-500"><h1>404 - Page Not Found</h1></div>;
-
+const Map         = () => <div className="p-8"><h1>Map</h1></div>;           
+const Notifications = () => <div className="p-8"><h1>Notifications</h1></div>; 
+const Settings    = () => <div className="p-8"><h1>Settings</h1></div>; 
 
 
 function App() {
   return (
-    <BrowserRouter>
+    <>
       <Toaster
         position="top-right"
         toastOptions={{
@@ -42,6 +44,9 @@ function App() {
         <Route element={<PrivateRoute />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/map"           element={<Map />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings"      element={<Settings />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/:id" element={<ReportDetail />} />
@@ -52,7 +57,7 @@ function App() {
         <Route path="/404" element={<NotFound />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
-    </BrowserRouter>
+      </>
   );
 }
 
