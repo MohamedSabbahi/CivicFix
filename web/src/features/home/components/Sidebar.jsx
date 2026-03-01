@@ -1,8 +1,17 @@
-import { Home, FileText, Map, Bell, User, Settings } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Home, FileText, Map, Bell, User, Settings, LogOut } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import authService from "../../auth/services/authService"; // adjust path as needed
+
 const Sidebar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login");
+  };
+
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-56 p-5  flex flex-col">
+    <aside className="fixed left-0 top-0 bottom-0 w-56 p-5 flex flex-col">
       
       {/* HEADER */}
       <div className="flex items-center gap-3 mb-8">
@@ -26,6 +35,15 @@ const Sidebar = () => {
 
       {/* SPACER */}
       <div className="flex-1" />
+
+      {/* LOGOUT */}
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition text-white/70 hover:bg-white/10 hover:text-white w-full text-sm"
+      >
+        <LogOut size={18} />
+        <span>Logout</span>
+      </button>
     </aside>
   );
 };

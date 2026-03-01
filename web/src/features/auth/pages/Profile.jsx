@@ -1,170 +1,238 @@
-import React ,{ useState , useEffect} from "react";
-import { useNavigate } from "react-router-dom";
-import authService from "../services/authService";
-import reportService from "../../reports/services/reportService";
+import { useState } from "react";
+import { useAuth } from "../../../context/AuthContext";
+import Sidebar from "../../home/components/Sidebar";
+import { User, Mail, MapPin, Calendar, Edit, Save, ChevronRight, Bell, Globe, ArrowLeft, Camera,} from "lucide-react";
+import background from "../../../assets/background-dashbord.png";
 
-
+// Placeholder avatar URL for users without a custom avatar (img)
+const AVATAR_PLACEHOLDER = "https://i.pravatar.cc/150?img=11";
 
 const Profile = () => {
-    const [user, setUser] = useState(null);
-    const [myReports, setMyReports] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    
-    // --- NEW STATES TO FIX ERRORS ---
-    const [activeModal, setActiveModal] = useState(null); // Controls which modal is open
-    const [editData, setEditData] = useState({ name: "", email: "" });
-    const [passwords, setPasswords] = useState({ oldPass: "", newPass: "" });
-    
-    const navigate = useNavigate();
+  const { user } = useAuth();
 
-    useEffect(() => {
-        const fetchProfileData = async () => {
-            try {
-                const userData = authService.getCurrentUser();
-                setUser(userData);
-                // Pre-fill edit form with current data
-                setEditData({ name: userData?.name || "", email: userData?.email || "" });
+  const [isEditing, setIsEditing] = useState(false);
+  const [twoFA, setTwoFA] = useState(true);
+  const [emailNotifs, setEmailNotifs] = useState(false);
+  const [formData, setFormData] = useState({
+    name: user?.name || "Eric Anderson",
+    email: user?.email || "eric.anderson@civicfix.io",
+    location: user?.location || "San Francisco, CA",
+    joinDate: user?.joinDate || "Jan 3, 2022",
+    role: user?.role || "Admin",
+    username: user?.username || "eric.anderson",
+  });
 
-                const reports = await reportService.getUserReports(userData.id);
-                setMyReports(reports || []);
-            } catch (error) {
-                console.error("Error loading profile:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchProfileData();
-    }, []);
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
-    const handleUpdateProfile = async (e) => {
-        e.preventDefault();
-        try {
-            // Now using editData state instead of undefined variables
-            await authService.updateProfile(editData); 
-            setActiveModal(null);
-            setUser(authService.getCurrentUser()); // Refresh display
-            alert("Profile updated!");
-        } catch (err) {
-            console.error('Failed to update profile', err);
-            alert("Failed to update profile");
-        }
-    };
+  const handleSave = () => {
+    console.log("Saving profile...", formData);
+    setIsEditing(false);
+  };
 
-    const handleChangePassword = async (e) => {
-        e.preventDefault();
-        try {
-            // Now using passwords state instead of undefined variables
-            await authService.changePassword(passwords.oldPass, passwords.newPass);
-            setActiveModal(null);
-            setPasswords({ oldPass: "", newPass: "" }); // Clear fields
-            alert("Password updated successfully!");
-        } catch (err) {
-            console.error('Password change failed', err);
-            alert("Password change failed");
-        }
-    };
+  return (
+    <div className="min-h-screen flex relative">
+      {/* background */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${background})` }}
+      />
+      {/* Dark overlay over full screen */}
+      <div className="fixed inset-0 bg-gradient-to-br from-[#020918]/85 via-[#040f22]/75 to-[#060c1e]/85" />
 
-    const handleLogout = () => {
-        authService.logout();
-        navigate('/login');
-    };
+      {/* Sidebar*/}
+      <div className="relative z-20">
+        <Sidebar />
+      </div>
 
-    if (isLoading) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white">Loading Profile...</div>;
+      {/* Main content */}
+      <div className="flex-1 ml-56 min-h-screen relative z-10">
+        <div className="max-w-5xl mx-auto px-8 py-8 space-y-7">
 
-    return (
-        <div className="min-h-screen bg-[#0f172a] text-white p-6">
-            <div className="max-w-2xl mx-auto space-y-8">
-                
-                {/* --- USER INFORMATION SECTION --- */}
-                <div className="bg-[#1e293b] rounded-3xl p-8 border border-slate-800 shadow-xl">
-                    <div className="flex items-center gap-6 mb-6">
-                        <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl font-bold">
-                            {user?.name?.charAt(0)}
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold">{user?.name}</h1>
-                            <p className="text-slate-400">{user?.email}</p>
-                            {/* Role Display */}
-                            <span className="inline-block mt-2 px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold rounded-full border border-blue-500/20 uppercase">
-                                {user?.role || 'Citizen'}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    {/* Member Since Date */}
-                    <div className="text-sm text-slate-500 border-t border-slate-700/50 pt-4">
-                        Member since: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Recent'}
-                    </div>
 
-                    <div className="flex gap-3 mt-6">
-                        <button onClick={() => setActiveModal('edit')} className="flex-1 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-semibold transition-all">
-                            Edit Profile
-                        </button>
-                        <button onClick={() => setActiveModal('password')} className="flex-1 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-semibold transition-all">
-                            Security
-                        </button>
-                        <button onClick={handleLogout} className="flex-1 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white py-3 rounded-xl font-semibold transition-all">
-                            Logout
-                        </button>
-                    </div>
+          {/* ── Hero Card ── */}
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-7">
+            {/* decorative glow blobs */}
+            <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 right-10 w-48 h-48 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none" />
+
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                {/* Avatar with glow ring */}
+                <div className="relative group">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/50 to-cyan-400/30 blur-xl scale-125 opacity-70" />
+                  <div
+                    className="relative w-[90px] h-[90px] rounded-full border-[2.5px] border-blue-400/70 bg-cover bg-center shadow-[0_0_30px_rgba(96,165,250,0.45)]"
+                    style={{ backgroundImage: `url(${user?.avatar || AVATAR_PLACEHOLDER})` }}
+                  />
+                  {isEditing && (
+                    <button className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
+                      <Camera size={18} />
+                    </button>
+                  )}
                 </div>
 
-                {/* Simple modal overlays for edit and password (uses existing handlers) */}
-                {activeModal === 'edit' && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-                        <form onSubmit={handleUpdateProfile} className="bg-[#0b1220] p-6 rounded-2xl w-full max-w-md">
-                            <h3 className="text-lg font-bold mb-4">Edit Profile</h3>
-                            <label className="block mb-2 text-sm text-slate-400">Name</label>
-                            <input value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} className="w-full mb-3 p-2 rounded bg-[#0f172a] border border-slate-700" />
-                            <label className="block mb-2 text-sm text-slate-400">Email</label>
-                            <input value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })} className="w-full mb-4 p-2 rounded bg-[#0f172a] border border-slate-700" />
-                            <div className="flex justify-end gap-3">
-                                <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 rounded bg-slate-700">Cancel</button>
-                                <button type="submit" className="px-4 py-2 rounded bg-blue-600">Save</button>
-                            </div>
-                        </form>
-                    </div>
-                )}
+                {/* Name + meta */}
+                <div>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="bg-transparent border-b-2 border-blue-400/60 text-white text-2xl font-bold tracking-tight focus:outline-none w-64"
+                    />
+                  ) : (
+                    <h2 className="text-2xl font-bold text-white tracking-tight">{formData.name}</h2>
+                  )}
+                  <p className="text-white/45 text-sm mt-1">{formData.email}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-400/25 text-blue-300 text-xs font-medium">
+                      <User size={11} /> {formData.role}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-xs">
+                      ● Active
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-                {activeModal === 'password' && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-                        <form onSubmit={handleChangePassword} className="bg-[#0b1220] p-6 rounded-2xl w-full max-w-md">
-                            <h3 className="text-lg font-bold mb-4">Change Password</h3>
-                            <label className="block mb-2 text-sm text-slate-400">Current Password</label>
-                            <input type="password" value={passwords.oldPass} onChange={e => setPasswords({ ...passwords, oldPass: e.target.value })} className="w-full mb-3 p-2 rounded bg-[#0f172a] border border-slate-700" />
-                            <label className="block mb-2 text-sm text-slate-400">New Password</label>
-                            <input type="password" value={passwords.newPass} onChange={e => setPasswords({ ...passwords, newPass: e.target.value })} className="w-full mb-4 p-2 rounded bg-[#0f172a] border border-slate-700" />
-                            <div className="flex justify-end gap-3">
-                                <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 rounded bg-slate-700">Cancel</button>
-                                <button type="submit" className="px-4 py-2 rounded bg-blue-600">Change</button>
-                            </div>
-                        </form>
-                    </div>
-                )}
-
-                {/* --- MY REPORTS SECTION --- */}
-                <section>
-                    <h2 className="text-xl font-bold mb-4 px-2">My Reports</h2>
-                    {myReports.length === 0 ? (
-                        <div className="bg-[#1e293b]/50 border-2 border-dashed border-slate-800 rounded-3xl p-10 text-center text-slate-500">
-                            You haven't created any reports yet.
-                        </div>
-                    ) : (
-                        <div className="grid gap-4">
-                            {myReports.map(report => (
-                                <div key={report.id} className="bg-[#1e293b] p-4 rounded-2xl border border-slate-800 flex items-center gap-4">
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-sm">{report.title}</h3>
-                                        <p className="text-xs text-slate-400">{report.status}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </section>
+              {/* Edit / Save button */}
+              <button
+                onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-lg ${
+                  isEditing
+                    ? "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/30"
+                    : "bg-white/8 hover:bg-white/15 border border-white/15 text-white"
+                }`}
+              >
+                {isEditing ? <Save size={15} /> : <Edit size={15} />}
+                {isEditing ? "Save Changes" : "Edit Profile"}
+              </button>
             </div>
+          </div>
+
+          {/* ── Main Grid ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+            {/* Account Information */}
+            <div className="lg:col-span-3 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-6">
+              <h3 className="text-sm font-semibold text-white/80 uppercase tracking-widest mb-5">
+                Account Information
+              </h3>
+
+              <div className="divide-y divide-white/[0.06]">
+                <InfoRow icon={<User size={15} />}     label="USERNAME"      name="username"  value={formData.username}  isEditing={isEditing} onChange={handleChange} showArrow />
+                <InfoRow icon={<Mail size={15} />}     label="EMAIL ADDRESS" name="email"     value={formData.email}     isEditing={isEditing} onChange={handleChange} />
+                <InfoRow icon={<Calendar size={15} />} label="JOIN DATE"     name="joinDate"  value={formData.joinDate}  isEditing={false}     onChange={handleChange} />
+                <InfoRow icon={<MapPin size={15} />}   label="LOCATION"      name="location"  value={formData.location}  isEditing={isEditing} onChange={handleChange} />
+              </div>
+            </div>
+
+            {/* Right column */}
+            <div className="lg:col-span-2 space-y-5">
+
+              {/* Recent Activity */}
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-sm font-semibold text-white/80 uppercase tracking-widest">Recent Activity</h3>
+                  <button className="text-blue-400 text-xs flex items-center gap-0.5 hover:text-blue-300 transition">
+                    View All <ChevronRight size={12} />
+                  </button>
+                </div>
+                <div className="divide-y divide-white/[0.06]">
+                  <ActivityItem icon={<Globe size={13} />}  title="Logged in via Web"  sub="San Francisco, CA · 192.168.1.10" dotColor="bg-blue-400" />
+                  <ActivityItem icon={<Bell size={13} />}   title="Changed password"   sub="San Francisco, CA"                dotColor="bg-emerald-400" />
+                </div>
+              </div>
+
+              {/* Security Settings */}
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md p-6">
+                <h3 className="text-sm font-semibold text-white/80 uppercase tracking-widest mb-5">Security Settings</h3>
+                <div className="space-y-1 divide-y divide-white/[0.06]">
+                  <ToggleRow emoji="🛡️" label="Two-Factor Authentication" checked={twoFA}       onChange={() => setTwoFA(!twoFA)} />
+                  <ToggleRow emoji="🔔" label="Email Notifications"        checked={emailNotifs} onChange={() => setEmailNotifs(!emailNotifs)} />
+                </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
-export default Profile ;
+
+/* ────────── Sub-components ────────── */
+
+const InfoRow = ({ icon, label, value, name, isEditing, onChange, showArrow }) => (
+  <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+    <div className="flex items-center gap-4 flex-1 min-w-0">
+      <div className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/40 shrink-0">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-white/35 uppercase tracking-[0.12em] font-medium">{label}</p>
+        {isEditing ? (
+          <input
+            type="text"
+            name={name}
+            value={value}
+            onChange={onChange}
+            className="w-full bg-transparent border-b border-blue-400/50 text-white text-sm focus:outline-none py-0.5 mt-1 focus:border-blue-400 transition-colors"
+          />
+        ) : (
+          <p className="text-white text-sm mt-0.5 truncate font-light">{value}</p>
+        )}
+      </div>
+    </div>
+    {showArrow && !isEditing && (
+      <ChevronRight size={15} className="text-white/20 ml-2 shrink-0" />
+    )}
+  </div>
+);
+
+const ActivityItem = ({ icon, title, sub, dotColor }) => (
+  <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+    <div className="flex items-center gap-3">
+      <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/50">
+        {icon}
+      </div>
+      <div>
+        <p className="text-white text-sm font-medium">{title}</p>
+        <p className="text-white/35 text-xs flex items-center gap-1.5 mt-0.5">
+          <span className={`w-1.5 h-1.5 rounded-full inline-block ${dotColor}`} />
+          {sub}
+        </p>
+      </div>
+    </div>
+    <ChevronRight size={14} className="text-white/20" />
+  </div>
+);
+
+const ToggleRow = ({ emoji, label, checked, onChange }) => (
+  <div className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+    <span className="flex items-center gap-2.5 text-sm text-white/80">
+      <span className="text-base">{emoji}</span>
+      {label}
+    </span>
+    <button
+      onClick={onChange}
+      className={`relative w-11 h-6 rounded-full transition-all duration-300 ${
+        checked
+          ? "bg-gradient-to-r from-blue-500 to-cyan-500 shadow-[0_0_12px_rgba(96,165,250,0.5)]"
+          : "bg-white/15"
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
+    </button>
+  </div>
+);
+
+export default Profile;
