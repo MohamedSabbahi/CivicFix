@@ -57,37 +57,37 @@ const authService = {
 
 // FORGOT PASSWORD
 forgotPassword: async (email) => {
-  try {
+    try {
     const sanitizedEmail = email.trim().toLowerCase();
     const response = await api.post(
-      '/auth/forgotPassword',
-      { email: sanitizedEmail }
+        '/auth/forgotPassword',
+        { email: sanitizedEmail }
     );
     return response.data;
-  } catch (error) {
+    } catch (error) {
     throw new Error(
-      error.response?.data?.message ||
-      error.message ||
-      'Failed to send reset link'
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to send reset link'
     );
-  }
+    }
 },
 
 // RESET PASSWORD
 resetPassword: async (token, password) => {
-  try {
+        try {
     const response = await api.put(
-      `/auth/resetPassword/${token}`,
-      { password }
+        `/auth/resetPassword/${token}`,
+        { password }
     );
     return response.data;
-  } catch (error) {
+    } catch (error) {
     throw new Error(
-      error.response?.data?.message ||
-      error.message ||
-      'Password reset failed'
-    );
-  }
+        error.response?.data?.message ||
+        error.message ||
+        'Password reset failed'
+    );  
+    }
 },
 
 

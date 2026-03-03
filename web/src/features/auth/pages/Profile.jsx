@@ -1,34 +1,77 @@
-import { useState } from "react";
+import { useState , useEffect } from "react";
+import api from "../../../services/api";
 import { useAuth } from "../../../context/AuthContext";
 import Sidebar from "../../home/components/Sidebar";
 import { User, Mail, MapPin, Calendar, Edit, Save, ChevronRight, Bell, Globe, ArrowLeft, Camera,} from "lucide-react";
 import background from "../../../assets/background-dashbord.png";
 
-// Placeholder avatar URL for users without a custom avatar (img)
 const AVATAR_PLACEHOLDER = "https://i.pravatar.cc/150?img=11";
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
   const [twoFA, setTwoFA] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(false);
+
   const [formData, setFormData] = useState({
-    name: user?.name || "Eric Anderson",
-    email: user?.email || "eric.anderson@civicfix.io",
-    location: user?.location || "San Francisco, CA",
-    joinDate: user?.joinDate || "Jan 3, 2022",
-    role: user?.role || "Admin",
-    username: user?.username || "eric.anderson",
+    name:     user?.name     || "",
+    email:    user?.email    || "",
+    location: user?.location || "",
+    joinDate: "",
+    role:     user?.role     || "",
+    username: user?.username || "",
+    avatar:   user?.avatar   || AVATAR_PLACEHOLDER,
   });
+
+  useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const { data } = await api.get("/auth/profile");
+
+      console.log("Backend data:", data);
+
+      setFormData({
+        name: data.name || "",
+        email: data.email ,
+        location: data.location || "",
+        joinDate: data.createdAt
+          ? new Date(data.createdAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          : "",
+        role: data.role || "CITIZEN",
+        username: data.username || "",
+        avatar: data.avatar || AVATAR_PLACEHOLDER,
+      });
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+    }
+  };
+
+  if (token) fetchProfile();
+}, [token]);
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSave = () => {
-    console.log("Saving profile...", formData);
+const handleSave = async () => {
+  try {
+    const { data } = await api.put("/auth/profileUpdate", {
+      name: formData.name,
+      username: formData.username,
+      location: formData.location,
+    });
+
+    console.log("Updated:", data);
     setIsEditing(false);
-  };
+
+  } catch (err) {
+    console.error("Error saving:", err);
+  }
+};
 
   return (
     <div className="min-h-screen flex relative">
@@ -63,8 +106,8 @@ const Profile = () => {
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/50 to-cyan-400/30 blur-xl scale-125 opacity-70" />
                   <div
                     className="relative w-[90px] h-[90px] rounded-full border-[2.5px] border-blue-400/70 bg-cover bg-center shadow-[0_0_30px_rgba(96,165,250,0.45)]"
-                    style={{ backgroundImage: `url(${user?.avatar || AVATAR_PLACEHOLDER})` }}
-                  />
+                    style={{ backgroundImage: `url(${formData.avatar || AVATAR_PLACEHOLDER})` }}
+                    />
                   {isEditing && (
                     <button className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
                       <Camera size={18} />
