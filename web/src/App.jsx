@@ -8,9 +8,9 @@ import Profile from './features/auth/pages/Profile';
 import ForgotPassword from './features/auth/pages/ForgotPassword';
 import ResetPassword from './features/auth/pages/ResetPassword';
 import Dashboard from "./features/home/pages/Dashboard";
+import Reports from './features/reports/pages/Report';
 // Placeholder components 
 const Admin = () => <div className="p-8"><h1>Admin Dashboard</h1></div>;
-const Reports = () => <div className="p-8"><h1>Reports List</h1></div>;
 const ReportDetail = () => <div className="p-8"><h1>Report Details</h1></div>;
 const CreateReport = () => <div className="p-8"><h1>Create New Report</h1></div>;
 const NotFound = () => <div className="p-8 text-red-500"><h1>404 - Page Not Found</h1></div>;

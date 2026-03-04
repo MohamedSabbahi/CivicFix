@@ -89,8 +89,44 @@ exports.getMe = async (req, res) => {
         id: req.user.id,
         name: req.user.name,
         email: req.user.email,
+        username: req.user.username,
+        location: req.user.location,
         role: req.user.role,
+        createdAt: req.user.createdAt,
     });
+};
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name, username, location } = req.body;
+        
+        // Get the user ID from the authenticated user
+        const userId = req.user.id;
+
+        // Update the user profile
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                name,
+                username,
+                location,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                username: true,
+                location: true,
+                role: true,
+                createdAt: true,
+            },
+        });
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ message: 'Server error during profile update' });
+    }
 };
 
 exports.forgotPassword = async (req, res) => {

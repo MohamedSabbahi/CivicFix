@@ -8,7 +8,7 @@ import background from "../../../assets/background-dashbord.png";
 const AVATAR_PLACEHOLDER = "https://i.pravatar.cc/150?img=11";
 
 const Profile = () => {
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
   const [twoFA, setTwoFA] = useState(true);
@@ -25,34 +25,34 @@ const Profile = () => {
   });
 
   useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const { data } = await api.get("/auth/profile");
+    const fetchProfile = async () => {
+      try {
+        const { data } = await api.get("/auth/profile");
 
-      console.log("Backend data:", data);
+        console.log("Backend data:", data);
 
-      setFormData({
-        name: data.name || "",
-        email: data.email ,
-        location: data.location || "",
-        joinDate: data.createdAt
-          ? new Date(data.createdAt).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })
-          : "",
-        role: data.role || "CITIZEN",
-        username: data.username || "",
-        avatar: data.avatar || AVATAR_PLACEHOLDER,
-      });
-    } catch (err) {
-      console.error("Failed to fetch profile:", err);
-    }
-  };
+        setFormData({
+          name: data.name ,
+          email: data.email ,
+          location: data.location || "",
+          joinDate: data.createdAt
+            ? new Date(data.createdAt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            : "",
+          role: data.role || "CITIZEN",
+          username: data.username || "",
+          avatar: data.avatar || AVATAR_PLACEHOLDER,
+        });
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+      }
+    };
 
-  if (token) fetchProfile();
-}, [token]);
+    if (token) fetchProfile();
+  }, [token]);
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -66,6 +66,14 @@ const handleSave = async () => {
     });
 
     console.log("Updated:", data);
+    
+    // Update the user state in AuthContext with the new data
+    updateUser({
+      name: data.name,
+      username: data.username,
+      location: data.location,
+    });
+    
     setIsEditing(false);
 
   } catch (err) {

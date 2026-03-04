@@ -51,7 +51,15 @@ const logout = useCallback(() => {
     setUser(null);
 }, []);
 
-  //  Memoize context value 
+// Update user state after profile changes
+const updateUser = useCallback((userData) => {
+    setUser((prevUser) => ({
+        ...prevUser,
+        ...userData,
+    }));
+}, []);
+
+//  Memoize context value 
     const value = useMemo(
     () => ({
         user,
@@ -59,8 +67,9 @@ const logout = useCallback(() => {
         isAuthenticated: !!user,
         login,
         logout,
+        updateUser,
     }),
-    [user, loading, login, logout]
+    [user, loading, login, logout, updateUser]
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
