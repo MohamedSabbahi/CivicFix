@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, ReportStatus } = require('@prisma/client');
 const fs = require('fs');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
@@ -6,6 +6,27 @@ const { calculateDistance } = require('../utils/geoUtils');
 const { parse } = require('path');
 const crypto = require('crypto');
 const prisma = new PrismaClient();
+
+// Get all categories
+const getAllCategories = async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      include: {
+        department: true,
+      },
+    });
+    res.status(200).json({
+      status: "success",
+      data: categories,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch categories",
+      details: error.message,
+    });
+  }
+};
 
 const createReport = async (req, res) => {
   if (!req.file) {
@@ -446,6 +467,7 @@ module.exports = {
     updateReport,
     deleteReport,
     updateStatusByMagicLink,
-    getNearbyReports
+    getNearbyReports,
+    getAllCategories
 };
 

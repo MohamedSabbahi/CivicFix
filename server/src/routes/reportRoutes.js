@@ -9,7 +9,8 @@ const { createReport,
         getNearbyReports,
         getReportById,
         updateReport ,
-        deleteReport }
+        deleteReport,
+        getAllCategories }
     = require('../controllers/reportController');
 const { getReportComments,
         createComment ,
@@ -17,6 +18,7 @@ const { getReportComments,
         = require('../controllers/commentController');
 
 router.post('/', protect, upload.single('image'), validateReport, createReport);
+router.get('/categories', getAllCategories);
 router.get('/status-update', updateStatusByMagicLink);
 router.get('/', getAllReports);
 router.get('/nearby', getNearbyReports);
