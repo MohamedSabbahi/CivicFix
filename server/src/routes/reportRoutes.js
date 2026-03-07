@@ -11,7 +11,7 @@ const { createReport,
         updateReport ,
         deleteReport,
         getAllCategories }
-    = require('../controllers/reportController');
+        = require('../controllers/reportController');
 const { getReportComments,
         createComment ,
         deleteComment } 
