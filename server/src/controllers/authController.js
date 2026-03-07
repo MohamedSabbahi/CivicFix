@@ -13,11 +13,12 @@ const generateToken = (id) => {
 }
 
 exports.register = async (req, res) => {
-
-  const errors = validationResult(req);
+    // Check if there are validation errors
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
+
     try{
         const { name, email, password } = req.body;
 
@@ -39,11 +40,13 @@ exports.register = async (req, res) => {
         });
 
         res.status(201).json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role:user.role,
             token: generateToken(user.id),
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            }
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error during Registration' });
@@ -66,11 +69,13 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials'});
         }
         res.json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
             token: generateToken(user.id),
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            }
         });
         
     } catch (error) {
@@ -83,8 +88,44 @@ exports.getMe = async (req, res) => {
         id: req.user.id,
         name: req.user.name,
         email: req.user.email,
+        username: req.user.username,
+        location: req.user.location,
         role: req.user.role,
+        createdAt: req.user.createdAt,
     });
+};
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name, username, location } = req.body;
+        
+        // Get the user ID from the authenticated user
+        const userId = req.user.id;
+
+        // Update the user profile
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                name,
+                username,
+                location,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                username: true,
+                location: true,
+                role: true,
+                createdAt: true,
+            },
+        });
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ message: 'Server error during profile update' });
+    }
 };
 
 exports.forgotPassword = async (req, res) => {

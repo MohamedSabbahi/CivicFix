@@ -1,4 +1,81 @@
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import "tailwindcss";
+
+/* =========================
+   COMPONENTS
+========================= */
+@layer components {
+  .glass-surface {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.02)
+    );
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1rem;
+
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 30px 80px rgba(0, 0, 0, 0.55),
+      0 0 60px rgba(59, 130, 246, 0.25);
+  }
+
+  .glass-edge {
+    position: relative;
+  }
+
+  .glass-edge::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.18),
+      transparent 45%
+    );
+    opacity: 0.35;
+  }
+}
+
+/* =========================
+   UTILITIES
+========================= */
+@layer utilities {
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+}
+
+/* =========================
+   LEAFLET GLASS POPUPS
+========================= */
+.leaflet-popup-content-wrapper {
+  background: rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white;
+  box-shadow: 0 0 30px rgba(59,130,246,0.25);
+  border-radius: 12px;
+}
+
+.leaflet-popup-tip {
+  background: rgba(2, 6, 23, 0.6);
+}

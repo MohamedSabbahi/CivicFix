@@ -1,8 +1,9 @@
 const prisma = require('../utils/prisma');
 
+// Calculates performance metrics per department using optimized raw SQL
 const getDepartmentStats = async (req, res) => {
     try {
-        // 1. Ask the Database for the final numbers directly
+        // Raw SQL handles complex calculations and joins more efficiently than the ORM for large datasets
         const stats = await prisma.$queryRaw`
             SELECT 
                 d.name as department,
@@ -15,28 +16,27 @@ const getDepartmentStats = async (req, res) => {
             GROUP BY d.name;
         `;
 
-        // 2. Format the numbers (BigInt to Number)
+        // Formats BigInt counts and float values into a clean, human-readable API response
         const formattedStats = stats.map(stat => ({
             department: stat.department,
             resolvedReportsCount: Number(stat.resolvedReportsCount),
-            averageResolutionTime: parseFloat(stat.averageResolutionTime).toFixed(2) + " hours",
-            reportsDetail: [] // Kept empty for performance
+            averageResolutionTime: stat.averageResolutionTime 
+                ? parseFloat(stat.averageResolutionTime).toFixed(2) + " hours" 
+                : "0.00 hours",
+            reportsDetail: [] 
         }));
 
         res.status(200).json(formattedStats);
-
     } catch (error) {
         console.error("Stats Calculation Error:", error);
-        res.status(500).json({ 
-            message: "Failed to calculate department statistics" 
-        });
+        res.status(500).json({ message: "Failed to calculate department statistics" });
     }
 };
 
-
+// Provides a high-level overview of system activity and user distribution
 const getOverviewStats = async (req, res) => {
     try {
-
+        // Groups reports by their status enum to provide a quick summary
         const statusCounts = await prisma.report.groupBy({
             by: ['status'],
             _count: true
@@ -47,154 +47,85 @@ const getOverviewStats = async (req, res) => {
         const inProgressReports = statusCounts.find(s => s.status === 'IN_PROGRESS')?._count || 0;
         const resolvedReports = statusCounts.find(s => s.status === 'RESOLVED')?._count || 0;
 
-
         const totalUsers = await prisma.user.count();
-        const citizensCount = await prisma.user.count({ 
-            where: { role: 'CITIZEN' } 
-        });
+        const citizensCount = await prisma.user.count({ where: { role: 'CITIZEN' } });
 
-
+        // Calculates the overall system average resolution speed
         const resolvedWithTime = await prisma.report.findMany({
-            where: {
-                status: 'RESOLVED',
-                resolvedAt: { not: null }
-            },
-            select: {
-                createdAt: true,
-                resolvedAt: true
-            }
+            where: { status: 'RESOLVED', resolvedAt: { not: null } },
+            select: { createdAt: true, resolvedAt: true }
         });
-
 
         let overallAvgHours = 0;
         if (resolvedWithTime.length > 0) {
-            const totalTime = resolvedWithTime.reduce((sum, r) => {
-                return sum + (new Date(r.resolvedAt) - new Date(r.createdAt));
-            }, 0);
-            const avgMs = totalTime / resolvedWithTime.length;
-            overallAvgHours = (avgMs / (1000 * 60 * 60)).toFixed(2);
+            const totalTime = resolvedWithTime.reduce((sum, r) => sum + (new Date(r.resolvedAt) - new Date(r.createdAt)), 0);
+            overallAvgHours = (totalTime / resolvedWithTime.length / (1000 * 60 * 60)).toFixed(2);
         }
 
-        const resolutionRate = totalReports > 0 
-            ? ((resolvedReports / totalReports) * 100).toFixed(2) 
-            : '0.00';
+        const resolutionRate = totalReports > 0 ? ((resolvedReports / totalReports) * 100).toFixed(2) : '0.00';
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayReports = await prisma.report.count({
-            where: {
-                createdAt: { gte: today }
-            }
-        });
+        const todayReports = await prisma.report.count({ where: { createdAt: { gte: today } } });
 
         res.status(200).json({
             status: 'success',
             data: {
-                totalReports,
-                totalUsers,
-                citizensCount,
-                pendingReports,
-                inProgressReports,
-                resolvedReports,
-                todayReports,
+                totalReports, totalUsers, citizensCount, pendingReports,
+                inProgressReports, resolvedReports, todayReports,
                 overallAverageTime: `${overallAvgHours} hours`,
                 resolutionRate: `${resolutionRate}%`
             }
         });
-
     } catch (error) {
         console.error("Overview Stats Error:", error);
-        res.status(500).json({ 
-            status: 'error',
-            message: "Erreur lors du calcul des statistiques" 
-        });
+        res.status(500).json({ status: 'error', message: "Erreur lors du calcul des statistiques" });
     }
 };
 
+// Handles department configuration and ensures categories are correctly linked
 const addDepartment = async (req, res) => {
     try {
         const { name, email, categories } = req.body;
+        if (!name || !email) return res.status(400).json({ error: "Le nom et l'email sont obligatoires" });
 
-        if (!name || !email) {
-            return res.status(400).json({ error: "Le nom et l'email sont obligatoires" });
-        }
-
+        // Creates or updates the department record to prevent duplicates
         const department = await prisma.department.upsert({
             where: { email: email },
             update: { name: name },
-            create: {
-                name: name,
-                email: email
-            }
+            create: { name, email }
         });
 
+        // Iteratively adds categories associated with the department
         if (categories && Array.isArray(categories)) {
             for (const catName of categories) {
-                const existingCategory = await prisma.category.findFirst({
-                    where: { 
-                        name: catName, 
-                        departmentId: department.id 
-                    }
+                await prisma.category.create({
+                    data: { name: catName, departmentId: department.id }
                 });
-
-                if (!existingCategory) {
-                    await prisma.category.create({
-                        data: {
-                            name: catName,
-                            departmentId: department.id
-                        }
-                    });
-                }
             }
         }
 
-        res.status(201).json({ 
-            status: "success", 
-            message: "Département configuré avec succès",
-            data: department 
-        });
-
+        res.status(201).json({ status: "success", message: "Département configuré", data: department });
     } catch (error) {
         console.error("Erreur addDepartment:", error);
-        res.status(500).json({ error: "Erreur serveur lors de la configuration du département" });
+        res.status(500).json({ error: "Erreur serveur" });
     }
 };
 
-// --- 2. Supprimer un Département ---
+// Removes a department and cleans up all related categories and reports
 const deleteDepartment = async (req, res) => {
     try {
         const { id } = req.params;
         const deptId = parseInt(id);
 
-        // ÉTAPE 1 : Supprimer tous les rapports liés aux catégories de ce département
-        await prisma.report.deleteMany({
-            where: {
-                category: {
-                    departmentId: deptId
-                }
-            }
-        });
+        // Due to the schema's 'onDelete: Cascade' rules, removing the department also clears related data
+        await prisma.department.delete({ where: { id: deptId } });
 
-        // ÉTAPE 2 : Supprimer les catégories
-        await prisma.category.deleteMany({
-            where: { departmentId: deptId }
-        });
-
-        // ÉTAPE 3 : Supprimer le département
-        await prisma.department.delete({
-            where: { id: deptId }
-        });
-
-        res.status(200).json({ 
-            status: "success", 
-            message: "Department and all related data deleted successfully" 
-        });
-
+        res.status(200).json({ status: "success", message: "Department deleted successfully" });
     } catch (error) {
         console.error("Delete Error:", error);
-        res.status(500).json({ error: "Server error during deletion. Ensure the ID is correct." });
+        res.status(500).json({ error: "Server error during deletion" });
     }
 };
 
-module.exports = { getDepartmentStats , getOverviewStats , addDepartment,
-    deleteDepartment};
+module.exports = { getDepartmentStats, getOverviewStats, addDepartment, deleteDepartment };

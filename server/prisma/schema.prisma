@@ -106,3 +106,4 @@ model Comment {
 
   report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
 }
+

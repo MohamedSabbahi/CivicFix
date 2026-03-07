@@ -4,6 +4,27 @@ const { sendStatusEmail } = require('../utils/mailer');
 const { calculateDistance } = require('../utils/geoUtils');
 const crypto = require('crypto');
 
+// Get all categories
+const getAllCategories = async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      include: {
+        department: true,
+      },
+    });
+    res.status(200).json({
+      status: "success",
+      data: categories,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch categories",
+      details: error.message,
+    });
+  }
+};
+
 const createReport = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "Image is required" });
@@ -444,6 +465,6 @@ module.exports = {
     updateReport,
     deleteReport,
     updateStatusByMagicLink,
-    getNearbyReports
+    getNearbyReports,
+    getAllCategories
 };
-
