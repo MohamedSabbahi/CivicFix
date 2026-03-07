@@ -11,6 +11,8 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import MainFeedScreen from '../screens/feed/MainFeedScreen';
 import CreateReportScreen from '../screens/feed/CreateReportScreen';
+import MyReportsScreen from '../screens/feed/MyReportsScreen';
+import ReportDetailScreen from '../screens/feed/ReportDetailsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +35,8 @@ export default function AppNavigation(){
                     <Stack.Group>
                         <Stack.Screen name="feed" component={MainFeedScreen} />
                         <Stack.Screen name = "CreateReport" component={CreateReportScreen} />
+                        <Stack.Screen name="MyReports" component={MyReportsScreen} />
+                        <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
                     </Stack.Group>
             ) : (
                 <Stack.Group>

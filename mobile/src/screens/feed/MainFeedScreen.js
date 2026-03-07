@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../services/api';
@@ -18,14 +18,32 @@ export default function MainFeedScreen({ navigation }){
     const [isChatModalVisible, setIsChatModalVisible] = useState(false);
     const [isSidebarVisible, setIsSidebarVisible] = useState(false);
     const [userLocation, setUserLocation] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const fetchReports = async (lat = null, lng = null) => {
-        try{
-            let endpoint = "/reports";
-            if (lat && lng) {
-                endpoint = `/reports/nearby?latitude=${lat}&longitude=${lng}&radius=15`;
+    const fetchReports = async (lat = null, lng = null, search = '') => {
+        setIsLoading(true);
+        try {
+            const isSearching = search && search.trim().length >= 3;
+            const endpoint = (lat && lng && !isSearching) ? '/reports/nearby' : '/reports';
+
+            const params = {};
+
+            if (endpoint === '/reports/nearby') {
+                params.latitude = lat;
+                params.longitude = lng;
+                params.radius = 15;
+            } else {
+                if (lat && lng) {
+                    params.user_lat = lat;
+                    params.user_lng = lng;
+                    params.sort = 'distance';
+                }
+                if (isSearching) {
+                    params.search = search.trim();
+                }
             }
-            const response = await api.get(endpoint);
+
+            const response = await api.get(endpoint, { params });
             setReports(response.data.data);
         } catch (error) {
             console.error("Error fetching reports:", error);
@@ -106,21 +124,41 @@ export default function MainFeedScreen({ navigation }){
         <SafeAreaView className="flex-1 bg-background-dark">
         
         {/* Header */}
-            <View className="flex-row items-center justify-between px-6 py-4 bg-background-dark">
-                {/* 4. FIX: Change navigation.openDrawer() to setIsSidebarVisible(true) */}
-                <TouchableOpacity 
-                    onPress={() => setIsSidebarVisible(true)} 
-                    className="p-2 -ml-2 rounded-full active:bg-slate-800"
-                >
-                    <MaterialIcons name="menu" size={28} color="#fff" />
-                </TouchableOpacity>
-                
-                <Text className="text-white text-xl font-bold tracking-wide">CivicFix Feed</Text>
-                
-                <TouchableOpacity className="p-2 -mr-2 rounded-full active:bg-slate-800">
-                    <MaterialIcons name="filter-list" size={26} color="#fff" />
-                </TouchableOpacity>
+        <View className="flex-row items-center justify-between px-6 py-4 bg-background-dark">
+            <TouchableOpacity 
+                onPress={() => setIsSidebarVisible(true)} 
+                className="p-2 -ml-2 rounded-full active:bg-slate-800"
+            >
+                <MaterialIcons name="menu" size={28} color="#fff" />
+            </TouchableOpacity>
+            
+            <Text className="text-white text-xl font-bold tracking-wide flex-1 text-center pr-8">
+                CivicFix
+            </Text>
+        </View>
+        {/* ── Search Bar ── */}
+        <View className="px-6 py-2 bg-background-dark border-b border-slate-800">
+            <View className="flex-row items-center bg-slate-900 rounded-xl border border-slate-700 px-4 h-12">
+                <MaterialIcons name="search" size={20} color="#64748b" />
+                <TextInput
+                    className="flex-1 ml-3 text-white"
+                    placeholderTextColor="#64748b"
+                    placeholder="Search reports..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    onSubmitEditing={() => fetchReports(userLocation?.latitude, userLocation?.longitude, searchQuery)}
+                    returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => { 
+                        setSearchQuery(''); 
+                        fetchReports(userLocation?.latitude, userLocation?.longitude, ''); 
+                    }}>
+                        <MaterialIcons name="close" size={20} color="#64748b" />
+                    </TouchableOpacity>
+                )}
             </View>
+        </View>
 
         {/* Feed List */}
         {isLoading ? (
@@ -200,7 +238,13 @@ export default function MainFeedScreen({ navigation }){
                             <Text className="text-[#3b82f6] font-bold text-[17px] ml-4 mt-0.5">Community Feed</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-slate-800">
+                        <TouchableOpacity 
+                            className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-slate-800"
+                            onPress={() => {
+                                setIsSidebarVisible(false); // 1. Hide the sidebar
+                                navigation.navigate('MyReports'); // 2. Navigate to the new screen!
+                            }}
+                        >
                             <MaterialIcons name="assignment" size={24} color="#cbd5e1" />
                             <Text className="text-slate-200 font-medium text-[17px] ml-4 mt-0.5">My Reports</Text>
                         </TouchableOpacity>
