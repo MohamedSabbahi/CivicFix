@@ -1,4 +1,3 @@
-// src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
@@ -9,21 +8,27 @@ export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSplashLoading, setIsSplashLoading] = useState(true);
 
   // Check if user is already logged in when app starts
   const isLoggedIn = async () => {
     try {
+      setIsSplashLoading(true);
       setIsLoading(true);
       let token = await SecureStore.getItemAsync('userToken');
       let userInfo = await SecureStore.getItemAsync('userInfo');
-      
+
       if (token) {
         setUserToken(token);
-        setUserInfo(JSON.parse(userInfo));
+        if (userInfo) {
+            setUserInfo(JSON.parse(userInfo));
+        }
       }
-      setIsLoading(false);
     } catch (e) {
       console.log(`isLogged in error ${e}`);
+    } finally{
+      setIsLoading(false);
+      setIsSplashLoading(false);
     }
   };
 
@@ -37,9 +42,9 @@ export const AuthProvider = ({ children }) => {
     try {
       // connecting to your backend authRoutes.js -> router.post('/login', ...)
       const response = await api.post('/auth/login', { email, password });
-      
+
       const { token, ...userData } = response.data;
-      
+
       setUserToken(token);
       setUserInfo(userData);
 
@@ -50,6 +55,26 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.log(error);
       alert('Login Failed: ' + (error.response?.data?.message || 'Something went wrong'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // The Register Function
+  const register = async (name, email, password) => {
+    setIsLoading(true);
+    try {
+      const response = await api.post('/auth/register', { name, email, password });
+      const { token, ...userData } = response.data;
+
+      setUserToken(token);
+      setUserInfo(userData);
+
+      await SecureStore.setItemAsync('userToken', token);
+      await SecureStore.setItemAsync('userInfo', JSON.stringify(userData));
+    } catch (error) {
+      console.log(error);
+      alert('Registration Failed: ' + (error.response?.data?.message || 'Something went wrong'));
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +91,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ login, logout, isLoading, userToken, userInfo }}>
+    <AuthContext.Provider value={{ login, logout, register, isLoading, userToken, userInfo, isSplashLoading }}>
       {children}
     </AuthContext.Provider>
   );

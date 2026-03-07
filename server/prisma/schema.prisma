@@ -26,8 +26,6 @@ model User {
   email        String    @unique
   password     String
   name         String
-  username     String?
-  location     String?
   role         Role      @default(CITIZEN)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -108,3 +106,4 @@ model Comment {
 
   report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
 }
+
