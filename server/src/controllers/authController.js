@@ -139,12 +139,11 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'There is no user with that email' });
     }
 
-    // 2. Generate the Random Token (Raw)
-    // This is what the user will type into the app
-    const resetToken = crypto.randomBytes(20).toString('hex');
+    // 2. Generate a secure 4-digit numeric PIN (1000 to 9999)
+    const resetToken = crypto.randomInt(1000, 10000).toString();
 
-    // 3. Hash the token for the Database
-    // Security: If DB is hacked, they only see the hash, not the key.
+    // 3. Hash the PIN for the Database
+    // Security: It is hashed exactly the same way, so your resetPassword route will not break.
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(resetToken)
@@ -159,18 +158,49 @@ exports.forgotPassword = async (req, res) => {
       },
     });
 
-    // 5. Create the Message
-    // Since this is a mobile app, we send them the TOKEN to copy-paste.
-    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. \n\n
-        Please enter the following token in your app to reset your password:\n\n
-        ${resetToken}\n\n
-        This token expires in 10 minutes.`;
+    // 5. Create the HTML Message with Inline CSS (Dark Mode UI)
+    const htmlMessage = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b;">
+          
+          <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">CivicFix</h1>
+              <p style="color: #94a3b8; margin-top: 5px; font-size: 14px;">Password Reset Request</p>
+          </div>
+
+          <div style="background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155;">
+              <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                  Hello ${user.name || 'Citizen'},<br><br>
+                  We received a request to reset the password for your CivicFix account. Please enter the following 4-digit verification code in your app to proceed:
+              </p>
+
+              <div style="text-align: center; margin: 30px 0;">
+                  <span style="display: inline-block; background-color: #0f172a; color: #60a5fa; font-size: 42px; font-weight: bold; letter-spacing: 12px; padding: 20px 40px; border-radius: 12px; border: 2px dashed #3b82f6;">
+                      ${resetToken}
+                  </span>
+              </div>
+
+              <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-bottom: 0;">
+                  This code will expire in <strong style="color: #f8fafc;">10 minutes</strong>.
+              </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 25px;">
+              <p style="color: #64748b; font-size: 12px; line-height: 1.5;">
+                  If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
+              </p>
+          </div>
+      </div>
+    `;
+
+    // 6. Plain text fallback for email clients that block HTML
+    const plainTextMessage = `Your CivicFix password reset code is: ${resetToken}\n\nThis code expires in 10 minutes.`;
 
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Password Reset Token',
-        message,
+        subject: 'CivicFix - Your Password Reset Code',
+        html: htmlMessage,
+        message: plainTextMessage, 
       });
 
       res.status(200).json({ success: true, data: 'Email sent' });

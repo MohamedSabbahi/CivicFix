@@ -14,15 +14,28 @@ export default function MyReportsScreen({ navigation }) {
 
     const fetchMyReports = async () => {
         try {
-            // Fetch a larger batch of reports to ensure we find the user's posts
-            const response = await api.get('/reports', { params: { limit: 100 } });
+            // Extract user ID from the auth state safely
+            const currentUserId = userInfo?.id || userInfo?.user?.id;
             
-            // Filter locally: Only keep reports where the email matches the logged-in user
-            const filteredReports = response.data.data.filter(
-                report => report.user?.email === userInfo?.email
-            );
+            // Abort fetch if user ID is missing
+            if (!currentUserId) {
+                console.warn("User ID not found in AuthContext");
+                setIsLoading(false);
+                setIsRefreshing(false);
+                return;
+            }
+
+            // Fetch reports filtered by the user's ID
+            const response = await api.get('/reports', { 
+                params: { 
+                    user_id: currentUserId,
+                    limit: 50 
+                } 
+            });
             
-            setMyReports(filteredReports);
+            // Update state with the retrieved data
+            setMyReports(response.data.data);
+            
         } catch (error) {
             console.error("Error fetching my reports:", error);
         } finally {
