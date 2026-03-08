@@ -10,11 +10,11 @@ const sendEmail = async (options) => {
   });
 
   const message = {
-
     from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`, 
     to: options.email,
     subject: options.subject,
-    text: options.message,
+    html: options.html, // Injects the CSS/HTML template
+    text: options.message, // Fallback for basic email clients
   };
 
   await transporter.sendMail(message);

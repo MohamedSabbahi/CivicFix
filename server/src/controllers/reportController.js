@@ -78,7 +78,7 @@ const getAllReports = async (req, res) => {
 
     const { category_id, status, date_debut,
             date_fin, search, sort, order ,
-            user_lat, user_lng , page, limit }
+            user_lat, user_lng , page, limit, user_id }
             = req.query;
 
     const pageNum = Math.max(parseInt(page) || 1, 1);
@@ -98,6 +98,14 @@ const getAllReports = async (req, res) => {
           status: "error",
           message: "Invalid category_id. It must be a number."
         });
+      }
+    }
+
+    // Filter by User ID
+    if (user_id) {
+      const userIdNum = parseInt(user_id);
+      if (!isNaN(userIdNum)) {
+        whereCondition.userId = userIdNum;
       }
     }
     
