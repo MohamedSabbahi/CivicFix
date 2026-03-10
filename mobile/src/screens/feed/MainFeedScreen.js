@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 export default function MainFeedScreen({ navigation }){
 
-    const { logout, userInfo } = useContext(AuthContext);
+    const { userInfo } = useContext(AuthContext);
 
     const [reports, setReports] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -134,8 +134,8 @@ export default function MainFeedScreen({ navigation }){
     const onRefresh = () => {
         setIsRefreshing(true);
         if (userLocation) {
-            // Re-fetch using the coordinates we already have
-            fetchReports(userLocation.latitude, userLocation.longitude, selectedCategoryId);
+            // Re-fetch passing searchQuery as the 3rd arg, and category as the 4th
+            fetchReports(userLocation.latitude, userLocation.longitude, searchQuery, selectedCategoryId);
         } else {
             // If we don't have location yet, try to get it
             getPermissionsAndLoadFeed();
@@ -303,23 +303,17 @@ export default function MainFeedScreen({ navigation }){
                             <Text className="text-slate-200 font-medium text-[17px] ml-4 mt-0.5">My Reports</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-slate-800">
+                        <TouchableOpacity 
+                            onPress={() => {
+                                setIsSidebarVisible(false);
+                                navigation.navigate('Settings');
+                            }} 
+                            className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-slate-800"
+                        >
                             <MaterialIcons name="settings" size={24} color="#cbd5e1" />
                             <Text className="text-slate-200 font-medium text-[17px] ml-4 mt-0.5">Settings</Text>
                         </TouchableOpacity>
                     </View>
-
-                    {/* ── Bottom Section: Log Out ── */}
-                    <View className="mt-auto border-t border-slate-800 pt-6">
-                        <TouchableOpacity 
-                            onPress={logout} 
-                            className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-red-500/10"
-                        >
-                            <MaterialIcons name="logout" size={24} color="#ef4444" />
-                            <Text className="text-[#ef4444] font-bold text-[17px] ml-4 mt-0.5">Log Out</Text>
-                        </TouchableOpacity>
-                    </View>
-
                 </View>
 
                 {/* 3. The Clickable Area (Right Side) 
