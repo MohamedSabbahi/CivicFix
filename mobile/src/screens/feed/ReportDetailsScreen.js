@@ -14,7 +14,8 @@ export default function ReportDetailScreen({ route, navigation }) {
 
     // Auth & Permissions
     const { userInfo } = useContext(AuthContext);
-    const isOwner = userInfo?.email === currentReport.user?.email;
+    const currentUserId = userInfo?.id || userInfo?.user?.id;
+    const isOwner = currentUserId === currentReport.userId;
 
     // Comments State
     const [comments, setComments] = useState([]);

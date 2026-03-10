@@ -152,6 +152,7 @@ exports.forgotPassword = async (req, res) => {
       },
     });
 
+
     // 3. Dark Mode HTML Email Template
     const htmlMessage = `
       <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b;">

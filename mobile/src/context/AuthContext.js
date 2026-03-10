@@ -51,14 +51,14 @@ export const AuthProvider = ({ children }) => {
       // connecting to your backend authRoutes.js -> router.post('/login', ...)
       const response = await api.post('/auth/login', { email, password });
 
-      const { token, ...userData } = response.data;
+      const { token, user } = response.data;
 
       setUserToken(token);
-      setUserInfo(userData);
+      setUserInfo(user);
 
       // Save to device storage
       await SecureStore.setItemAsync('userToken', token);
-      await SecureStore.setItemAsync('userInfo', JSON.stringify(userData));
+      await SecureStore.setItemAsync('userInfo', JSON.stringify(user));
 
     } catch (error) {
       console.log(error);
@@ -73,13 +73,13 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       const response = await api.post('/auth/register', { name, email, password });
-      const { token, ...userData } = response.data;
+      const { token, user } = response.data;
 
       setUserToken(token);
-      setUserInfo(userData);
+      setUserInfo(user);
 
       await SecureStore.setItemAsync('userToken', token);
-      await SecureStore.setItemAsync('userInfo', JSON.stringify(userData));
+      await SecureStore.setItemAsync('userInfo', JSON.stringify(user));
     } catch (error) {
       console.log(error);
       alert('Registration Failed: ' + (error.response?.data?.message || 'Something went wrong'));
