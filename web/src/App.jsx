@@ -9,6 +9,7 @@ import ForgotPassword from './features/auth/pages/ForgotPassword';
 import ResetPassword from './features/auth/pages/ResetPassword';
 import Dashboard from "./features/home/pages/Dashboard";
 import Reports from './features/reports/pages/Report';
+import ReportDetails from './features/reports/pages/ReportDetails';
 import CreateReport from './features/reports/pages/CreateReport';
 import MapPage from './features/reports/pages/MapPage';
 // Placeholder components 
@@ -49,7 +50,7 @@ function App() {
           <Route path="/settings"      element={<Settings />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/reports" element={<Reports />} />
-          <Route path="/reports/:id" element={<ReportDetail />} />
+          <Route path="/reports/:id" element={<ReportDetails />} />
           <Route path="/create-report" element={<CreateReport />} />
         </Route>
         

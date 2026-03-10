@@ -1,12 +1,21 @@
 // ReportCard - Single report row component with action buttons
+import { useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, Eye, Edit, Trash2 } from 'lucide-react';
 import { statusConfig } from './reportConstants';
 
 const ReportCard = ({ report, onView, onEdit, onDelete }) => {
   const status = statusConfig[report.status] || statusConfig.NEW;
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/reports/${report.id}`);
+  };
 
   return (
-    <div className="group relative p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] transition-all duration-200">
+    <div 
+      onClick={handleClick}
+      className="group relative p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] transition-all duration-200 cursor-pointer"
+    >
       <div className="flex items-start gap-4">
         <div className={`w-1 h-12 rounded-full ${status.bg} flex-shrink-0`} />
         
@@ -36,21 +45,21 @@ const ReportCard = ({ report, onView, onEdit, onDelete }) => {
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button 
-            onClick={() => onView(report)} 
+            onClick={(e) => { e.stopPropagation(); onView(report); }} 
             className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white/60 hover:text-blue-400 transition"
             title="View"
           >
             <Eye size={16} />
           </button>
           <button 
-            onClick={() => onEdit(report)} 
+            onClick={(e) => { e.stopPropagation(); onEdit(report); }} 
             className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white/60 hover:text-yellow-400 transition"
             title="Edit"
           >
             <Edit size={16} />
           </button>
           <button 
-            onClick={() => onDelete(report)} 
+            onClick={(e) => { e.stopPropagation(); onDelete(report); }} 
             className="p-2 rounded-lg bg-white/[0.06] hover:bg-red-500/20 text-white/60 hover:text-red-400 transition"
             title="Delete"
           >

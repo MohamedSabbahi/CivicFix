@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import reportService from '../services/reportService';
+import toast from 'react-hot-toast';
 
 const useReports = () => {
   const navigate = useNavigate();
@@ -61,8 +62,10 @@ const useReports = () => {
       try {
         await reportService.deleteReport(report.id);
         setReports(prev => prev.filter(r => r.id !== report.id));
+        toast.success("Report deleted successfully!");
       } catch (err) {
         console.error("Failed to delete:", err);
+        toast.error("Failed to delete report. Please try again.");
       }
     }
   }, []);

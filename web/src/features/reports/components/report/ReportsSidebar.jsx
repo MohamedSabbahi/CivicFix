@@ -1,11 +1,18 @@
 // ReportsSidebar - Right panel with quick actions and live activity updates
+import { useNavigate } from 'react-router-dom';
 import { Plus, MapPin, Clock } from 'lucide-react';
 import ActivityItem from './ActivityItem';
 import { statusConfig } from './reportConstants';
 
 const ReportsSidebar = ({ reports, onCreateNew, onExploreMap }) => {
+  const navigate = useNavigate();
+  
   // Get top 4 recent reports for activity feed
   const recentReports = reports.slice(0, 4);
+
+  const handleReportClick = (reportId) => {
+    navigate(`/reports/${reportId}`);
+  };
 
   return (
     <aside className="fixed right-6 top-8 bottom-8 w-72 space-y-4">
@@ -33,14 +40,19 @@ const ReportsSidebar = ({ reports, onCreateNew, onExploreMap }) => {
           {recentReports.map((r, i) => {
             const status = statusConfig[r.status] || statusConfig.NEW;
             return (
-              <ActivityItem 
-                key={i}
-                icon={<Clock size={14}/>}
-                title={r.title}
-                sub={status.label}
-                time="Just now"
-                color={status.text}
-              />
+              <div 
+                key={i} 
+                onClick={() => handleReportClick(r.id)}
+                className="cursor-pointer"
+              >
+                <ActivityItem 
+                  icon={<Clock size={14}/>}
+                  title={r.title}
+                  sub={status.label}
+                  time="Just now"
+                  color={status.text}
+                />
+              </div>
             );
           })}
         </div>

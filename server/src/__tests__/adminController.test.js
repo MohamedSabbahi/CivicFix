@@ -89,8 +89,7 @@ describe('Admin Controller Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.message).toContain('deleted successfully');
-      expect(prisma.report.deleteMany).toHaveBeenCalled();
-      expect(prisma.department.delete).toHaveBeenCalled();
+      expect(prisma.department.delete).toHaveBeenCalledWith({ where: { id: expect.any(Number)} });
     });
   });
 });

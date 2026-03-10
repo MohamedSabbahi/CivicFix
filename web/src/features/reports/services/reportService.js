@@ -49,6 +49,21 @@ const reportService = {
   updateReport(id, data) {
     return api.put(`/reports/${id}`, data);
   },
+  
+  // Get comments for a report
+  getReportComments(reportId) {
+    return api.get(`/reports/${reportId}/comments`);
+  },
+  
+  // Add a comment to a report
+  addComment(reportId, data) {
+    return api.post(`/reports/${reportId}/comments`, data);
+  },
+  
+  // Delete a comment
+  deleteComment(commentId) {
+    return api.delete(`/comments/${commentId}`);
+  },
 };
 
 export default reportService;
