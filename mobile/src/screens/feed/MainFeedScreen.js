@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, TextInput } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, TextInput, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../services/api';
@@ -13,6 +13,8 @@ export default function MainFeedScreen({ navigation }){
     const { logout, userInfo } = useContext(AuthContext);
 
     const [reports, setReports] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isChatModalVisible, setIsChatModalVisible] = useState(false);
@@ -20,7 +22,7 @@ export default function MainFeedScreen({ navigation }){
     const [userLocation, setUserLocation] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const fetchReports = async (lat = null, lng = null, search = '') => {
+    const fetchReports = async (lat = null, lng = null, search = '', categoryId = null) => {
         setIsLoading(true);
         try {
             const isSearching = search && search.trim().length >= 3;
@@ -43,6 +45,10 @@ export default function MainFeedScreen({ navigation }){
                 }
             }
 
+            if (categoryId) {
+                params.category_id = categoryId;
+            }
+
             const response = await api.get(endpoint, { params });
             setReports(response.data.data);
         } catch (error) {
@@ -53,8 +59,19 @@ export default function MainFeedScreen({ navigation }){
         }
     };
 
+    const fetchCategories = async () => {
+        try {
+            const response = await api.get('/reports/categories');
+            const categoryData = response.data?.data || response.data || [];
+            setCategories(categoryData);
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+        }
+    };
+
     const getPermissionsAndLoadFeed = async () => {
         setIsLoading(true);
+        await fetchCategories();
         try {
             // Ask for GPS permissions
             let { status } = await Location.requestForegroundPermissionsAsync();
@@ -108,12 +125,17 @@ export default function MainFeedScreen({ navigation }){
         getPermissionsAndLoadFeed();
     }, []);
 
+    const handleCategorySelect = (categoryId) => {
+        setSelectedCategoryId(categoryId);
+        fetchReports(userLocation?.latitude, userLocation?.longitude, searchQuery, categoryId);
+    };
+
     // Update this to use the saved location
     const onRefresh = () => {
         setIsRefreshing(true);
         if (userLocation) {
             // Re-fetch using the coordinates we already have
-            fetchReports(userLocation.latitude, userLocation.longitude);
+            fetchReports(userLocation.latitude, userLocation.longitude, selectedCategoryId);
         } else {
             // If we don't have location yet, try to get it
             getPermissionsAndLoadFeed();
@@ -146,13 +168,13 @@ export default function MainFeedScreen({ navigation }){
                     placeholder="Search reports..."
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    onSubmitEditing={() => fetchReports(userLocation?.latitude, userLocation?.longitude, searchQuery)}
+                    onSubmitEditing={() => fetchReports(userLocation?.latitude, userLocation?.longitude, searchQuery, selectedCategoryId)}
                     returnKeyType="search"
                 />
                 {searchQuery.length > 0 && (
                     <TouchableOpacity onPress={() => { 
                         setSearchQuery(''); 
-                        fetchReports(userLocation?.latitude, userLocation?.longitude, ''); 
+                        fetchReports(userLocation?.latitude, userLocation?.longitude, '', selectedCategoryId); 
                     }}>
                         <MaterialIcons name="close" size={20} color="#64748b" />
                     </TouchableOpacity>
@@ -160,28 +182,60 @@ export default function MainFeedScreen({ navigation }){
             </View>
         </View>
 
+        {/* ── Category Pill Filters ── */}
+        <View className="bg-background-dark border-b border-slate-800 pb-3">
+            <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 12, gap: 10 }}
+            >
+                {/* 'ALL' Button */}
+                <TouchableOpacity 
+                    onPress={() => handleCategorySelect(null)}
+                    className={`px-5 py-2.5 rounded-full border ${selectedCategoryId === null ? 'bg-[#3b82f6] border-[#3b82f6]' : 'bg-transparent border-slate-700'}`}
+                >
+                    <Text className={`font-bold tracking-wider text-sm ${selectedCategoryId === null ? 'text-white' : 'text-slate-400'}`}>ALL</Text>
+                </TouchableOpacity>
+
+                {/* Dynamic Category Buttons */}
+                {categories.map((cat) => {
+                    const isSelected = selectedCategoryId === cat.id;
+                    return (
+                        <TouchableOpacity 
+                            key={cat.id}
+                            onPress={() => handleCategorySelect(cat.id)}
+                            className={`px-5 py-2.5 rounded-full border ${isSelected ? 'bg-[#3b82f6] border-[#3b82f6]' : 'bg-transparent border-slate-700'}`}
+                        >
+                            <Text className={`font-bold tracking-wider text-sm uppercase ${isSelected ? 'text-white' : 'text-slate-400'}`}>
+                                {cat.name}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        </View>
+
         {/* Feed List */}
         {isLoading ? (
             <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#137fec" />
+                <ActivityIndicator size="large" color="#137fec" />
             </View>
         ) : (
             <FlatList
-            data={reports}
-            keyExtractor={(item) => item.id.toString()}
-            // Use your extracted component here!
-            renderItem={({ item }) => <ReportCard item={item} />} 
-            contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-                <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#137fec" colors={['#137fec']} />
-            }
-            ListEmptyComponent={() => (
-                <View className="items-center justify-center py-20">
-                <MaterialIcons name="inbox" size={64} color="#334155" />
-                <Text className="text-slate-400 text-lg mt-4 font-medium">No reports found in your area.</Text>
-                </View>
-            )}
+                data={reports}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => <ReportCard item={item} />} 
+                contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#137fec" />
+                }
+                ListEmptyComponent={() => (
+                    <View className="items-center justify-center py-20">
+                        <MaterialIcons name="inbox" size={64} color="#334155" />
+                        <Text className="text-slate-400 text-lg mt-4 font-medium">No reports found.</Text>
+                    </View>
+                )}
             />
         )}
 

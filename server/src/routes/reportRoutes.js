@@ -6,6 +6,7 @@ const { validateReport } = require('../middleware/reportValidator');
 const { createReport,
         updateStatusByMagicLink,
         getAllReports,
+        getMyReports,
         getNearbyReports,
         getReportById,
         updateReport ,
@@ -23,6 +24,7 @@ router.get('/categories', getAllCategories);
 router.get('/status-update', updateStatusByMagicLink);
 router.get('/', getAllReports);
 router.get('/nearby', getNearbyReports);
+router.get('/my-reports', protect, getMyReports);
 router.get('/:id' ,getReportById);
 router.put('/:id', protect, updateReport);
 router.delete('/:id', protect, admin, deleteReport);

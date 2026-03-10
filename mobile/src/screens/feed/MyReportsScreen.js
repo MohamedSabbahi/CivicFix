@@ -13,22 +13,16 @@ export default function MyReportsScreen({ navigation }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchMyReports = async () => {
-        try {
-            // Fetch a larger batch of reports to ensure we find the user's posts
-            const response = await api.get('/reports', { params: { limit: 100 } });
-            
-            // Filter locally: Only keep reports where the email matches the logged-in user
-            const filteredReports = response.data.data.filter(
-                report => report.user?.email === userInfo?.email
-            );
-            
-            setMyReports(filteredReports);
-        } catch (error) {
-            console.error("Error fetching my reports:", error);
-        } finally {
-            setIsLoading(false);
-            setIsRefreshing(false);
-        }
+    try {
+        // Automatically uses the token injected by AuthContext
+        const response = await api.get('/reports/my-reports');
+        setMyReports(response.data.data);
+    } catch (error) {
+        console.error("Error fetching my reports:", error);
+    } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+    }
     };
 
     useEffect(() => {
