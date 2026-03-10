@@ -23,6 +23,9 @@ app.use(cors({
 
 app.use(morgan('dev'));
 
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 attempts
@@ -33,15 +36,13 @@ app.use('/api/auth/forgotpassword', authLimiter);
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500, // limit each IP to 100 requests per windowMs
 });
 
 app.use(generalLimiter);
 
 app.use(express.json());
 
-const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // Define routes here
 app.get('/', (req, res) => {

@@ -13,35 +13,16 @@ export default function MyReportsScreen({ navigation }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const fetchMyReports = async () => {
-        try {
-            // Extract user ID from the auth state safely
-            const currentUserId = userInfo?.id || userInfo?.user?.id;
-            
-            // Abort fetch if user ID is missing
-            if (!currentUserId) {
-                console.warn("User ID not found in AuthContext");
-                setIsLoading(false);
-                setIsRefreshing(false);
-                return;
-            }
-
-            // Fetch reports filtered by the user's ID
-            const response = await api.get('/reports', { 
-                params: { 
-                    user_id: currentUserId,
-                    limit: 50 
-                } 
-            });
-            
-            // Update state with the retrieved data
-            setMyReports(response.data.data);
-            
-        } catch (error) {
-            console.error("Error fetching my reports:", error);
-        } finally {
-            setIsLoading(false);
-            setIsRefreshing(false);
-        }
+    try {
+        // Automatically uses the token injected by AuthContext
+        const response = await api.get('/reports/my-reports');
+        setMyReports(response.data.data);
+    } catch (error) {
+        console.error("Error fetching my reports:", error);
+    } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+    }
     };
 
     useEffect(() => {

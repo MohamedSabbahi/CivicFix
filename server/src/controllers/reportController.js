@@ -239,6 +239,30 @@ const getAllReports = async (req, res) => {
         }
   };
 
+const getMyReports = async (req, res) => {
+  try{
+    const reports = await prisma.report.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        category: true,
+      },
+    });
+
+    res.status(200).json({
+      status: "success",
+      results: reports.length,
+      data: reports,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch your reports",
+      details: error.message,
+    });
+  }
+}
+
 
 const getReportById = async (req, res) => {
   try {
@@ -469,6 +493,7 @@ const updateStatusByMagicLink = async (req, res) => {
 module.exports = {
     createReport, 
     getAllReports,
+    getMyReports,
     getReportById,
     updateReport,
     deleteReport,

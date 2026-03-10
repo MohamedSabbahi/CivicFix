@@ -88,8 +88,6 @@ exports.getMe = async (req, res) => {
         id: req.user.id,
         name: req.user.name,
         email: req.user.email,
-        username: req.user.username,
-        location: req.user.location,
         role: req.user.role,
         createdAt: req.user.createdAt,
     });
@@ -114,8 +112,6 @@ exports.updateProfile = async (req, res) => {
                 id: true,
                 name: true,
                 email: true,
-                username: true,
-                location: true,
                 role: true,
                 createdAt: true,
             },
@@ -128,9 +124,9 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
+// server/src/controllers/authController.js
 exports.forgotPassword = async (req, res) => {
   try {
-    // 1. Get user by email
     const user = await prisma.user.findUnique({
       where: { email: req.body.email },
     });
@@ -139,17 +135,15 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'There is no user with that email' });
     }
 
-    // 2. Generate a secure 4-digit numeric PIN (1000 to 9999)
+    // 1. Generate a secure 4-digit numeric PIN (1000 to 9999)
     const resetToken = crypto.randomInt(1000, 10000).toString();
 
-    // 3. Hash the PIN for the Database
-    // Security: It is hashed exactly the same way, so your resetPassword route will not break.
+    // 2. Hash the PIN for the Database securely
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
 
-    // 4. Save Hash + Expiration to DB
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -158,64 +152,39 @@ exports.forgotPassword = async (req, res) => {
       },
     });
 
-    // 5. Create the HTML Message with Inline CSS (Dark Mode UI)
+
+    // 3. Dark Mode HTML Email Template
     const htmlMessage = `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b;">
-          
+      <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b;">
           <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">CivicFix</h1>
               <p style="color: #94a3b8; margin-top: 5px; font-size: 14px;">Password Reset Request</p>
           </div>
-
           <div style="background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155;">
               <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
                   Hello ${user.name || 'Citizen'},<br><br>
-                  We received a request to reset the password for your CivicFix account. Please enter the following 4-digit verification code in your app to proceed:
+                  We received a request to reset the password for your account. Please enter the following 4-digit verification code in your app to proceed:
               </p>
-
               <div style="text-align: center; margin: 30px 0;">
                   <span style="display: inline-block; background-color: #0f172a; color: #60a5fa; font-size: 42px; font-weight: bold; letter-spacing: 12px; padding: 20px 40px; border-radius: 12px; border: 2px dashed #3b82f6;">
                       ${resetToken}
                   </span>
               </div>
-
               <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-bottom: 0;">
                   This code will expire in <strong style="color: #f8fafc;">10 minutes</strong>.
-              </p>
-          </div>
-
-          <div style="text-align: center; margin-top: 25px;">
-              <p style="color: #64748b; font-size: 12px; line-height: 1.5;">
-                  If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
               </p>
           </div>
       </div>
     `;
 
-    // 6. Plain text fallback for email clients that block HTML
-    const plainTextMessage = `Your CivicFix password reset code is: ${resetToken}\n\nThis code expires in 10 minutes.`;
+    await sendEmail({
+      email: user.email,
+      subject: 'Your Password Reset Code',
+      html: htmlMessage,
+      message: `Your reset code is: ${resetToken}`, 
+    });
 
-    try {
-      await sendEmail({
-        email: user.email,
-        subject: 'CivicFix - Your Password Reset Code',
-        html: htmlMessage,
-        message: plainTextMessage, 
-      });
-
-      res.status(200).json({ success: true, data: 'Email sent' });
-    } catch (err) {
-      console.log(err);
-      // Rollback: If email fails, clear the token fields so the user isn't locked
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          resetPasswordToken: null,
-          resetPasswordExpires: null,
-        },
-      });
-      return res.status(500).json({ message: 'Email could not be sent' });
-    }
+    res.status(200).json({ success: true, message: 'OTP sent to email' });
   } catch (err) {
     console.error("Forgot PW Error:", err);
     res.status(500).json({ message: 'Server Error' });

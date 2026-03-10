@@ -10,6 +10,14 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSplashLoading, setIsSplashLoading] = useState(true);
 
+  useEffect(()=>{
+    if(userToken){
+      api.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
+    }else{
+      delete api.defaults.headers.common['Authorization'];
+    }
+  }, [userToken]);
+
   // Check if user is already logged in when app starts
   const isLoggedIn = async () => {
     try {

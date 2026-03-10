@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import api from '../../services/api';
+
+const getCategoryIcon = (categoryName) => {
+    const name = categoryName?.toLowerCase() || '';
+    if (name.includes('road')) return 'add-road';
+    if (name.includes('waste') || name.includes('trash')) return 'delete-outline';
+    if (name.includes('hazard')) return 'warning-amber';
+    if (name.includes('graffiti')) return 'palette';
+    if (name.includes('light')) return 'lightbulb-outline';
+    return 'category'; // Fallback icon
+};
 
 export default function CreateReportScreen({ route, navigation }) {
     // 1. Data passed from the Feed screen's camera flow
@@ -18,11 +28,26 @@ export default function CreateReportScreen({ route, navigation }) {
     const [description, setDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
+    const [categories, setCategories] = useState([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState(null);
     // Draggable Pin State
     const [markerCoordinate, setMarkerCoordinate] = useState({
         latitude: initialLat,
         longitude: initialLng,
     });
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const response = await api.get('/reports/categories');
+                const categoryData = response.data?.data || response.data || [];
+                setCategories(categoryData);
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     // 3. Submit Handler with Pre-Flight Validation
     const handleSubmit = async () => {
@@ -35,6 +60,11 @@ export default function CreateReportScreen({ route, navigation }) {
         // Validation: Must have a title
         if (!title.trim()) {
             Alert.alert("Missing Title", "Please provide a short title for the issue.");
+            return;
+        }
+
+        if(!selectedCategoryId) {
+            Alert.alert("Missing Category", "Please select a category that best fits the issue.");
             return;
         }
 
@@ -55,10 +85,7 @@ export default function CreateReportScreen({ route, navigation }) {
             formData.append('description', descText);
             formData.append('latitude', markerCoordinate.latitude.toString());
             formData.append('longitude', markerCoordinate.longitude.toString());
-            
-            // Hardcoding categoryId to '1' for now. 
-            // In the future, you can add a Dropdown picker to set this dynamically!
-            formData.append('categoryId', '1'); 
+            formData.append('categoryId', selectedCategoryId.toString());
 
             // Append the image file. The key 'image' matches upload.single('image')
             const filename = photoUri.split('/').pop();
@@ -135,6 +162,43 @@ export default function CreateReportScreen({ route, navigation }) {
                             multiline
                         />
                     </View>
+
+                    {/* ── Category Selection (Square Icons UI) ── */}
+                    <View className="mb-6">
+                        <Text className="text-slate-400 text-sm font-bold uppercase tracking-wider ml-6 mb-3">
+                            Category
+                        </Text>
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false} 
+                            contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                        >
+                            {categories.map((cat) => {
+                                const isSelected = selectedCategoryId === cat.id;
+                                return (
+                                    <TouchableOpacity 
+                                        key={cat.id}
+                                        onPress={() => setSelectedCategoryId(cat.id)}
+                                        className="items-center"
+                                        activeOpacity={0.7}
+                                    >
+                                        <View className={`w-[72px] h-[72px] rounded-2xl items-center justify-center border-2 mb-2 ${isSelected ? 'bg-blue-500/10 border-[#3b82f6]' : 'bg-[#1e293b] border-slate-700'}`}>
+                                            <MaterialIcons 
+                                                name={getCategoryIcon(cat.name)} 
+                                                size={30} 
+                                                color={isSelected ? '#3b82f6' : '#94a3b8'} 
+                                            />
+                                        </View>
+                                        <Text className={`text-xs font-semibold ${isSelected ? 'text-[#3b82f6]' : 'text-slate-400'}`}>
+                                            {cat.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
+
+                    <View className="px-5"></View>
 
                     {/* ── Dynamic Description Section ── */}
                     <View className="flex-row items-center justify-between ml-1 mb-2">
