@@ -1,45 +1,18 @@
-import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import authService from '../services/authService';
+import { useAuth } from '../../../context/AuthContext';
 
 const PrivateRoute = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const { user, loading } = useAuth();
 
-    useEffect(() => {
-        // Check authentication status
-        const checkAuth = () => {
-            try {
-                const auth = authService.isAuthenticated();
-                console.log('Authentication check:', auth);
-                setIsAuthenticated(auth);
-            } catch (error) {
-                console.error('Auth check failed:', error);
-                setIsAuthenticated(false);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        checkAuth();
-    }, []);
-
-    // Show loading while checking auth
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-            </div>
-        );
+    if (loading) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-[#020617]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+        </div>
+    );
     }
 
-    // Redirect if not authenticated
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
-
-    // Render protected routes
-    return <Outlet />;
+    return user ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
 export default PrivateRoute;
