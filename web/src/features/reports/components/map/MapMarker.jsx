@@ -1,10 +1,9 @@
-// MapMarker - Single marker component with popup
 import { Marker, Popup } from 'react-leaflet';
 import { createMarkerIcon } from './mapConstants';
 import { statusConfig } from '../report/reportConstants';
 
 const MapMarker = ({ report, onClick }) => {
-  const status = statusConfig[report.status] || statusConfig.NEW;
+  const status = statusConfig[report.status] || statusConfig.PENDING;
   
   return (
     <Marker

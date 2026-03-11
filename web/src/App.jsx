@@ -12,8 +12,8 @@ import Reports from './features/reports/pages/Report';
 import ReportDetails from './features/reports/pages/ReportDetails';
 import CreateReport from './features/reports/pages/CreateReport';
 import MapPage from './features/reports/pages/MapPage';
+import Admin from './features/admin/pages/AdminDashboard';
 // Placeholder components 
-const Admin = () => <div className="p-8"><h1>Admin Dashboard</h1></div>;
 const ReportDetail = () => <div className="p-8"><h1>Report Details</h1></div>;
 const NotFound = () => <div className="p-8 text-red-500"><h1>404 - Page Not Found</h1></div>;
 const Notifications = () => <div className="p-8"><h1>Notifications</h1></div>; 

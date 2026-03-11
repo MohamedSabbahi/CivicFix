@@ -1,4 +1,3 @@
-// useReports - Hook for fetching, filtering, deleting reports (for Report.jsx)
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import reportService from '../services/reportService';
@@ -7,13 +6,11 @@ import toast from 'react-hot-toast';
 const useReports = () => {
   const navigate = useNavigate();
   
-  // State
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch reports
   const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
@@ -26,29 +23,31 @@ const useReports = () => {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
 
-  // Filter reports based on filter and search
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
-      const matchesFilter = filter === "all" || report.status === filter.toUpperCase();
+      const statusMap = {
+        'new': 'PENDING',
+        'in_progress': 'IN_PROGRESS',
+        'resolved': 'RESOLVED'
+      };
+      const dbStatus = filter !== "all" ? statusMap[filter] : 'all';
+      const matchesFilter = dbStatus === 'all' || report.status === dbStatus;
       const matchesSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
   }, [reports, filter, searchQuery]);
 
-  // Stats calculation
   const stats = useMemo(() => ({
     total: reports.length,
-    new: reports.filter(r => r.status === "NEW").length,
+    new: reports.filter(r => r.status === "PENDING").length,
     inProgress: reports.filter(r => r.status === "IN_PROGRESS").length,
     resolved: reports.filter(r => r.status === "RESOLVED").length,
   }), [reports]);
 
-  // Handlers
   const handleViewReport = useCallback((report) => {
     navigate(`/reports/${report.id}`);
   }, [navigate]);
@@ -75,17 +74,14 @@ const useReports = () => {
   }, [navigate]);
 
   return {
-    // State
     reports,
     filteredReports,
     loading,
     filter,
     searchQuery,
     stats,
-    // Setters
     setFilter,
     setSearchQuery,
-    // Actions
     fetchReports,
     handleViewReport,
     handleCreateNew,

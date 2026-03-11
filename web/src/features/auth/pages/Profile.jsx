@@ -67,7 +67,6 @@ const handleSave = async () => {
 
     console.log("Updated:", data);
     
-    // Update the user state in AuthContext with the new data
     updateUser({
       name: data.name,
       username: data.username,
@@ -163,7 +162,7 @@ const handleSave = async () => {
             </div>
           </div>
 
-          {/* ── Main Grid ── */}
+          {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
             {/* Account Information */}
@@ -216,7 +215,6 @@ const handleSave = async () => {
 };
 
 
-/* ────────── Sub-components ────────── */
 
 const InfoRow = ({ icon, label, value, name, isEditing, onChange, showArrow }) => (
   <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">

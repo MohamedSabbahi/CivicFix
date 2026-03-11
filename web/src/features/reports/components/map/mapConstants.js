@@ -1,27 +1,22 @@
-// Map constants - single source of truth for map configuration
 import L from 'leaflet';
 import { statusConfig } from '../report/reportConstants';
 
-// Default map center (NYC)
 export const DEFAULT_CENTER = [40.7128, -74.0060];
 export const DEFAULT_ZOOM = 13;
 export const DEFAULT_RADIUS = 5;
 
-// Status colors for map markers (derived from reportConstants)
 export const statusColors = {
-  NEW: '#3B82F6',
+  PENDING: '#3B82F6',
   IN_PROGRESS: '#EAB308',
   RESOLVED: '#22C55E',
 };
 
-// Get status color for markers
 export const getStatusColor = (status) => {
-  return statusColors[status] || statusColors.NEW;
+  return statusColors[status] || statusColors.PENDING;
 };
 
-// Create custom marker icon based on report status
 export const createMarkerIcon = (status) => {
-  const config = statusConfig[status] || statusConfig.NEW;
+  const config = statusConfig[status] || statusConfig.PENDING;
   return L.divIcon({
     className: 'custom-marker',
     html: `
@@ -51,7 +46,6 @@ export const createMarkerIcon = (status) => {
   });
 };
 
-// User location marker icon
 export const createUserLocationIcon = () => {
   return L.divIcon({
     className: 'user-marker',
@@ -70,8 +64,7 @@ export const createUserLocationIcon = () => {
   });
 };
 
-// Default marker icon (for fallback)
-export const defaultMarkerIcon = createMarkerIcon('NEW');
+export const defaultMarkerIcon = createMarkerIcon('PENDING');
 
 export default {
   DEFAULT_CENTER,

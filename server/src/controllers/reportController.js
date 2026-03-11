@@ -1,10 +1,12 @@
 const prisma = require('../utils/prisma');
+const { Prisma } = require('@prisma/client');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 const { calculateDistance } = require('../utils/geoUtils');
 const crypto = require('crypto');
 
-// Get all categories
+const ReportStatus = Prisma.ReportStatus;
+
 const getAllCategories = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -74,7 +76,7 @@ const createReport = async (req, res) => {
 
 const getAllReports = async (req, res) => {
   try {
-    // 1. Extraction propre des paramètres (destructuring)
+    // 1. Extraction propre des paramètres 
 
     const { category_id, status, date_debut,
             date_fin, search, sort, order ,

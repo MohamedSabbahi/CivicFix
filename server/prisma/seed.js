@@ -1,8 +1,37 @@
 const prisma = require('../src/utils/prisma');
-
+const bcrypt = require('bcryptjs');
 
 async function main() {
     console.log('Starting seeding process...');
+
+    // Create admin users
+    const adminPassword = await bcrypt.hash('admin123', 10);
+    const admins = [
+        { name: 'Admin', email: 'admin@civicfix.com', password: adminPassword },
+        { name: 'Super Admin', email: 'superadmin@civicfix.com', password: adminPassword },
+        { name: 'Manager', email: 'manager@civicfix.com', password: adminPassword },
+    ];
+
+    for (const admin of admins) {
+        const existingAdmin = await prisma.user.findUnique({
+            where: { email: admin.email }
+        });
+        
+        if (!existingAdmin) {
+            await prisma.user.create({
+                data: {
+                    name: admin.name,
+                    email: admin.email,
+                    password: admin.password,
+                    role: 'ADMIN'
+                }
+            });
+            console.log(`Created admin: ${admin.email}`);
+        } else {
+            console.log(`Admin already exists: ${admin.email}`);
+        }
+    }
+
 
     const uiCategories = [
         { name: 'Road', email: 'zakariaeelyaakoubi437@gmail.com', depName: 'Roads & infrastructure' },
