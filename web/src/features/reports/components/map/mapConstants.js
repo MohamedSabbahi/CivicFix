@@ -6,8 +6,8 @@ export const DEFAULT_ZOOM = 13;
 export const DEFAULT_RADIUS = 5;
 
 export const statusColors = {
-  PENDING: '#3B82F6',
-  IN_PROGRESS: '#EAB308',
+  PENDING: '#06B6D4',  
+  IN_PROGRESS: '#F97316', 
   RESOLVED: '#22C55E',
 };
 

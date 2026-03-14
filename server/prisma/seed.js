@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 async function main() {
     console.log('Starting seeding process...');
 
-    // Create admin users
     const adminPassword = await bcrypt.hash('admin123', 10);
     const admins = [
         { name: 'Admin', email: 'admin@civicfix.com', password: adminPassword },
@@ -32,7 +31,6 @@ async function main() {
         }
     }
 
-
     const uiCategories = [
         { name: 'Road', email: 'zakariaeelyaakoubi437@gmail.com', depName: 'Roads & infrastructure' },
         { name: 'Waste', email: 'mohamed.sabbahi21@gmail.com', depName: 'Sanitation & waste' },
@@ -48,7 +46,6 @@ async function main() {
             create: { name: cat.depName, email: cat.email }
         });
 
-        // Ensure we don't duplicate
         const existingCategory = await prisma.category.findFirst({
             where: { name: cat.name }
         });

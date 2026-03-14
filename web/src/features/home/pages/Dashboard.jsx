@@ -1,56 +1,105 @@
-import background from '../../../assets/background-dashbord.png'
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import background from '../../../assets/background-dashbord.png';
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import StatCard from "../components/StatCard";
 import ReportCard from "../components/ReportCard";
 import CityMap from "../components/CityMap";
+import { getMyReports } from "../services/homeService";
 
-const ActivityItem = ({ avatar, title, sub, time, icon, color }) => {
-  const ring = {
-    yellow: "ring-yellow-400/40",
-    blue: "ring-blue-400/40",
-    green: "ring-green-400/40",
-  };
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
-  return (
-    <div className="flex items-start gap-3 group">
-      {/* Avatar */}
-      <div className={`relative flex-shrink-0 w-8 h-8 rounded-full ring-2 ${ring[color]} overflow-hidden`}>
-        <img src={avatar} alt="" className="w-full h-full object-cover" />
-        <span className="absolute -bottom-0.5 -right-0.5 text-[10px]">{icon}</span>
-      </div>
-
-      {/* Text */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white/90 truncate">{title}</p>
-        <p className="text-xs text-white/40 truncate">{sub}</p>
-      </div>
-
-      {/* Time */}
-      <span className="text-[10px] text-white/30 flex-shrink-0 mt-0.5">{time}</span>
-    </div>
-  );
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
-const StatBar = ({ label, value, max, color }) => (
-  <div>
-    <div className="flex justify-between text-xs text-white/50 mb-1">
-      <span>{label}</span>
-      <span className="text-white/70 font-medium">{value}</span>
-    </div>
-    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-      <div
-        className={`h-full rounded-full ${color} opacity-80 transition-all duration-500`}
-        style={{ width: `${(value / max) * 100}%` }}
-      />
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+  </div>
+);
+
+const ErrorMessage = ({ message, onRetry }) => (
+  <div className="flex flex-col items-center justify-center h-64 text-center">
+    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+      <p className="text-red-400 mb-3">{message}</p>
+      {onRetry && (
+        <button
+          onClick={onRetry}
+          className="px-4 py-2 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition"
+        >
+          Try Again
+        </button>
+      )}
     </div>
   </div>
 );
 
-
-
-
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getMyReports();
+        setReports(response.data.data || []);
+      } catch (err) {
+        console.error('Error fetching reports:', err);
+        setError(err.response?.data?.message || 'Failed to load reports. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
+  const totalReports = reports.length;
+  const inProgressCount = reports.filter(r => r.status === 'IN_PROGRESS').length;
+  const resolvedCount = reports.filter(r => r.status === 'RESOLVED').length;
+
+  // Hardcoded categories for filtering
+  const categories = ['Road', 'Waste', 'Hazard', 'Graffiti', 'Lighting'];
+
+  // Filter reports based on category
+  const getFilteredReports = () => {
+    let filtered = reports;
+    if (filter !== 'all') {
+      filtered = reports.filter(r => r.category?.name === filter);
+    }
+    return filtered.slice(0, 3);
+  };
+
+  const displayReports = getFilteredReports();
+
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    getMyReports()
+      .then(response => {
+        setReports(response.data.data || []);
+      })
+      .catch(err => {
+        setError(err.response?.data?.message || 'Failed to load reports. Please try again.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+  const handleViewDetails = (reportId) => {
+    navigate(`/reports/${reportId}`);
+  };
+
   return (
     <div className="relative min-h-screen text-white overflow-hidden">
 
@@ -73,146 +122,90 @@ const Dashboard = () => {
         <Sidebar />
 
         {/* MAIN */}
-        <main className="ml-[260px] mr-[320px] p-6 space-y-6 w-full">
+        <main className="ml-[260px] p-6 space-y-6 w-full">
           <Header />
 
           {/* STATS */}
           <div className="grid grid-cols-4 gap-6">
-            <StatCard title="Total Reports" value="24" subtitle="Total Reports" />
-            <StatCard title="In Progress" value="5" subtitle="In Progress" highlight />
-            <StatCard title="Resolved" value="12" subtitle="Resolved Reports" success />
-            <StatCard title="Impact Score" value="87" subtitle="Community Impact" glow />
+            <StatCard title="Total Reports" value={loading ? '...' : totalReports} subtitle="Total Reports" />
+            <StatCard title="In Progress" value={loading ? '...' : inProgressCount} subtitle="In Progress" highlight />
+            <StatCard title="Resolved" value={loading ? '...' : resolvedCount} subtitle="Resolved Reports" success />
+            <StatCard title="Pending" value={loading ? '...' : totalReports - inProgressCount - resolvedCount} subtitle="Pending Reports" glow />
           </div>
 
           {/* MAP */}
-<div className="relative p-5 h-[420px] rounded-2xl bg-white/[0.04] border border-white/[0.08]">
-  <h3 className="text-lg font-semibold mb-3">City Activity Overview</h3>
-  <div className="h-[330px] rounded-xl overflow-hidden">
-    <CityMap />
-  </div>
-</div>
+          <div className="relative p-5 h-[420px] rounded-2xl bg-white/[0.04] border border-white/[0.08]">
+            <h3 className="text-lg font-semibold mb-3">City Activity Overview</h3>
+            <div className="h-[330px] rounded-xl overflow-hidden">
+              <CityMap />
+            </div>
+          </div>
 
-{/* REPORTS */}
-<div className="space-y-3">
+          {/* REPORTS */}
+          <div className="space-y-3">
 
-  {/* Header with filters */}
-  <div className="flex items-center justify-between mb-3">
-    <h3 className="text-xl font-bold tracking-tight">My Reports</h3>
-    <div className="flex items-center gap-5 text-sm">
-      <span className="text-white font-semibold flex items-center gap-1.5 cursor-pointer">
-        <span className="text-blue-400 text-base">♦</span> All
-      </span>
-      <span className="text-white/40 cursor-pointer hover:text-white/70 transition">New</span>
-      <span className="text-white/40 cursor-pointer hover:text-white/70 transition flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block"/>
-        In Progress
-      </span>
-      <span className="text-white/40 cursor-pointer hover:text-white/70 transition">Resolved</span>
-    </div>
-  </div>
+            {/* Header with filters */}
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xl font-bold tracking-tight">All Reports</h3>
+              <div className="flex items-center gap-5 text-sm">
+                <button 
+                  onClick={() => setFilter('all')}
+                  className={`flex items-center gap-1.5 cursor-pointer transition ${filter === 'all' ? 'text-white font-semibold' : 'text-white/40 hover:text-white/70'}`}
+                >
+                  <span className="text-blue-400 text-base">♦</span> All
+                </button>
+                {categories.map(category => (
+                  <button 
+                    key={category}
+                    onClick={() => setFilter(category)}
+                    className={`cursor-pointer transition ${filter === category ? 'text-white font-semibold' : 'text-white/40 hover:text-white/70'}`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-  {/* Cards */}
-  <ReportCard
-    title="Streetlight Outage"
-    status="New"
-    address="123 Elm Street, Downtown"
-    date="Mar 26, 2026"
-  />
-  <ReportCard
-    title="Pothole on Main Road"
-    status="In Progress"
-    address="466 Main Avenue, Suite 100"
-    date="Mar 20, 2026"
-  />
-  <ReportCard
-    title="Traffic Sign Damage"
-    status="Resolved"
-    address="555 Pine Street"
-    date="Mar 20, 2026"
-  />
-</div>
+            {/* Loading State */}
+            {loading && (
+              <div className="py-8">
+                <LoadingSpinner />
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <ErrorMessage message={error} onRetry={handleRetry} />
+            )}
+
+            {/* Report Cards */}
+            {!loading && !error && (
+              <>
+                {displayReports.length > 0 ? (
+                  displayReports.map((report) => (
+                    <ReportCard
+                      key={report.id}
+                      title={report.title}
+                      status={report.status === 'IN_PROGRESS' ? 'In Progress' : report.status}
+                      address={report.category?.name || "Downtown Area"}
+                      date={formatDate(report.createdAt)}
+                      image={report.photoUrl ? `${API_BASE_URL}${report.photoUrl}` : null}
+                      onView={() => handleViewDetails(report.id)}
+                    />
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-white/40 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
+                    No reports yet. Create your first report to get started!
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </main>
-
-{/* RIGHT PANEL */}
-<aside className="fixed right-6 top-6 bottom-6 w-72 flex flex-col gap-4">
-
-  {/* Recent Activity */}
-  <div className="flex-1 p-5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md overflow-hidden">
-    
-    {/* Header */}
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="text-base font-semibold text-white">Recent Activity</h3>
-      <button className="text-xs text-blue-400 hover:text-blue-300 transition">
-        View All →
-      </button>
-    </div>
-
-    {/* Activity list */}
-    <div className="space-y-3">
-      <ActivityItem
-        avatar="https://i.pravatar.cc/40?img=1"
-        title="Pothole on Main Road"
-        sub="Technician assigned to report"
-        time="2h ago"
-        icon="🚧"
-        color="yellow"
-      />
-      <ActivityItem
-        avatar="https://i.pravatar.cc/40?img=2"
-        title="Streetlight Outage"
-        sub="Status changed to In Progress"
-        time="5h ago"
-        icon="💡"
-        color="blue"
-      />
-      <ActivityItem
-        avatar="https://i.pravatar.cc/40?img=3"
-        title="Traffic Sign Fixed"
-        sub="Report marked as Resolved"
-        time="Yesterday"
-        icon="✅"
-        color="green"
-      />
-      <ActivityItem
-        avatar="https://i.pravatar.cc/40?img=4"
-        title="New Report Submitted"
-        sub="Road damage near Pine Street"
-        time="2d ago"
-        icon="📋"
-        color="blue"
-      />
-    </div>
-  </div>
-
-  {/* Quick Stats */}
-  <div className="p-5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
-    <h3 className="text-base font-semibold text-white mb-4">This Week</h3>
-    <div className="space-y-3">
-      <StatBar label="Reports Submitted" value={8} max={10} color="bg-blue-400" />
-      <StatBar label="Resolved" value={5} max={10} color="bg-green-400" />
-      <StatBar label="In Progress" value={3} max={10} color="bg-yellow-400" />
-    </div>
-  </div>
-
-  {/* Community Score */}
-  <div className="p-5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="text-base font-semibold text-white">Impact Score</h3>
-      <span className="text-2xl font-bold text-blue-300">87</span>
-    </div>
-    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-      <div
-        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_8px_rgba(59,130,246,0.6)]"
-        style={{ width: "87%" }}
-      />
-    </div>
-    <p className="text-xs text-white/40 mt-2">Top 12% in your city 🏆</p>
-  </div>
-
-</aside>
       </div>
     </div>
   );
 };
 
 export default Dashboard;
+

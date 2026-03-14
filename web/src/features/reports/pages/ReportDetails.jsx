@@ -23,20 +23,15 @@ L.Icon.Default.mergeOptions({
 const getImageUrl = (photo) => {
   if (!photo) return null;
   
-  // If it's already a full URL, return it
   if (photo.startsWith('http://') || photo.startsWith('https://')) {
     return photo;
   }
   
-  // Clean the API URL - remove trailing slashes
-  const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5001').replace(/\/+$/, '');
-  
-  // Remove leading slash from photo if present to avoid double slashes
+  const apiUrl = (import.meta.env.VITE_UPLOADS_URL || 'http://localhost:5001').replace(/\/+$/, '');
   const cleanPhoto = photo.replace(/^\/+/, '');
   
   const fullUrl = `${apiUrl}/${cleanPhoto}`;
   
-  // Debug log in development
   if (import.meta.env.DEV) {
     console.log('[ReportDetails] Image URL:', fullUrl);
   }
@@ -44,7 +39,6 @@ const getImageUrl = (photo) => {
   return fullUrl;
 };
 
-// ImageWithFallback component for handling image loading errors
 const ImageWithFallback = ({ src, alt }) => {
   const [hasError, setHasError] = useState(false);
 
@@ -91,7 +85,6 @@ const ReportDetails = () => {
     handleGoBack,
   } = useReportDetails();
 
-  // Debug: Log report data to check photoUrl value
   if (report) {
     console.log('[ReportDetails] Report data:', {
       id: report.id,

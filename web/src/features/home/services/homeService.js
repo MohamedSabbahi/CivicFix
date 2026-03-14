@@ -1,7 +1,10 @@
 import api from "../../../services/api";
 
 export const getPublicStats = () =>
-    api.get("/api/admin/stats");
+    api.get("/admin/stats");
 
 export const getRecentReports = () =>
-    api.get("/api/reports?limit=6&sort=date&order=desc");
+    api.get("/reports?limit=6&sort=date&order=desc");
+
+export const getMyReports = () =>
+    api.get("/reports/my-reports");

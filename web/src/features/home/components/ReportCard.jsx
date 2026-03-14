@@ -4,7 +4,7 @@ const colors = {
   Resolved: "bg-green-600/80 text-white border-green-500/50",
 };
 
-const ReportCard = ({ title, status, address, date, image }) => {
+const ReportCard = ({ title, status, address, date, image, onView }) => {
   return (
     <div
       className="
@@ -49,9 +49,12 @@ const ReportCard = ({ title, status, address, date, image }) => {
         >
           {status}
         </span>
-        <span className="text-xs text-white/30 cursor-pointer hover:text-white/60 transition">
+        <button 
+          onClick={onView}
+          className="text-xs text-white/30 cursor-pointer hover:text-white/60 transition"
+        >
           View Details
-        </span>
+        </button>
       </div>
     </div>
   );
