@@ -1,12 +1,10 @@
 const prisma = require('../utils/prisma');
 
-// Task 1 : Get all comments for a specific report
 const getReportComments = async (req, res) => {
     try{
         const { id } = req.params;
         const reportId = parseInt(id);
 
-        // 1. verify that the report exists
         const report = await prisma.report.findUnique({
             where: { id: reportId },
             select: { id: true },
@@ -17,7 +15,6 @@ const getReportComments = async (req, res) => {
                 message: "Report not found" 
             });
         }
-        // 2. fetch comments with user name, sorted by newst first
         const comments = await prisma.comment.findMany({
             where: { reportId },
             include: {
@@ -42,7 +39,6 @@ const getReportComments = async (req, res) => {
     }
 };
 
-// Task 2 : Add a comment to a report
 const createComment = async (req, res) => {
     try {
         const { id } = req.params;
@@ -50,7 +46,6 @@ const createComment = async (req, res) => {
         const userId = req.user.id;
         const reportId = parseInt(id);
 
-        // --- 1. ANTI-SPAM CHECK
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
         const commentCount = await prisma.comment.count({
@@ -66,7 +61,6 @@ const createComment = async (req, res) => {
             });
         }
 
-        // --- 2. VALIDATION ---
         if (!content || content.trim().length === 0) {
             return res.status(400).json({
                 status: "error",
@@ -79,7 +73,6 @@ const createComment = async (req, res) => {
                 message: "Comment is too long. Maximum length is 500 characters"
             });
         }
-        // --- 3. REPORT EXISTENCE CHECK ---
         const report = await prisma.report.findUnique({
             where: { id: reportId },
             select: { id: true },
@@ -90,7 +83,6 @@ const createComment = async (req, res) => {
                 message: "Report not found"
             });
         }
-        // --- 4. CREATE COMMENT ---
         const newComment = await prisma.comment.create({
             data: {
                 text: content,
@@ -113,14 +105,12 @@ const createComment = async (req, res) => {
         });
     }
 };
-// Task 3 : Delete a comment (only by owner or admin)
 const deleteComment = async (req, res) => {
     try {
         const { id , commentId} = req.params;
         const userId = req.user.id;
         const userRole = req.user.role;
 
-        // 1. fetch the comment from the database
         const comment = await prisma.comment.findUnique({
             where: { id: parseInt(commentId) },
         });
@@ -138,7 +128,6 @@ const deleteComment = async (req, res) => {
                 message: "This comment does not belong to this report"
             });
         }
-        // 2. check permissions (only the comment owner or an admin can delete)
 
         const isOwner = comment.userId === userId;
         const isAdmin = userRole === "ADMIN";

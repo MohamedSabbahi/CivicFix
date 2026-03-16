@@ -8,7 +8,7 @@ import ReportCard from "../components/ReportCard";
 import CityMap from "../components/CityMap";
 import { getMyReports } from "../services/homeService";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -182,17 +182,20 @@ const Dashboard = () => {
             {!loading && !error && (
               <>
                 {displayReports.length > 0 ? (
-                  displayReports.map((report) => (
-                    <ReportCard
-                      key={report.id}
-                      title={report.title}
-                      status={report.status === 'IN_PROGRESS' ? 'In Progress' : report.status}
-                      address={report.category?.name || "Downtown Area"}
-                      date={formatDate(report.createdAt)}
-                      image={report.photoUrl ? `${API_BASE_URL}${report.photoUrl}` : null}
-                      onView={() => handleViewDetails(report.id)}
-                    />
-                  ))
+                  displayReports.map((report) => {
+                    console.log("image field:", report.photoUrl);
+                    return (
+                      <ReportCard
+                        key={report.id}
+                        title={report.title}
+                        status={report.status === 'IN_PROGRESS' ? 'In Progress' : report.status}
+                        address={report.category?.name || "Downtown Area"}
+                        date={formatDate(report.createdAt)}
+                        image={report.photoUrl ? `${API_BASE_URL}${report.photoUrl}` : null}
+                        onView={() => handleViewDetails(report.id)}
+                      />
+                    );
+                  })
                 ) : (
                   <div className="p-8 text-center text-white/40 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
                     No reports yet. Create your first report to get started!

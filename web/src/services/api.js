@@ -6,7 +6,6 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json' },
 });
 
-// Request Interceptor: Attach Token
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
@@ -16,7 +15,6 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Handle 401 Session Expiry
 api.interceptors.response.use(
     (response) => response,
     (error) => {

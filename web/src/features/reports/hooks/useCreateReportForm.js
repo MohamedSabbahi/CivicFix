@@ -3,7 +3,6 @@ import { useState, useCallback } from 'react';
 import { validateImageFile } from '../utils/reportValidation';
 
 const useCreateReportForm = () => {
-  // Form state
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -17,7 +16,6 @@ const useCreateReportForm = () => {
   const [errors, setErrors] = useState({});
   const [showMap, setShowMap] = useState(false);
 
-  // Input change handler
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -26,7 +24,6 @@ const useCreateReportForm = () => {
     }
   }, [errors]);
 
-  // Image change handler
   const handleImageChange = useCallback((e) => {
     const file = e.target.files[0];
     const validation = validateImageFile(file);
@@ -43,7 +40,6 @@ const useCreateReportForm = () => {
     }
   }, [errors.image]);
 
-  // Remove image
   const removeImage = useCallback((fileInputRef) => {
     setImage(null);
     setImagePreview(null);
@@ -52,7 +48,6 @@ const useCreateReportForm = () => {
     }
   }, []);
 
-  // Update location from GPS or map
   const updateLocation = useCallback((lat, lng) => {
     setFormData(prev => ({
       ...prev,
@@ -61,30 +56,27 @@ const useCreateReportForm = () => {
     }));
   }, []);
 
-  // Clear error
   const clearError = useCallback((field) => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
   }, [errors]);
 
-  // Set errors from outside
   const setFormErrors = useCallback((newErrors) => {
     setErrors(newErrors);
   }, []);
 
   return {
-    // State
     formData,
     image,
     imagePreview,
     errors,
     showMap,
-    // Setters
+
     setFormData,
     setShowMap,
     setErrors: setFormErrors,
-    // Handlers
+
     handleInputChange,
     handleImageChange,
     removeImage,

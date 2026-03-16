@@ -4,6 +4,8 @@ const colors = {
   Resolved: "bg-green-600/80 text-white border-green-500/50",
 };
 
+import ImageWithFallback from '../../reports/components/ImageWithFallback';
+
 const ReportCard = ({ title, status, address, date, image, onView }) => {
   return (
     <div
@@ -22,7 +24,7 @@ const ReportCard = ({ title, status, address, date, image, onView }) => {
       {/* Thumbnail */}
       <div className="w-20 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-white/5">
         {image ? (
-          <img src={image} alt={title} className="w-full h-full object-cover" />
+          <ImageWithFallback src={image} alt={title} />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-900/40 to-slate-800/40" />
         )}

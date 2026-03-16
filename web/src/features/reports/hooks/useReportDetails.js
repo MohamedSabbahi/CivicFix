@@ -8,23 +8,19 @@ const useReportDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // State
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Comments state
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  // Edit state
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ title: '', description: '' });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Fetch report by ID
   const fetchReport = useCallback(async () => {
     try {
       setLoading(true);
@@ -43,7 +39,6 @@ const useReportDetails = () => {
     }
   }, [id]);
 
-  // Fetch comments
   const fetchComments = useCallback(async () => {
     try {
       setCommentsLoading(true);
@@ -56,7 +51,6 @@ const useReportDetails = () => {
     }
   }, [id]);
 
-  // Initial fetch
   useEffect(() => {
     if (id) {
       fetchReport();
@@ -64,7 +58,6 @@ const useReportDetails = () => {
     }
   }, [id, fetchReport, fetchComments]);
 
-  // Handle adding comment
   const handleAddComment = useCallback(async () => {
     if (!newComment.trim()) return;
     
@@ -82,7 +75,6 @@ const useReportDetails = () => {
     }
   }, [id, newComment, fetchComments]);
 
-  // Handle update report
   const handleUpdateReport = useCallback(async () => {
     if (!editData.title.trim()) {
       toast.error("Title cannot be empty");
@@ -106,7 +98,6 @@ const useReportDetails = () => {
     }
   }, [id, editData]);
 
-  // Handle delete report
   const handleDeleteReport = useCallback(async () => {
     if (!window.confirm("Are you sure you want to delete this report? This action cannot be undone.")) {
       return;
@@ -122,13 +113,11 @@ const useReportDetails = () => {
     }
   }, [id, navigate]);
 
-  // Go back handler
   const handleGoBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
 
   return {
-    // State
     report,
     loading,
     error,
@@ -142,7 +131,7 @@ const useReportDetails = () => {
     editData,
     setEditData,
     isUpdating,
-    // Actions
+
     fetchReport,
     fetchComments,
     handleAddComment,

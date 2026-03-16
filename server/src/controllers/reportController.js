@@ -59,7 +59,6 @@ const createReport = async (req, res) => {
       }
     });
     
-    // Automated Dispatch Logic
     const links = generateMagicLinks(report);
     if (report.category?.department?.email) {
         sendStatusEmail(report.category.department.email, report, links)
@@ -76,7 +75,6 @@ const createReport = async (req, res) => {
 
 const getAllReports = async (req, res) => {
   try {
-    // 1. Extraction propre des paramètres 
 
     const { category_id, status, date_debut,
             date_fin, search, sort, order ,
@@ -87,10 +85,8 @@ const getAllReports = async (req, res) => {
     const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
     const skip = (pageNum - 1) * limitNum;
 
-    // 2. Construction dynamique de la condition WHERE
     const whereCondition = {};
 
-    // Filtrer par catégorie (Task 2.1)
     if (category_id) {
       const categoryIdNum = parseInt(category_id);
       if (!isNaN(categoryIdNum)) {
@@ -103,7 +99,6 @@ const getAllReports = async (req, res) => {
       }
     }
 
-    // Filter by User ID
     if (user_id) {
       const userIdNum = parseInt(user_id);
       if (!isNaN(userIdNum)) {
@@ -111,7 +106,6 @@ const getAllReports = async (req, res) => {
       }
     }
     
-    // Filtrer par statut (Task 2.2)
     if (status) {
         const upperStatus = status.toUpperCase();
 
@@ -126,7 +120,6 @@ const getAllReports = async (req, res) => {
     }
     
 
-    // TASK 2.3 : FILTRER PAR DATE 
     if (date_debut || date_fin) {
       const start = date_debut ? new Date(date_debut) : null;
       const end = date_fin ? new Date(`${date_fin}T23:59:59.999Z`) : null;
@@ -148,7 +141,6 @@ const getAllReports = async (req, res) => {
       if (end) whereCondition.createdAt.lte = end;
     }
 
-    // TASK 2.4 : FILTRER PAR RECHERCHE PAR MOT-CLÉ
     if (search) {
         const trimmedSearch = search.trim();
           
@@ -173,13 +165,11 @@ const getAllReports = async (req, res) => {
         ]
       }];
     }
-    // TASK 2.5 : DAYNAMIC SORTING 
     let orderByCondition = { createdAt: "desc" };
     if (sort === "date"){
       const sortOrder = order === "asc" ? "asc" : "desc";
       orderByCondition = { createdAt: sortOrder };
     }
-    // 3. Exécution parallèle de la requête de données et du comptage total 
     const [reports, totalReports] = await Promise.all([
       prisma.report.findMany({
         where: whereCondition,
@@ -196,10 +186,8 @@ const getAllReports = async (req, res) => {
       }),
     ]);
 
-    // GEOLOCATION LOGIC
 
     let finalData = reports;
-    // If coordinates are provided, calculate distance for each report
     if (user_lat && user_lng) {      
         const lat = parseFloat(user_lat);
         const lng = parseFloat(user_lng);
@@ -214,7 +202,6 @@ const getAllReports = async (req, res) => {
             );
             return { ...report, distance };
           });
-          // If sorting by distance is requested
           if (sort === "distance") {
             finalData.sort((a, b) => {
               return order === "desc" ? b.distance - a.distance : a.distance - b.distance;
@@ -269,7 +256,6 @@ const getMyReports = async (req, res) => {
 const getReportById = async (req, res) => {
   try {
     const { id } = req.params;
-    // FIXED: Cleaned up the nested includes and braces
     const report = await prisma.report.findUnique({
       where: { id: parseInt(id) },
       include: {
@@ -304,7 +290,6 @@ const getNearbyReports = async (req, res) => {
   try {
     const { latitude, longitude, radius, category_id } = req.query;
 
-    // 1. Validation
     if (!latitude || !longitude) {
       return res.status(400).json({ status: "error", message: "Coordinates required" });
     }
@@ -312,18 +297,13 @@ const getNearbyReports = async (req, res) => {
     const userLat = parseFloat(latitude);
     const userLng = parseFloat(longitude);
     
-    // limited in Min 1km, Max 100km ( Protects server performance)
     const searchRadius = Math.min(Math.max(parseFloat(radius) || 5, 1), 100);
 
-    // 2. Bounding Box Calculation (The "Magic" Optimization)
-    // 1 degree of latitude is ~111km. 
     const latDelta = searchRadius / 111;
     const lngDelta = searchRadius / (111 * Math.cos(userLat * (Math.PI / 180)));
 
-    // 3. Build optimized WHERE condition
     const whereCondition = {
       status: { not: "RESOLVED" },
-      // The Database uses the index on these two lines:
       latitude: { gte: userLat - latDelta, lte: userLat + latDelta },
       longitude: { gte: userLng - lngDelta, lte: userLng + lngDelta },
     };
@@ -333,7 +313,6 @@ const getNearbyReports = async (req, res) => {
       if (!isNaN(categoryIdNum)) whereCondition.categoryId = categoryIdNum;
     }
 
-    // 4. Fetch only relevant reports
     const reports = await prisma.report.findMany({
       where: whereCondition,
       include: {
@@ -342,8 +321,6 @@ const getNearbyReports = async (req, res) => {
       }
     });
 
-    // 5. Precise Haversine Calculation (Final Polish)
-    // The Database gave us a "Square", now we filter for a "Circle" and sort
     const nearbyReports = reports
       .map(report => {
         const distance = calculateDistance(userLat, userLng, report.latitude, report.longitude);
@@ -430,7 +407,6 @@ const deleteReport = async (req, res) => {
       return res.status(404).json({ message: "Report not found" });
     }
 
-    // Deleting associated data within a transaction
     await prisma.$transaction([
       prisma.comment.deleteMany({ where: { reportId } }),
       prisma.report.delete({ where: { id: reportId } })
