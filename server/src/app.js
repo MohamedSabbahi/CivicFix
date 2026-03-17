@@ -8,6 +8,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
+app.set('trust proxy', 1);
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
@@ -23,8 +24,7 @@ app.use(cors({
 
 app.use(morgan('dev'));
 
-const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+app.use(express.json());
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -41,7 +41,6 @@ const generalLimiter = rateLimit({
 
 app.use(generalLimiter);
 
-app.use(express.json());
 
 
 // Define routes here
