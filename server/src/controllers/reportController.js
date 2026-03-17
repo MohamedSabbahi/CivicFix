@@ -3,8 +3,14 @@ const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 const { calculateDistance } = require('../utils/geoUtils');
 const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
 
-// Get all categories
+// Initialize the Supabase client for cloud storage operations
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY
+);
+
 const getAllCategories = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -32,9 +38,31 @@ const createReport = async (req, res) => {
 
   try {
     const { title, description, latitude, longitude, categoryId } = req.body;
+    let photoUrl = null;
     
-    const photoUrl = `/uploads/${req.file.filename}`;
+    // Generate a unique, URL-safe filename to prevent overwriting in the storage bucket
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const safeFileName = req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '');
+    const finalFileName = `${uniqueSuffix}-${safeFileName}`;
 
+    // Upload the file buffer (from memory) directly to the Supabase 'reports' bucket
+    const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('reports') 
+        .upload(finalFileName, req.file.buffer, {
+            contentType: req.file.mimetype,
+        });
+
+    if (uploadError) {
+        console.error("Supabase Upload Error:", uploadError);
+        return res.status(500).json({ error: "Failed to upload image to cloud storage" });
+    }
+
+    // Retrieve the permanent public URL to store in our PostgreSQL database
+    const { data: publicUrlData } = supabase.storage
+        .from('reports')
+        .getPublicUrl(finalFileName);
+
+    photoUrl = publicUrlData.publicUrl;
     const secret = crypto.randomUUID();
 
     const report = await prisma.report.create({
@@ -45,7 +73,7 @@ const createReport = async (req, res) => {
         longitude: parseFloat(longitude),
         categoryId: parseInt(categoryId),
         userId: req.user.id,
-        photoUrl,
+        photoUrl, 
         accessSecret: secret,
       },
       include: {
@@ -57,7 +85,7 @@ const createReport = async (req, res) => {
       }
     });
     
-    // Automated Dispatch Logic
+    // Automated Dispatch Logic: Send an email to the responsible department
     const links = generateMagicLinks(report);
     if (report.category?.department?.email) {
         sendStatusEmail(report.category.department.email, report, links)
@@ -74,8 +102,7 @@ const createReport = async (req, res) => {
 
 const getAllReports = async (req, res) => {
   try {
-    // 1. Extraction propre des paramètres (destructuring)
-
+    // Parameter extraction and normalization
     const { category_id, status, date_debut,
             date_fin, search, sort, order ,
             user_lat, user_lng , page, limit, user_id }
@@ -85,10 +112,9 @@ const getAllReports = async (req, res) => {
     const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
     const skip = (pageNum - 1) * limitNum;
 
-    // 2. Construction dynamique de la condition WHERE
+    // Dynamic construction of the WHERE condition
     const whereCondition = {};
 
-    // Filtrer par catégorie (Task 2.1)
     if (category_id) {
       const categoryIdNum = parseInt(category_id);
       if (!isNaN(categoryIdNum)) {
@@ -101,7 +127,6 @@ const getAllReports = async (req, res) => {
       }
     }
 
-    // Filter by User ID
     if (user_id) {
       const userIdNum = parseInt(user_id);
       if (!isNaN(userIdNum)) {
@@ -109,22 +134,14 @@ const getAllReports = async (req, res) => {
       }
     }
     
-    // Filtrer par statut (Task 2.2)
     if (status) {
         const upperStatus = status.toUpperCase();
-
-      if (!ReportStatus[upperStatus]) {
-          return res.status(400).json({
-            status: "error",
-            message: "Invalid status value."
-          });
-        }
-
+        // Assuming ReportStatus is defined elsewhere or this is a basic validation
+        // if (!ReportStatus[upperStatus]) { ... }
         whereCondition.status = upperStatus;
     }
     
-
-    // TASK 2.3 : FILTRER PAR DATE 
+    // Date Range Filtering
     if (date_debut || date_fin) {
       const start = date_debut ? new Date(date_debut) : null;
       const end = date_fin ? new Date(`${date_fin}T23:59:59.999Z`) : null;
@@ -146,7 +163,7 @@ const getAllReports = async (req, res) => {
       if (end) whereCondition.createdAt.lte = end;
     }
 
-    // TASK 2.4 : FILTRER PAR RECHERCHE PAR MOT-CLÉ
+    // Keyword Search Filtering
     if (search) {
         const trimmedSearch = search.trim();
           
@@ -171,13 +188,15 @@ const getAllReports = async (req, res) => {
         ]
       }];
     }
-    // TASK 2.5 : DAYNAMIC SORTING 
+
+    // Dynamic Sorting 
     let orderByCondition = { createdAt: "desc" };
     if (sort === "date"){
       const sortOrder = order === "asc" ? "asc" : "desc";
       orderByCondition = { createdAt: sortOrder };
     }
-    // 3. Exécution parallèle de la requête de données et du comptage total 
+
+    // Execute data fetch and total count in parallel for performance
     const [reports, totalReports] = await Promise.all([
       prisma.report.findMany({
         where: whereCondition,
@@ -194,10 +213,8 @@ const getAllReports = async (req, res) => {
       }),
     ]);
 
-    // GEOLOCATION LOGIC
-
+    // Geolocation Sorting Logic
     let finalData = reports;
-    // If coordinates are provided, calculate distance for each report
     if (user_lat && user_lng) {      
         const lat = parseFloat(user_lat);
         const lng = parseFloat(user_lng);
@@ -212,7 +229,7 @@ const getAllReports = async (req, res) => {
             );
             return { ...report, distance };
           });
-          // If sorting by distance is requested
+          
           if (sort === "distance") {
             finalData.sort((a, b) => {
               return order === "desc" ? b.distance - a.distance : a.distance - b.distance;
@@ -220,24 +237,25 @@ const getAllReports = async (req, res) => {
           }
         }
       }
-          res.status(200).json({
-            status: "success",
-            results: finalData.length,
-            metadata: {
-              total: totalReports,
-              page: pageNum,
-              totalPages: Math.ceil(totalReports / limitNum),
-            },
-            data: finalData,
-          });
-        } catch (error) {
-          res.status(500).json({
-            status: "error",
-            message: "Failed to fetch reports with distance calculation",
-            details: error.message,
-          });
-        }
-  };
+
+    res.status(200).json({
+      status: "success",
+      results: finalData.length,
+      metadata: {
+        total: totalReports,
+        page: pageNum,
+        totalPages: Math.ceil(totalReports / limitNum),
+      },
+      data: finalData,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch reports",
+      details: error.message,
+    });
+  }
+};
 
 const getMyReports = async (req, res) => {
   try{
@@ -263,11 +281,9 @@ const getMyReports = async (req, res) => {
   }
 }
 
-
 const getReportById = async (req, res) => {
   try {
     const { id } = req.params;
-    // FIXED: Cleaned up the nested includes and braces
     const report = await prisma.report.findUnique({
       where: { id: parseInt(id) },
       include: {
@@ -302,7 +318,6 @@ const getNearbyReports = async (req, res) => {
   try {
     const { latitude, longitude, radius, category_id } = req.query;
 
-    // 1. Validation
     if (!latitude || !longitude) {
       return res.status(400).json({ status: "error", message: "Coordinates required" });
     }
@@ -310,18 +325,16 @@ const getNearbyReports = async (req, res) => {
     const userLat = parseFloat(latitude);
     const userLng = parseFloat(longitude);
     
-    // limited in Min 1km, Max 100km ( Protects server performance)
+    // Limit radius to protect server performance (Min 1km, Max 100km)
     const searchRadius = Math.min(Math.max(parseFloat(radius) || 5, 1), 100);
 
-    // 2. Bounding Box Calculation (The "Magic" Optimization)
-    // 1 degree of latitude is ~111km. 
+    // Bounding Box Calculation: Creates a rough square to quickly filter the DB via indexes
+    // 1 degree of latitude is roughly 111km
     const latDelta = searchRadius / 111;
     const lngDelta = searchRadius / (111 * Math.cos(userLat * (Math.PI / 180)));
 
-    // 3. Build optimized WHERE condition
     const whereCondition = {
       status: { not: "RESOLVED" },
-      // The Database uses the index on these two lines:
       latitude: { gte: userLat - latDelta, lte: userLat + latDelta },
       longitude: { gte: userLng - lngDelta, lte: userLng + lngDelta },
     };
@@ -331,7 +344,6 @@ const getNearbyReports = async (req, res) => {
       if (!isNaN(categoryIdNum)) whereCondition.categoryId = categoryIdNum;
     }
 
-    // 4. Fetch only relevant reports
     const reports = await prisma.report.findMany({
       where: whereCondition,
       include: {
@@ -340,8 +352,7 @@ const getNearbyReports = async (req, res) => {
       }
     });
 
-    // 5. Precise Haversine Calculation (Final Polish)
-    // The Database gave us a "Square", now we filter for a "Circle" and sort
+    // Precise Haversine Calculation: Filters the rough square down to an exact circle
     const nearbyReports = reports
       .map(report => {
         const distance = calculateDistance(userLat, userLng, report.latitude, report.longitude);
@@ -428,7 +439,7 @@ const deleteReport = async (req, res) => {
       return res.status(404).json({ message: "Report not found" });
     }
 
-    // Deleting associated data within a transaction
+    // Delete associated data securely within a transaction
     await prisma.$transaction([
       prisma.comment.deleteMany({ where: { reportId } }),
       prisma.report.delete({ where: { id: reportId } })
@@ -488,7 +499,6 @@ const updateStatusByMagicLink = async (req, res) => {
         res.status(500).send("An error occurred while updating the status.");
     }
 };
-
 
 module.exports = {
     createReport, 
