@@ -128,9 +128,9 @@ const Dashboard = () => {
           {/* STATS */}
           <div className="grid grid-cols-4 gap-6">
             <StatCard title="Total Reports" value={loading ? '...' : totalReports} subtitle="Total Reports" />
+            <StatCard title="Pending" value={loading ? '...' : totalReports - inProgressCount - resolvedCount} subtitle="Pending Reports" glow />
             <StatCard title="In Progress" value={loading ? '...' : inProgressCount} subtitle="In Progress" highlight />
             <StatCard title="Resolved" value={loading ? '...' : resolvedCount} subtitle="Resolved Reports" success />
-            <StatCard title="Pending" value={loading ? '...' : totalReports - inProgressCount - resolvedCount} subtitle="Pending Reports" glow />
           </div>
 
           {/* MAP */}

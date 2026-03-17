@@ -1,4 +1,5 @@
 import { useCallback, useMemo, memo } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { ArrowLeft, MapPin, Edit2, Trash2, ExternalLink, Loader2 } from 'lucide-react';
@@ -169,26 +170,16 @@ const ReportDetails = () => {
         </button>
 
         <div className="flex items-center gap-2" role="group" aria-label="Report actions">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleStartEdit}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.06]
-                      hover:bg-white/[0.1] border border-white/10 text-white/80
-                      hover:text-yellow-400 transition-all"
+            className="group w-full px-4 py-3 rounded-xl border bg-blue-500/20 hover:bg-blue-500/30 border-blue-500/30 text-blue-300 font-medium transition-all duration-300 flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             aria-label="Edit this report"
           >
-            <Edit2 size={16} aria-hidden="true" />
-            <span className="text-sm font-medium">Edit</span>
-          </button>
-          <button
-            onClick={handleDeleteReport}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.06]
-                      hover:bg-red-500/20 border border-white/10 text-white/80
-                      hover:text-red-400 transition-all"
-            aria-label="Delete this report"
-          >
-            <Trash2 size={16} aria-hidden="true" />
-            <span className="text-sm font-medium">Delete</span>
-          </button>
+            <Edit2 size={18} aria-hidden="true" className="group-hover:text-blue-200 transition-colors" />
+            <span className="text-left">Edit</span>
+          </motion.button>
         </div>
       </header>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 w-full">

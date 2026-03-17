@@ -11,17 +11,18 @@ const cardConfig = {
     accent: "from-yellow-400/10",
     valueColor: "text-yellow-300",
   },
+  glow: {
+    icon: "⏳",
+    iconBg: "bg-orange-500/15",
+    accent: "from-orange-400/10",
+    valueColor: "text-orange-300/80",
+    borderColor: "border-orange-400/25",
+  },
   success: {
     icon: "✅",
     iconBg: "bg-green-500/20",
     accent: "from-green-400/10",
     valueColor: "text-green-300",
-  },
-  glow: {
-    icon: "⭐",
-    iconBg: "bg-blue-400/20",
-    accent: "from-blue-300/10",
-    valueColor: "text-blue-200",
   },
 };
 

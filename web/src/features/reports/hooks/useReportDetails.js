@@ -1,12 +1,13 @@
 // useReportDetails - Hook for fetching and managing single report details
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import reportService from '../services/reportService';
 import toast from 'react-hot-toast';
 
 const useReportDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,13 +32,17 @@ const useReportDetails = () => {
         title: data.data.title || '',
         description: data.data.description || ''
       });
+      // Auto-enter edit mode if ?edit=true in URL
+      if (searchParams.get('edit') === 'true') {
+        setIsEditing(true);
+      }
     } catch (err) {
       console.error("Failed to fetch report:", err);
       setError(err.response?.data?.message || "Failed to load report");
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, searchParams]);
 
   const fetchComments = useCallback(async () => {
     try {
