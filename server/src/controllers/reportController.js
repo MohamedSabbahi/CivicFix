@@ -11,6 +11,9 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
+console.log(">>> URL STARTS WITH:", process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 8) : "UNDEFINED");
+console.log(">>> KEY STARTS WITH:", process.env.SUPABASE_SERVICE_KEY ? process.env.SUPABASE_SERVICE_KEY.substring(0, 8) : "UNDEFINED");
+
 const getAllCategories = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({

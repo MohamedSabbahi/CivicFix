@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { BASE_URL } from '../services/api';
 import { useNavigation } from '@react-navigation/native';
 
 export default function MyReportCard({ item }) {
@@ -26,8 +25,7 @@ export default function MyReportCard({ item }) {
 
     const badge = getStatusBadge(item.status);
     
-    // Construct the full image URL assuming the backend returns a relative path like /uploads/image.jpg
-    const imageUrl = item.photoUrl ? `${BASE_URL}${item.photoUrl}` : null;
+    const imageUrl = item.photoUrl ? item.photoUrl : null;
 
     return (
         <TouchableOpacity 
@@ -38,7 +36,12 @@ export default function MyReportCard({ item }) {
             {/* ── Thumbnail Image ── */}
             <View className="w-24 h-24 rounded-xl bg-[#0f172a] overflow-hidden border border-slate-700 items-center justify-center">
                 {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} className="w-full h-full" resizeMode="cover" />
+                    <Image 
+                        source={{ uri: imageUrl }} 
+                        className="w-full h-full" 
+                        style={{ width: 96, height: 96, backgroundColor: '#1e293b' }}
+                        resizeMode="cover" 
+                    />
                 ) : (
                     <MaterialIcons name="image" size={32} color="#334155" />
                 )}
