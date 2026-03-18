@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview'; // Replaced Google Maps with WebView
-import api, { BASE_URL } from '../../services/api';
+import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
 
 export default function ReportDetailScreen({ route, navigation }) {
@@ -151,8 +151,9 @@ export default function ReportDetailScreen({ route, navigation }) {
                 <View className="w-full h-[380px] bg-slate-800">
                     {currentReport.photoUrl ? (
                         <Image 
-                            source={{ uri: `${BASE_URL}${currentReport.photoUrl}` }} 
+                            source={{ uri: currentReport.photoUrl }} 
                             className="w-full h-full"
+                            style={{ width: '100%', height: '100%', backgroundColor: '#1e293b' }}
                             resizeMode="cover"
                         />
                     ) : (

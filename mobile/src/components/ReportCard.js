@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { BASE_URL } from '../services/api.js';
 
 export default function ReportCard({ item }){
     const navigation = useNavigation();
@@ -29,8 +28,9 @@ export default function ReportCard({ item }){
         >
             {item.photoUrl && (
                 <Image 
-                    source={{ uri: `${BASE_URL}${item.photoUrl}` }} 
+                    source={{ uri: item.photoUrl }} 
                     className="w-full h-48 bg-slate-800"
+                    style={{ width: '100%', height: 192, backgroundColor: '#1e293b' }}
                     resizeMode="cover"
                 />
             )}
