@@ -28,7 +28,6 @@ const Sidebar = () => {
         <SidebarItem icon={<Home size={18} />}     label="Dashboard"     to="/" />
         <SidebarItem icon={<FileText size={18} />} label="My Reports"    to="/reports" />
         <SidebarItem icon={<Map size={18} />}      label="Map"           to="/map" />
-        <SidebarItem icon={<Bell size={18} />}     label="Notifications" to="/notifications" />
         <SidebarItem icon={<User size={18} />}     label="Profile"       to="/profile" />
         <SidebarItem icon={<Settings size={18} />} label="Settings"      to="/settings" />
       </nav>
