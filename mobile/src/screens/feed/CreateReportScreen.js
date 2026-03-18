@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import api from '../../services/api';
 
 const getCategoryIcon = (categoryName) => {
@@ -224,33 +224,66 @@ export default function CreateReportScreen({ route, navigation }) {
                         textAlignVertical="top"
                     />
 
-                    {/* ── Interactive Map Section ── */}
-                    <View className="flex-row items-center justify-between mb-3 ml-1 mt-2">
-                        <Text className="text-slate-400 text-sm font-bold uppercase tracking-wider">
-                            Confirm Location
-                        </Text>
-                        <View className="flex-row items-center gap-1 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
-                            <MaterialIcons name="touch-app" size={14} color="#60a5fa" />
-                            <Text className="text-blue-400 text-xs font-semibold">Hold pin to drag</Text>
-                        </View>
-                    </View>
-                    
+                    {/* ── Interactive OpenStreetMap Section ── */}
                     <View className="h-[280px] rounded-2xl overflow-hidden border border-slate-700 mb-12 shadow-lg shadow-black/40">
-                        <MapView
+                        <WebView
                             style={{ flex: 1 }}
-                            initialRegion={{
-                                latitude: initialLat,
-                                longitude: initialLng,
-                                latitudeDelta: 0.005, // Controls the zoom level (0.005 is roughly neighborhood level)
-                                longitudeDelta: 0.005,
+                            scrollEnabled={false}
+                            showsVerticalScrollIndicator={false}
+                            showsHorizontalScrollIndicator={false}
+                            onMessage={(event) => {
+                                // This catches the coordinates when the user drops the pin
+                                const { lat, lng } = JSON.parse(event.nativeEvent.data);
+                                setMarkerCoordinate({ latitude: lat, longitude: lng });
                             }}
-                        >
-                            <Marker
-                                coordinate={markerCoordinate}
-                                draggable
-                                onDragEnd={(e) => setMarkerCoordinate(e.nativeEvent.coordinate)}
-                            />
-                        </MapView>
+                            source={{
+                                html: `
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                                    <style>
+                                        body { padding: 0; margin: 0; background-color: #0f172a; }
+                                        #map { height: 100vh; width: 100vw; }
+                                        /* Slightly darkens the map to match your dark UI */
+                                        .leaflet-layer,
+                                        .leaflet-control-zoom-in,
+                                        .leaflet-control-zoom-out,
+                                        .leaflet-control-attribution {
+                                            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div id="map"></div>
+                                    <script>
+                                        // Initialize map centered on the user's location
+                                        var map = L.map('map', { zoomControl: false }).setView([${initialLat}, ${initialLng}], 15);
+                                        
+                                        // Load free OpenStreetMap tiles
+                                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                            maxZoom: 19,
+                                        }).addTo(map);
+
+                                        // Create a draggable marker
+                                        var marker = L.marker([${initialLat}, ${initialLng}], {draggable: true}).addTo(map);
+                                        
+                                        // When the user finishes dragging the pin, send the new coordinates back to React Native
+                                        marker.on('dragend', function(event) {
+                                            var position = marker.getLatLng();
+                                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                                                lat: position.lat,
+                                                lng: position.lng
+                                            }));
+                                        });
+                                    </script>
+                                </body>
+                                </html>
+                                `
+                            }}
+                        />
                     </View>
 
                 </ScrollView>

@@ -104,10 +104,11 @@ export default function MainFeedScreen({ navigation }){
             return;
         }
 
-        // 2. Launch the Native Camera with 0.4 compression for the 5MB limit
+        // 2. Launch the Native Camera safely
         const result = await ImagePicker.launchCameraAsync({
             mediaTypes: ['images'], 
-            quality: 0.4, 
+            allowsEditing: false, 
+            quality: 0.3, 
         });
 
         // 3. If they took a picture, navigate to the next screen!
