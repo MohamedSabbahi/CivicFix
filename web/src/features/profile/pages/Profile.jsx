@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
+import profileService from '../services/profileService';
 import Sidebar from '../../home/components/Sidebar';
 import background from '../../../assets/background-dashbord.png';
-import { Edit2, User, Mail, Phone, MapPin, Calendar, Award, BarChart3 } from 'lucide-react';
+import { Edit2, User, Mail, Calendar, BarChart3, Award, Save, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const PageShell = ({ children }) => (
   <div className="relative min-h-screen text-white">
@@ -18,127 +20,180 @@ const PageShell = ({ children }) => (
   </div>
 );
 
-const ProfileCard = ({ isEditing, onEdit }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-8 hover:bg-white/[0.07] transition-all duration-300 backdrop-blur-xl"
-  >
-    <div className="flex items-center gap-6 mb-8">
-      <div className="w-24 h-24 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full flex items-center justify-center border-4 border-white/20 shadow-2xl">
-        <User size={36} className="text-blue-200" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h1 className="text-3xl font-bold text-white mb-1">John Doe</h1>
-        <div className="flex items-center gap-2 mb-2">
-          <Award size={16} className="text-blue-400" />
-          <span className="text-sm text-blue-300 font-medium bg-blue-500/20 px-3 py-1 rounded-full border border-blue-500/30">Citizen</span>
-        </div>
-        <button
-          onClick={onEdit}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 text-sm font-medium rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25"
-        >
-          <Edit2 size={16} />
-          {isEditing ? 'Cancel Edit' : 'Edit Profile'}
-        </button>
-      </div>
-    </div>
-    
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <div className="flex items-center gap-3 mb-3">
-          <Mail size={18} className="text-white/60" />
-          <span className="text-white/60 font-medium">Email</span>
-        </div>
-        {isEditing ? (
-          <input 
-            type="email" 
-            defaultValue="john.doe@example.com"
-            className="w-full px-4 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-          />
-        ) : (
-          <div className="text-white font-medium text-lg">john.doe@example.com</div>
-        )}
-      </div>
-      
-      <div>
-        <div className="flex items-center gap-3 mb-3">
-          <Calendar size={18} className="text-white/60" />
-          <span className="text-white/60 font-medium">Member since</span>
-        </div>
-        <div className="text-white/80 font-medium">January 15, 2021</div>
-      </div>
-    </div>
-  </motion.div>
-);
-
-const StatCard = ({ icon: Icon, label, value, className = '' }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className={`bg-white/[0.04] border border-white/[0.08] rounded-xl p-6 hover:bg-white/[0.07] transition-all duration-300 backdrop-blur-xl ${className}`}
-  >
-    <div className="flex items-center gap-3 mb-2">
-      <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/30">
-        <Icon size={20} className="text-blue-300" />
-      </div>
-      <div className="text-white/60 text-sm font-medium">{label}</div>
-    </div>
-    <div className="text-3xl font-bold text-white">{value}</div>
-  </motion.div>
-);
-
-const InfoField = ({ icon: Icon, label, value, isEditing, onChange }) => (
+const InfoField = ({ icon: Icon, label, value, isEditing, onChange, disabled = false, name = '' }) => (
   <motion.div 
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     className="space-y-2 mb-6 last:mb-0"
   >
     <div className="flex items-center gap-3 text-white/60">
-      <Icon size={18} />
-      <span className="font-medium">{label}</span>
+      <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center flex-shrink-0">
+        <Icon size={16} className="text-blue-400" />
+      </div>
+      <span className="text-xs uppercase tracking-wide font-medium">{label}</span>
     </div>
     {isEditing ? (
       <input 
-        type="text" 
-        defaultValue={value}
+        name={name}
+        type="text"
+        value={value}
         onChange={onChange}
-        className="w-full px-4 py-3 bg-white/[0.05] border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-lg"
+        disabled={disabled}
+        className={`w-full px-4 py-3 rounded-xl text-lg backdrop-blur-sm transition-all ${
+          disabled
+            ? 'bg-white/5 border-white/10 text-white/70 cursor-not-allowed'
+            : 'bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 hover:border-white/30'
+        }`}
+        placeholder={disabled ? '' : `Enter ${label.toLowerCase()}`}
       />
     ) : (
-      <div className="text-xl font-semibold text-white">{value}</div>
+      <div className="text-sm text-white">{value}</div>
     )}
+  </motion.div>
+);
+
+const StatCard = ({ label, value }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white/[0.02] rounded-2xl p-6 lg:p-7 border border-white/[0.08] w-full"
+  >
+    <h3 className="text-lg font-semibold text-white mb-4">Account Stats</h3>
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center flex-shrink-0">
+        <BarChart3 size={16} className="text-blue-400" />
+      </div>
+      <div>
+        <dt className="text-xs text-white/40 uppercase tracking-wide font-medium">Total Reports</dt>
+        <dd className="text-sm text-white font-semibold">{value}</dd>
+      </div>
+    </div>
+  </motion.div>
+);
+
+const ProfileCard = ({ user, isEditing, onEditToggle }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-8 hover:bg-white/[0.07] transition-all duration-300 backdrop-blur-xl"
+  >
+    <div className="flex items-start gap-6">
+      <div className="w-24 h-24 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full flex items-center justify-center border-4 border-white/20 shadow-2xl flex-shrink-0 mt-1">
+        <User size={36} className="text-blue-200" />
+      </div>
+      <div className="flex-1 min-w-0 pt-1">
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-bold text-white mb-1">{user?.name || 'Loading...'}</h1>
+            <div className="flex items-center gap-2">
+              <Award size={16} className="text-blue-400" />
+              <span className="text-sm text-blue-300 font-medium bg-blue-500/20 px-3 py-1 rounded-full border border-blue-500/30">
+                {user?.role || 'Citizen'}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onEditToggle}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 font-medium rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/25 whitespace-nowrap ml-4 flex-shrink-0"
+          >
+            <Edit2 size={18} />
+            {isEditing ? 'Cancel' : 'Edit Profile'}
+          </button>
+        </div>
+      </div>
+    </div>
   </motion.div>
 );
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const navigate = useNavigate();
+  const [totalReports, setTotalReports] = useState(0);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [formData, setFormData] = useState({ name: '', email: '' });
+  const { user, updateUser } = useAuth();
 
-  const profileData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    city: 'New York, NY',
-    stats: {
-      total: '12',
-      resolved: '8',
-      pending: '4'
+  useEffect(() => {
+    const fetchReportsCount = async () => {
+      try {
+        setLoadingStats(true);
+        const count = await profileService.getMyReportsCount();
+        setTotalReports(count);
+      } catch (error) {
+        console.error('Failed to fetch reports count:', error);
+        setTotalReports(0);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    if (user) {
+      fetchReportsCount();
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || ''
+      });
+    }
+  }, [user]);
 
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
   };
 
-  const handleSave = () => {
-    // Save logic here
-    setIsEditing(false);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    try {
+      const updatedData = {};
+      if (formData.name !== user.name) updatedData.name = formData.name;
+
+      if (Object.keys(updatedData).length > 0) {
+        const response = await profileService.updateProfile(updatedData);
+        updateUser(response);
+        toast.success('Profile updated successfully! ✅');
+      } else {
+        toast('No changes detected');
+      }
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Profile update failed:', error);
+      toast.error('Update failed. Please try again.');
+    }
   };
 
   const handleCancel = () => {
+    setFormData({
+      name: user?.name || '',
+      email: user?.email || ''
+    });
     setIsEditing(false);
+    toast('Changes cancelled');
   };
+
+  if (!user) {
+    return (
+      <PageShell>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-white/80">Please log in to view your profile</p>
+        </div>
+      </PageShell>
+    );
+  }
+
+  const memberSince = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long' 
+  }) : 'Unknown';
 
   return (
     <PageShell>
@@ -147,54 +202,50 @@ const Profile = () => {
         animate={{ opacity: 1 }}
         className="space-y-8 max-w-6xl mx-auto"
       >
-        <ProfileCard isEditing={isEditing} onEdit={handleEditToggle} />
+        <ProfileCard 
+          user={user} 
+          isEditing={isEditing} 
+          onEditToggle={handleEditToggle} 
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Personal Info */}
           <motion.section 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="space-y-1 bg-white/[0.02] border border-white/[0.08] rounded-2xl p-8 backdrop-blur-xl"
+            className={`space-y-1 rounded-2xl p-8 transition-all duration-300 ${isEditing ? 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl' : 'bg-transparent border-transparent backdrop-blur-none'}`}
           >
-            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+<h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
               <User size={24} />
               Personal Information
             </h2>
             
             <InfoField 
               icon={User}
-              label="Full Name" 
-              value={profileData.name}
+              label="Full Name"
+              value={formData.name}
               isEditing={isEditing}
-              onChange={() => {}}
+              onChange={handleInputChange}
+              name="name"
             />
             
             <InfoField 
               icon={Mail}
-              label="Email" 
-              value={profileData.email}
+              label="Email"
+              value={formData.email}
               isEditing={isEditing}
-              onChange={() => {}}
+              onChange={handleInputChange}
+              name="email"
+              disabled={true}
             />
-            
+
             <InfoField 
-              icon={Phone}
-              label="Phone" 
-              value={profileData.phone}
-              isEditing={isEditing}
-              onChange={() => {}}
-            />
-            
-            <InfoField 
-              icon={MapPin}
-              label="City" 
-              value={profileData.city}
-              isEditing={isEditing}
-              onChange={() => {}}
+              icon={Calendar}
+              label="Member since"
+              value={memberSince}
+              isEditing={false}
             />
           </motion.section>
 
-          {/* Stats */}
           <motion.section 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -205,23 +256,10 @@ const Profile = () => {
               Account Stats
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <StatCard 
-                icon={BarChart3}
                 label="Total Reports"
-                value={profileData.stats.total}
-              />
-              <StatCard 
-                icon={Award}
-                label="Resolved"
-                value={profileData.stats.resolved}
-                className="border-green-500/30"
-              />
-              <StatCard 
-                icon={BarChart3}
-                label="Pending"
-                value={profileData.stats.pending}
-                className="border-yellow-500/30"
+                value={loadingStats ? 'Loading...' : totalReports}
               />
             </div>
           </motion.section>
@@ -231,18 +269,20 @@ const Profile = () => {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex gap-4 justify-end bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6 backdrop-blur-xl"
+            className="flex gap-4 justify-end bg-transparent border-transparent rounded-2xl p-6 backdrop-blur-none"
           >
             <button
               onClick={handleCancel}
-              className="px-6 py-3 bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white/80 font-medium rounded-xl transition-all duration-300"
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white/80 font-medium rounded-xl transition-all duration-300 flex items-center gap-2"
             >
+              <X size={18} />
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 font-medium rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40"
+              className="px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-300 font-medium rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 flex items-center gap-2"
             >
+              <Save size={18} />
               Save Changes
             </button>
           </motion.div>

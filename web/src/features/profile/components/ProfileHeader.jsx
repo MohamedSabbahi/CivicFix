@@ -7,7 +7,7 @@ const ProfileHeader = ({ isEditing, onEditToggle }) => (
   <motion.div 
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-8 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] hover:bg-white/[0.07] transition-all duration-300"
+className="bg-transparent border border-white/10 rounded-2xl p-8 backdrop-blur-none hover:bg-transparent transition-all duration-300 flex flex-col lg:flex-row items-start lg:items-center justify-between flex-wrap gap-6"
   >
     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between flex-wrap gap-6">
       <div className="flex items-start gap-6 flex-1 min-w-0">
