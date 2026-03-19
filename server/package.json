@@ -29,6 +29,7 @@
     "nodemailer": "^7.0.12",
     "pg": "^8.17.2",
     "prisma": "5.19.1",
+    "resend": "^6.9.4",
     "winston": "^3.19.0"
   },
   "devDependencies": {
