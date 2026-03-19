@@ -374,7 +374,7 @@ const getNearbyReports = async (req, res) => {
 const updateReport = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, categoryId } = req.body || {};
+    const { title, description, categoryId , status } = req.body || {};
 
     const existingReport = await prisma.report.findUnique({
       where: { id: parseInt(id) } 
@@ -399,6 +399,8 @@ const updateReport = async (req, res) => {
         title: title || existingReport.title,
         description: description || existingReport.description,
         categoryId: categoryId ? parseInt(categoryId) : existingReport.categoryId,
+        status:      status      || existingReport.status,
+        resolvedAt:  status === 'RESOLVED' ? new Date() : existingReport.resolvedAt,     
       },
       include: {
         category: true,

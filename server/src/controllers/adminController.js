@@ -127,5 +127,46 @@ const deleteDepartment = async (req, res) => {
         res.status(500).json({ error: "Server error during deletion" });
     }
 };
+const updateReportStatus = async (req, res) => {
+try {
+    const { id }     = req.params;
+    const { status } = req.body;
 
-module.exports = { getDepartmentStats, getOverviewStats, addDepartment, deleteDepartment };
+    if (!status) {
+    return res.status(400).json({ 
+        status: "error", 
+        message: "Status is required" 
+    });
+    }
+
+    const validStatuses = ['PENDING', 'IN_PROGRESS', 'RESOLVED'];
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ 
+        status: "error", 
+        message: "Invalid status value" 
+    });
+    }
+
+    const updated = await prisma.report.update({
+        where: { id: parseInt(id) },
+        data: {
+        status,
+        resolvedAt: status === 'RESOLVED' ? new Date() : null,
+    },
+    });
+
+    res.status(200).json({ 
+        status: 'success', 
+        data: updated 
+    });
+
+} catch (error) {
+    console.error("Update Status Error:", error);
+    res.status(500).json({ 
+        status: 'error', 
+        message: error.message 
+    });
+}
+};
+
+module.exports = { getDepartmentStats, getOverviewStats, addDepartment, deleteDepartment,updateReportStatus };

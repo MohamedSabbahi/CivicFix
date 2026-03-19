@@ -25,7 +25,7 @@ const Sidebar = () => {
 
       {/* NAV */}
       <nav className="space-y-2 text-sm text-white/80">
-        <SidebarItem icon={<Home size={18} />}     label="Dashboard"     to="/" />
+        <SidebarItem icon={<Home size={18} />}     label="Dashboard"     to="/admindashboard" />
         <SidebarItem icon={<FileText size={18} />} label="My Reports"    to="/reports" />
         <SidebarItem icon={<Map size={18} />}      label="Map"           to="/map" />
         <SidebarItem icon={<Bell size={18} />}     label="Notifications" to="/notifications" />

@@ -5,7 +5,8 @@ const { protect, admin } = require('../middleware/authMiddleware');
 const { getDepartmentStats ,  
         getOverviewStats ,
         addDepartment,
-        deleteDepartment
+        deleteDepartment,
+        updateReportStatus
     } = require('../controllers/adminController');
 
 
@@ -14,5 +15,6 @@ router.get('/stats/overview', protect, admin, getOverviewStats);
 router.get('/stats/department', protect, admin, getDepartmentStats);
 router.post('/departments', protect, admin, addDepartment);
 router.delete('/departments/:id', protect, admin, deleteDepartment);
+router.put('/reports/:id/status',protect, admin, updateReportStatus);
 
 module.exports = router;
