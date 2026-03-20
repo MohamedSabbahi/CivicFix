@@ -214,7 +214,7 @@ const Profile = () => {
             animate={{ opacity: 1, x: 0 }}
             className={`space-y-1 rounded-2xl p-8 transition-all duration-300 ${isEditing ? 'bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl' : 'bg-transparent border-transparent backdrop-blur-none'}`}
           >
-<h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
               <User size={24} />
               Personal Information
             </h2>

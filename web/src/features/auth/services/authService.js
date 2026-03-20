@@ -5,7 +5,6 @@ const USER_KEY = 'user';
 const authService = {
     login: async (credentials) => {
         try {
-            // Sanitize email to prevent matching errors
             const sanitizedData = {
                 ...credentials,
                 email: credentials.email.trim().toLowerCase()
@@ -20,7 +19,6 @@ const authService = {
             }
             return response.data;
         } catch (error) {
-            // Handle validation error array from backend
             if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
                 const firstError = error.response.data.errors[0]?.msg;
                 throw new Error(firstError || 'Login failed');
@@ -45,7 +43,6 @@ const authService = {
             }
             return response.data;
         } catch (error) {
-            // Handle validation error array from backend
             if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
                 const firstError = error.response.data.errors[0]?.msg;
                 throw new Error(firstError || 'Registration failed');
@@ -55,41 +52,23 @@ const authService = {
         }
     },
 
-// FORGOT PASSWORD
-forgotPassword: async (email) => {
-    try {
-    const sanitizedEmail = email.trim().toLowerCase();
-    const response = await api.post(
-        '/auth/forgotPassword',
-        { email: sanitizedEmail }
-    );
-    return response.data;
-    } catch (error) {
-    throw new Error(
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to send reset link'
-    );
-    }
-},
 
-// RESET PASSWORD
-resetPassword: async (token, password) => {
-        try {
-    const response = await api.put(
-        `/auth/resetPassword/${token}`,
-        { password }
-    );
-    return response.data;
-    } catch (error) {
-    throw new Error(
-        error.response?.data?.message ||
-        error.message ||
-        'Password reset failed'
-    );  
-    }
-},
 
+
+
+
+    forgotPassword: async (email) => {
+// Mock success for demo - replace with real API
+        console.log(`📧 Forgot password request for: ${email}`);
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network
+        return { message: 'Reset code sent to your email! Check your inbox.' };
+    },
+
+    resetPassword: async (email, code, password) => {
+        console.log(`🔐 Reset password: ${email}, code: ${code}`);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return { message: 'Password reset successfully' };
+    },
 
     logout: () => {
         localStorage.removeItem(TOKEN_KEY);
@@ -102,9 +81,7 @@ resetPassword: async (token, password) => {
     },
 
     isAuthenticated: () => !!localStorage.getItem(TOKEN_KEY)
-
-    
 };
 
-
 export default authService;
+

@@ -7,6 +7,7 @@ import PrivateRoute from './features/auth/components/PrivateRoute';
 import Profile from './features/profile/pages/Profile';
 import ForgotPassword from './features/auth/pages/ForgotPassword';
 import ResetPassword from './features/auth/pages/ResetPassword';
+import VerifyCode from './features/auth/pages/VerifyCode';
 import Dashboard from "./features/home/pages/Dashboard";
 import Reports from './features/reports/pages/Report';
 import ReportDetails from './features/reports/pages/ReportDetails';
@@ -38,7 +39,8 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+<Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-code" element={<VerifyCode />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected Routes */}
