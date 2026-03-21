@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from "framer-motion";
 import { Link, useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import bgImage from '../../../assets/background-CivicFix.img.png';
@@ -28,9 +29,12 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div
+    <motion.div
       className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden"
       style={{ backgroundImage: `url(${bgImage})`, backgroundSize: 'cover' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
     >
       {/* Dark Overlay */}
       <div className="absolute inset-0 bg-[#020617]/70 bg-gradient-to-br from-black/30 via-transparent to-black/50" />
@@ -39,7 +43,12 @@ const ForgotPassword = () => {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-blue-500/20 blur-[150px]" />
 
       {/* Card */}
-      <div className="relative z-10 w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_30px_rgba(59,130,246,0.3)] space-y-6">
+      <motion.div 
+        className="relative z-10 w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.4)] space-y-6"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         
         {/* Header */}
         <div className="text-center mb-8">
@@ -49,14 +58,22 @@ const ForgotPassword = () => {
 
         {/* Messages */}
         {message && (
-          <div className="p-4 rounded-lg bg-green-500/20 border border-green-500/30 text-green-400 text-sm text-center">
+          <motion.div 
+            className="p-4 rounded-lg bg-green-500/20 border border-green-500/30 text-green-400 text-sm text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             {message}
-          </div>
+          </motion.div>
         )}
         {error && (
-          <div className="p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm text-center">
+          <motion.div 
+            className="p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
         {/* Form */}
@@ -65,7 +82,7 @@ const ForgotPassword = () => {
             <label className="block text-sm font-medium text-white/80 mb-2">
               Email Address
             </label>
-            <input
+            <motion.input
               type="email"
               required
               placeholder="your.email@domain.com"
@@ -73,16 +90,20 @@ const ForgotPassword = () => {
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+              whileFocus={{ scale: 1.02 }}
             />
           </div>
 
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
             className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 py-3 rounded-lg border border-blue-500/30 font-semibold transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 300 }}
           >
             {loading ? 'Sending...' : 'Send Reset Code'}
-          </button>
+          </motion.button>
         </form>
 
         <div className="text-center">
@@ -90,9 +111,10 @@ const ForgotPassword = () => {
             ← Back to Login
           </Link>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
 export default ForgotPassword;
+

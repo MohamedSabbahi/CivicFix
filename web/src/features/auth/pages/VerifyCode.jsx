@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from "framer-motion";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import bgImage from '../../../assets/background-CivicFix.img.png';
 
@@ -131,15 +132,23 @@ const VerifyCode = () => {
   };
 
   return (
-    <div
+    <motion.div
       className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden"
       style={{ backgroundImage: `url(${bgImage})`, backgroundSize: 'cover' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
     >
       <div className="absolute inset-0 bg-[#020617]/70 bg-gradient-to-br from-black/30 via-transparent to-black/50" />
       
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-blue-500/20 blur-[150px]" />
 
-      <div className="relative z-10 w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_30px_rgba(59,130,246,0.3)] space-y-6">
+      <motion.div 
+        className="relative z-10 w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.4)] space-y-6"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Verify Code</h1>
@@ -147,19 +156,38 @@ const VerifyCode = () => {
         </div>
 
         {message && (
-          <div className="p-4 rounded-lg bg-green-500/20 border border-green-500/30 text-green-400 text-sm text-center">
+          <motion.div
+            className="p-4 rounded-lg bg-green-500/20 border border-green-500/30 text-green-400 text-sm text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             {message}
-          </div>
+          </motion.div>
         )}
         {error && (
-          <div className="p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm text-center">
+          <motion.div
+            className="p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm text-center"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             {error}
-          </div>
+          </motion.div>
         )}
 
-        <div className="flex gap-3 justify-center mb-6">
+        <motion.div
+          className="flex gap-3 justify-center mb-6"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            visible: {
+              transition: {
+                staggerChildren: 0.05
+              }
+            }
+          }}
+        >
           {code.map((digit, index) => (
-            <input
+            <motion.input
               key={index}
               ref={(el) => (inputRefs.current[index] = el)}
               type="text"
@@ -170,37 +198,52 @@ const VerifyCode = () => {
               onPaste={handlePaste}
               className="w-14 h-14 text-xl font-bold text-center bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-white"
               disabled={loading}
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                visible: { opacity: 1, y: 0 }
+              }}
+              whileFocus={{ scale: 1.02 }}
             />
           ))}
-        </div>
+        </motion.div>
 
-        <div className="text-center text-sm text-white/40 mb-6">
+        <motion.div
+          className="text-center text-sm text-white/40 mb-6"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           Expires in <span className="text-blue-400">{formatTime(timeLeft)}</span>
-        </div>
+        </motion.div>
 
-        <button
+        <motion.button
           onClick={handleVerify}
           disabled={loading || code.some((d) => !d)}
           className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 py-3 rounded-lg border border-blue-500/30 font-semibold transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 300 }}
         >
           {loading ? 'Verifying...' : 'Verify Code'}
-        </button>
+        </motion.button>
 
-        <button
+        <motion.button
           onClick={handleResend}
           disabled={!canResend}
           className="w-full text-sm text-white/60 hover:text-white transition duration-300"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 300 }}
         >
           {canResend ? 'Resend Code' : `Resend in ${formatTime(timeLeft)}`}
-        </button>
+        </motion.button>
 
         <div className="text-center">
           <Link to="/login" className="text-sm text-white/60 hover:text-white transition duration-300">
             ← Back to Login
           </Link>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
