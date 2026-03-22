@@ -54,5 +54,6 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/admin', adminRoutes); 
+app.use('/api/chatbot', require('./routes/chatbotRoutes'));
 
 module.exports = app;

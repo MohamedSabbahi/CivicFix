@@ -1,19 +1,19 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native'; 
+import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 export default function ReportCard({ item }){
     const navigation = useNavigation();
 
-    // The unified status badge logic!
     const getStatusBadge = (status) => {
         switch(status) {
             case 'RESOLVED': 
                 return { bg: 'bg-emerald-500/10 border-emerald-500/20', text: 'text-emerald-400', icon: 'check-circle', iconColor: '#34d399' };
             case 'IN_PROGRESS': 
                 return { bg: 'bg-orange-500/10 border-orange-500/20', text: 'text-orange-400', icon: 'build', iconColor: '#fb923c' };
-            default: // PENDING
+            default: 
                 return { bg: 'bg-red-500/10 border-red-500/20', text: 'text-red-400', icon: 'pending', iconColor: '#f87171' };
         }
     };
@@ -28,10 +28,10 @@ export default function ReportCard({ item }){
         >
             {item.photoUrl && (
                 <Image 
-                    source={{ uri: item.photoUrl }} 
-                    className="w-full h-48 bg-slate-800"
+                    source={item.photoUrl.trim()} // expo-image can take the string directly
                     style={{ width: '100%', height: 192, backgroundColor: '#1e293b' }}
-                    resizeMode="cover"
+                    contentFit="cover" // Note: This changed from resizeMode
+                    transition={500} // Adds a smooth 0.5s fade-in when the image loads!
                 />
             )}
 
@@ -41,7 +41,6 @@ export default function ReportCard({ item }){
                         {item.title}
                     </Text>
                     
-                    {/* ── The new, cohesive Status Badge ── */}
                     <View className={`flex-row items-center px-2.5 py-1 rounded-full border ${badge.bg}`}>
                         <MaterialIcons name={badge.icon} size={14} color={badge.iconColor} />
                         <Text className={`text-[11px] font-bold ml-1.5 tracking-wider ${badge.text}`}>

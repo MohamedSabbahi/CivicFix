@@ -1,31 +1,29 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native'; 
+import { Image } from 'expo-image'; 
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 export default function MyReportCard({ item }) {
     const navigation = useNavigation();
 
-    // Format the date cleanly (e.g., "12 Oct 2025")
     const date = new Date(item.createdAt).toLocaleDateString('en-GB', {
         day: 'numeric', month: 'short', year: 'numeric'
     });
 
-    // Dynamic styling based on the report's current status
     const getStatusBadge = (status) => {
         switch(status) {
             case 'RESOLVED':
                 return { bg: 'bg-emerald-500/10 border-emerald-500/20', text: 'text-emerald-400', icon: 'check-circle', iconColor: '#34d399' };
             case 'IN_PROGRESS':
                 return { bg: 'bg-orange-500/10 border-orange-500/20', text: 'text-orange-400', icon: 'build', iconColor: '#fb923c' };
-            default: // PENDING
+            default: 
                 return { bg: 'bg-red-500/10 border-red-500/20', text: 'text-red-400', icon: 'pending', iconColor: '#f87171' };
         }
     };
 
     const badge = getStatusBadge(item.status);
-    
-    const imageUrl = item.photoUrl ? item.photoUrl : null;
+    const imageUrl = item.photoUrl ? item.photoUrl.trim() : null;
 
     return (
         <TouchableOpacity 
@@ -33,21 +31,19 @@ export default function MyReportCard({ item }) {
             activeOpacity={0.7}
             onPress={() => navigation.navigate('ReportDetail', { report: item })}
         >
-            {/* ── Thumbnail Image ── */}
             <View className="w-24 h-24 rounded-xl bg-[#0f172a] overflow-hidden border border-slate-700 items-center justify-center">
                 {imageUrl ? (
                     <Image 
-                        source={{ uri: imageUrl }} 
-                        className="w-full h-full" 
+                        source={imageUrl} 
                         style={{ width: 96, height: 96, backgroundColor: '#1e293b' }}
-                        resizeMode="cover" 
+                        contentFit="cover" 
+                        transition={500}
                     />
                 ) : (
                     <MaterialIcons name="image" size={32} color="#334155" />
                 )}
             </View>
 
-            {/* ── Report Details ── */}
             <View className="flex-1 justify-between py-1">
                 <View>
                     <Text className="text-white font-bold text-base mb-0.5" numberOfLines={1}>
@@ -61,7 +57,6 @@ export default function MyReportCard({ item }) {
                     </Text>
                 </View>
 
-                {/* ── Status Badge & Options ── */}
                 <View className="flex-row items-center justify-between mt-2">
                     <View className={`flex-row items-center px-2.5 py-1 rounded-full border ${badge.bg}`}>
                         <MaterialIcons name={badge.icon} size={14} color={badge.iconColor} />
