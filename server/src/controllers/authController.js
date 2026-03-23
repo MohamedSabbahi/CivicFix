@@ -214,7 +214,6 @@ exports.resetPassword = async (req, res) => {
     }
 
     // 3. Set new password
-    // (Bcrypt hashing happens here usually, or if you have a middleware)
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
@@ -234,3 +233,39 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// @desc Verify Reset Code - Check OTP validity without updating password
+// @route POST /api/auth/verifyResetCode
+exports.verifyResetCode = async (req, res) => {
+  try {
+    const { code } = req.body;
+    
+    if (!code || code.length !== 4 || !/^\d{4}$/.test(code)) {
+      return res.status(400).json({ message: 'Invalid code format' });
+    }
+
+    // Hash the incoming code
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(code)
+      .digest('hex');
+
+    // Find user with valid token AND expiration
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken,
+        resetPasswordExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired code' });
+    }
+
+    res.status(200).json({ valid: true, message: 'Code verified successfully' });
+  } catch (err) {
+    console.error('Verify Reset Code Error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+

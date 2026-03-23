@@ -1,18 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
 import bgImage from '../../../assets/background-CivicFix.img.png';
 
 const ResetPassword = () => {
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Mock API
-  const resetPassword = async (email, code, password) => {
-    console.log(`🔐 Reset: ${email}, ${code}, ${password.slice(0, 3)}***`);
-    await new Promise(r => setTimeout(r, 1500));
-    return { message: 'Password reset successfully!' };
-  };
 
   const { email, code } = location.state || {};
 
@@ -68,7 +62,7 @@ const ResetPassword = () => {
 
     try {
       setLoading(true);
-      await resetPassword(email, code, password);
+      await authService.resetPassword(code, password);
       setMessage('Password reset successfully!');
       setTimeout(() => navigate('/login', { replace: true }), 1500);
     } catch {

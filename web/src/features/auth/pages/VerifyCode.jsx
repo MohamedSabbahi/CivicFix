@@ -1,19 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from "framer-motion";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import authService from '../services/authService';
 import bgImage from '../../../assets/background-CivicFix.img.png';
 
-const VerifyCode = () => {
-  // Local mocks
-  const verifyCode = async (email, code) => {
-    console.log(`✅ Verified: ${email}, code: ${code}`);
-    return { success: true };
-  };
-  
-  const forgotPassword = async (email) => {
-    console.log(`🔄 Resend to: ${email}`);
-    return { message: 'Code resent!' };
-  };
+  const VerifyCode = () => {
+  // Client-side verify for UX (backend validates on reset)
+  const verifyCode = async (email, code) => ({ success: true });
+
+  const forgotPassword = authService.forgotPassword;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,21 +46,29 @@ const VerifyCode = () => {
     if (loading) return;
 
     const codeString = code.join('');
-    if (codeString.length !== 4) return;
+    if (codeString.length !== 4 || !/^\d{4}$/.test(codeString)) return;
 
     setLoading(true);
     setError('');
+    setMessage('');
 
     try {
-      await verifyCode(email, codeString);
-      setMessage('Code verified! Redirecting...');
-      setTimeout(() => {
-        navigate('/reset-password', {
-          state: { email, code: codeString }
-        });
-      }, 1200);
-    } catch {
-      setError('Invalid code. Please try again.');
+      const response = await authService.verifyResetCode(codeString);
+      
+      if (response.valid) {
+        setMessage('Code verified! Redirecting...');
+        setTimeout(() => {
+          navigate('/reset-password', {
+            state: { email, code: codeString }
+          });
+        }, 1200);
+      } else {
+        setError('Invalid or expired code');
+        setCode(['', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
+    } catch (err) {
+      setError(err.message || 'Invalid or expired code. Please try again.');
       setCode(['', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {

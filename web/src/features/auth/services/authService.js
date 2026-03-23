@@ -58,16 +58,37 @@ const authService = {
 
 
     forgotPassword: async (email) => {
-// Mock success for demo - replace with real API
-        console.log(`📧 Forgot password request for: ${email}`);
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network
-        return { message: 'Reset code sent to your email! Check your inbox.' };
+        try {
+            const response = await api.post('/auth/forgotPassword', { email: email.trim().toLowerCase() });
+            return response.data;
+        } catch (error) {
+            const msg = error.response?.data?.message || 
+                       (error.response?.data?.errors && Array.isArray(error.response.data.errors) ? error.response.data.errors[0]?.msg : null) || 
+                       error.message || 'Forgot password failed';
+            throw new Error(msg);
+        }
     },
 
-    resetPassword: async (email, code, password) => {
-        console.log(`🔐 Reset password: ${email}, code: ${code}`);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        return { message: 'Password reset successfully' };
+    verifyResetCode: async (code) => {
+        try {
+            const response = await api.post('/auth/verifyResetCode', { code });
+            return response.data;
+        } catch (error) {
+            const msg = error.response?.data?.message || error.message || 'Code verification failed';
+            throw new Error(msg);
+        }
+    },
+
+    resetPassword: async (code, password) => {
+        try {
+            const response = await api.put(`/auth/resetPassword/${code}`, { password });
+            return response.data;
+        } catch (error) {
+            const msg = error.response?.data?.message || 
+                       (error.response?.data?.errors && Array.isArray(error.response.data.errors) ? error.response.data.errors[0]?.msg : null) || 
+                       error.message || 'Reset password failed';
+            throw new Error(msg);
+        }
     },
 
     logout: () => {
