@@ -9,6 +9,9 @@ import ReportEditModal             from "../components/reportDetail/ReportEditMo
 import ReportComments              from "../components/reportDetail/ReportComments";
 import { getReportById, updateReportStatus, deleteReport } from "../services/adminService";
 import { useAdminContext }          from "../context/AdminContext";
+import ReportResolutionTime from "../components/reportDetail/ReportResolutionTime";
+
+
 
 const ReportDetail = () => {
   const { id }     = useParams();
@@ -107,6 +110,11 @@ const ReportDetail = () => {
             createdAt={report.createdAt}
             latitude={report.latitude}
             longitude={report.longitude}
+          />
+          <ReportResolutionTime
+            createdAt={report.createdAt}
+            resolvedAt={report.resolvedAt}  // ← vient directement du backend
+            status={report.status}
           />
           <ReportStatusUpdate
             status={report.status}

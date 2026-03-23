@@ -23,3 +23,5 @@ export const editReport          = (id, data)      => API.put(`/reports/${id}`, 
 export const getComments         = (id)            => API.get(`/reports/${id}/comments`);
 export const addComment          = (id, text)      => API.post(`/reports/${id}/comments`, { content: text });
 export const deleteComment       = (id, commentId) => API.delete(`/reports/${id}/comments/${commentId}`);
+
+export const getDepartmentStats = () => API.get("/admin/stats/department");

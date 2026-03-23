@@ -51,9 +51,9 @@ const ReportTable = ({ reports = [] }) => {
             <div className="w-1 rounded-full bg-blue-500 shrink-0 self-stretch" />
 
             {/* INFOS */}
-            <div className="flex-1 space-y-1">
+            <div className="flex-1 space-y-1  min-w-0">
               <p className="text-sm font-semibold text-white">{r.title}</p>
-              <p className="text-xs text-white/50">{r.description}</p>
+              <p className="text-xs text-white/50 truncate">{r.description}</p>
               <div className="flex items-center gap-4 text-xs text-white/30 mt-1">
                 {r.category?.name && <span>📍 {r.category.name}</span>}
                 {r.createdAt && (
