@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import StatCard from "../components/StatCard";
 import ReportCard from "../components/ReportCard";
 import CityMap from "../components/CityMap";
-import { getMyReports } from "../services/homeService";
+import { getMyReports, getAllReports, getRecentReports } from "../services/homeService";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
@@ -44,60 +44,60 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [recentReports, setRecentReports] = useState([]);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [myRes, allRes, recentRes] = await Promise.all([
+        getMyReports(),
+        getAllReports(),
+        getRecentReports(),
+      ]);
+
+      setReports(allRes.data.data || []);
+      setRecentReports(recentRes.data.data || []);
+    } catch (err) {
+      console.error('Error fetching reports:', err);
+      setError(err.response?.data?.message || 'Failed to load reports. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await getMyReports();
-        setReports(response.data.data || []);
-      } catch (err) {
-        console.error('Error fetching reports:', err);
-        setError(err.response?.data?.message || 'Failed to load reports. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReports();
+    fetchAllData();
   }, []);
 
   const totalReports = reports.length;
   const inProgressCount = reports.filter(r => r.status === 'IN_PROGRESS').length;
   const resolvedCount = reports.filter(r => r.status === 'RESOLVED').length;
 
-  // Hardcoded categories for filtering
   const categories = ['Road', 'Waste', 'Hazard', 'Graffiti', 'Lighting'];
 
-  // Filter reports based on category
   const getFilteredReports = () => {
     let filtered = reports;
     if (filter !== 'all') {
       filtered = reports.filter(r => r.category?.name === filter);
     }
-    return filtered.slice(0, 3);
+    return filtered.slice(0, 10);
   };
 
   const displayReports = getFilteredReports();
 
   const handleRetry = () => {
-    setError(null);
-    setLoading(true);
-    getMyReports()
-      .then(response => {
-        setReports(response.data.data || []);
-      })
-      .catch(err => {
-        setError(err.response?.data?.message || 'Failed to load reports. Please try again.');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    fetchAllData();
   };
 
   const handleViewDetails = (reportId) => {
     navigate(`/reports/${reportId}`);
+  };
+
+  // ✅ Navigate to the Map page when "View Full Map" is clicked
+  const handleViewFullMap = () => {
+    navigate('/map');
   };
 
   return (
@@ -137,7 +137,8 @@ const Dashboard = () => {
           <div className="relative p-5 h-[420px] rounded-2xl bg-white/[0.04] border border-white/[0.08]">
             <h3 className="text-lg font-semibold mb-3">City Activity Overview</h3>
             <div className="h-[330px] rounded-xl overflow-hidden">
-              <CityMap />
+              {/* ✅ Pass handleViewFullMap so the button inside CityMap navigates to /map */}
+              <CityMap onViewFullMap={handleViewFullMap} />
             </div>
           </div>
 
@@ -148,14 +149,14 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xl font-bold tracking-tight">All Reports</h3>
               <div className="flex items-center gap-5 text-sm">
-                <button 
+                <button
                   onClick={() => setFilter('all')}
                   className={`flex items-center gap-1.5 cursor-pointer transition ${filter === 'all' ? 'text-white font-semibold' : 'text-white/40 hover:text-white/70'}`}
                 >
                   <span className="text-blue-400 text-base">♦</span> All
                 </button>
                 {categories.map(category => (
-                  <button 
+                  <button
                     key={category}
                     onClick={() => setFilter(category)}
                     className={`cursor-pointer transition ${filter === category ? 'text-white font-semibold' : 'text-white/40 hover:text-white/70'}`}
@@ -211,4 +212,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
