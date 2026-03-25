@@ -43,7 +43,6 @@ const ProfilePage = () => {
 
   const handleSave = () => {
     console.log('Saving profile...');
-    // API call here
     setIsEditing(false);
   };
 

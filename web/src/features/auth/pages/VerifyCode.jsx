@@ -5,8 +5,6 @@ import authService from '../services/authService';
 import bgImage from '../../../assets/background-CivicFix.img.png';
 
   const VerifyCode = () => {
-  // Client-side verify for UX (backend validates on reset)
-  const verifyCode = async (email, code) => ({ success: true });
 
   const forgotPassword = authService.forgotPassword;
 

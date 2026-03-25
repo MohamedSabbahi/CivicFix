@@ -63,8 +63,8 @@ const authService = {
             return response.data;
         } catch (error) {
             const msg = error.response?.data?.message || 
-                       (error.response?.data?.errors && Array.isArray(error.response.data.errors) ? error.response.data.errors[0]?.msg : null) || 
-                       error.message || 'Forgot password failed';
+                    (error.response?.data?.errors && Array.isArray(error.response.data.errors) ? error.response.data.errors[0]?.msg : null) || 
+                    error.message || 'Forgot password failed';
             throw new Error(msg);
         }
     },
@@ -85,8 +85,8 @@ const authService = {
             return response.data;
         } catch (error) {
             const msg = error.response?.data?.message || 
-                       (error.response?.data?.errors && Array.isArray(error.response.data.errors) ? error.response.data.errors[0]?.msg : null) || 
-                       error.message || 'Reset password failed';
+                    (error.response?.data?.errors && Array.isArray(error.response.data.errors) ? error.response.data.errors[0]?.msg : null) || 
+                    error.message || 'Reset password failed';
             throw new Error(msg);
         }
     },

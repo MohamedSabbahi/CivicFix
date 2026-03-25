@@ -116,5 +116,4 @@ const ProfileForm = ({ isEditing, onSave, onCancel }) => {
 
 export default ProfileForm;
 
-export default ProfileForm;
 

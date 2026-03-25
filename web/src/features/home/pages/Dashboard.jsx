@@ -95,7 +95,6 @@ const Dashboard = () => {
     navigate(`/reports/${reportId}`);
   };
 
-  // ✅ Navigate to the Map page when "View Full Map" is clicked
   const handleViewFullMap = () => {
     navigate('/map');
   };
@@ -109,15 +108,9 @@ const Dashboard = () => {
         style={{ backgroundImage: `url(${background})` }}
       />
 
-      {/* Dark cinematic tint */}
       <div className="absolute inset-0 bg-[#020617]/60" />
-
-      {/* Soft vignette */}
       <div className="absolute inset-0 bg-gradient-to-br from-black/30 via-transparent to-black/50" />
-
-      {/* Blue glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[420px] bg-blue-500/20 blur-[150px]" />
-
       <div className="relative z-10 flex">
         <Sidebar />
 
@@ -137,7 +130,6 @@ const Dashboard = () => {
           <div className="relative p-5 h-[420px] rounded-2xl bg-white/[0.04] border border-white/[0.08]">
             <h3 className="text-lg font-semibold mb-3">City Activity Overview</h3>
             <div className="h-[330px] rounded-xl overflow-hidden">
-              {/* ✅ Pass handleViewFullMap so the button inside CityMap navigates to /map */}
               <CityMap onViewFullMap={handleViewFullMap} />
             </div>
           </div>

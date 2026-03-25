@@ -1,12 +1,28 @@
-const colors = {
-  New: "bg-blue-500/80 text-white border-blue-400/50",
-  "In Progress": "bg-yellow-600/80 text-white border-yellow-500/50",
-  Resolved: "bg-green-600/80 text-white border-green-500/50",
-};
-
 import ImageWithFallback from '../../reports/components/ImageWithFallback';
 
+const getStatusStyles = (status) => {
+  const base = 'px-3 py-1.5 text-xs font-semibold rounded-full border';
+  
+  const styles = {
+    PENDING: {
+      badge: `${base} bg-orange-500/20 text-orange-400 border-orange-400/30`,
+      hover: 'hover:bg-orange-500/30 hover:shadow-[0_0_12px_rgba(249,115,22,0.4)] hover:border-orange-400/50'
+    },
+    'In Progress': {
+      badge: `${base} bg-blue-500/20 text-blue-400 border-blue-400/30`,
+      hover: 'hover:bg-blue-500/30 hover:shadow-[0_0_12px_rgba(59,130,246,0.4)] hover:border-blue-400/50'
+    },
+    RESOLVED: {
+      badge: `${base} bg-green-500/20 text-green-400 border-green-400/30`,
+      hover: 'hover:bg-green-500/30 hover:shadow-[0_0_12px_rgba(34,197,94,0.4)] hover:border-green-400/50'
+    }
+  };
+  
+  return styles[status] || styles.PENDING;
+};
+
 const ReportCard = ({ title, status, address, date, image, onView }) => {
+  const statusStyles = getStatusStyles(status);
   return (
     <div
       className="
@@ -43,11 +59,7 @@ const ReportCard = ({ title, status, address, date, image, onView }) => {
       {/* Right side */}
       <div className="flex flex-col items-end gap-2 flex-shrink-0">
         <span
-          className={`
-            px-4 py-1.5 text-xs font-semibold rounded-full
-            border
-            ${colors[status]}
-          `}
+          className={`${statusStyles.badge} ${statusStyles.hover} transition-all duration-200`}
         >
           {status}
         </span>
@@ -63,3 +75,4 @@ const ReportCard = ({ title, status, address, date, image, onView }) => {
 };
 
 export default ReportCard;
+

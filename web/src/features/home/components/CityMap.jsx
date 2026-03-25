@@ -27,7 +27,6 @@ const colorMap = {
   },
 };
 
-// ✅ Accept onViewFullMap as a prop
 const CityMap = ({ onViewFullMap }) => {
   return (
     <div className="relative w-full h-full rounded-xl overflow-hidden">
@@ -89,7 +88,6 @@ const CityMap = ({ onViewFullMap }) => {
         );
       })}
 
-      {/* ✅ View Full Map button — now calls onViewFullMap prop */}
       <div className="absolute bottom-4 left-4 z-20">
         <button
           onClick={onViewFullMap}
