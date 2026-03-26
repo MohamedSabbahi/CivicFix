@@ -127,6 +127,8 @@ const deleteDepartment = async (req, res) => {
         res.status(500).json({ error: "Server error during deletion" });
     }
 };
+
+
 const updateReportStatus = async (req, res) => {
 try {
     const { id }     = req.params;
@@ -169,4 +171,68 @@ try {
 }
 };
 
-module.exports = { getDepartmentStats, getOverviewStats, addDepartment, deleteDepartment,updateReportStatus };
+const getDepartments = async (req, res) => {
+    try {
+    const departments = await prisma.department.findMany({
+            include: { categories: true }
+    });
+    res.status(200).json({ 
+            status: 'success', 
+            data: departments 
+    });
+    } catch (error) {
+    res.status(500).json({ 
+        status: 'error', 
+        message: error.message 
+    });
+}
+};
+
+
+const updateDepartment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, categoriesToAdd, categoriesToDelete } = req.body;
+
+        // Met à jour nom et email du département
+        const updated = await prisma.department.update({
+            where: { id: parseInt(id) },
+            data: { name, email },
+        });
+
+        // Supprime les catégories cochées pour suppression
+        if (categoriesToDelete && categoriesToDelete.length > 0) {
+            await prisma.category.deleteMany({
+                where: { id: { in: categoriesToDelete } }
+            });
+        }
+
+        // Ajoute les nouvelles catégories
+        if (categoriesToAdd && categoriesToAdd.length > 0) {
+            for (const catName of categoriesToAdd) {
+                await prisma.category.create({
+                    data: { name: catName, departmentId: updated.id }
+                });
+            }
+        }
+
+        const result = await prisma.department.findUnique({
+            where: { id: parseInt(id) },
+            include: { categories: true }
+        });
+
+        res.status(200).json({ status: 'success', data: result });
+    } catch (error) {
+        console.error("Update Department Error:", error);
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+};
+
+module.exports = { getDepartmentStats, 
+    getOverviewStats, 
+    addDepartment, 
+    deleteDepartment, 
+    updateReportStatus , 
+    getDepartments,
+    updateDepartment
+};
