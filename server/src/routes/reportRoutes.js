@@ -11,7 +11,9 @@ const { createReport,
         getReportById,
         updateReport ,
         deleteReport,
-        getAllCategories }
+        getAllCategories,
+        assignDepartment,
+        showAssignDepartmentForm }
         = require('../controllers/reportController');
 
 const { getReportComments,
@@ -33,5 +35,9 @@ router.delete('/:id', protect, admin, deleteReport);
 router.get('/:id/comments', getReportComments);
 router.post('/:id/comments', protect, createComment);
 router.delete('/:id/comments/:commentId', protect, deleteComment);
+
+// Department assignment routes
+router.get('/:reportId/assign-department', showAssignDepartmentForm);
+router.post('/:reportId/assign-department', assignDepartment);
 
 module.exports = router;

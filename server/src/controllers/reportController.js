@@ -467,6 +467,119 @@ const updateStatusByMagicLink = async (req, res) => {
     }
 };
 
+const showAssignDepartmentForm = async (req, res) => {
+  const { reportId } = req.params;
+  const { secret } = req.query;
+
+  // Validate secret
+  const report = await prisma.report.findUnique({
+    where: { id: parseInt(reportId) },
+    include: { departments: { include: { department: true } } }
+  });
+
+  if (!report || report.accessSecret !== secret) {
+    return res.status(403).send("Invalid or expired link");
+  }
+
+  // Only show departments NOT already assigned
+  const assignedIds = report.departments.map(d => d.departmentId);
+  const available = await prisma.department.findMany({
+    where: { id: { notIn: assignedIds } }
+  });
+
+  const options = available.map(d =>
+    `<option value="${d.id}">${d.name}</option>`
+  ).join('');
+
+  res.send(`
+    <html><body style="font-family:sans-serif; max-width:400px; margin:40px auto; padding:20px;">
+      <h2>Assign Additional Department</h2>
+      <p>Report: <strong>${report.title}</strong></p>
+      <form method="POST" 
+            action="/api/reports/${reportId}/assign-department?secret=${secret}">
+        <select name="departmentId" 
+                style="width:100%; padding:8px; margin:10px 0; border-radius:4px;">
+          ${options}
+        </select><br/>
+        <button type="submit" 
+                style="background:#17a2b8; color:white; padding:10px 20px; 
+                      border:none; border-radius:4px; cursor:pointer; margin-top:10px;">
+          Assign Department
+        </button>
+      </form>
+    </body></html>
+  `);
+};
+
+const assignDepartment = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const { secret } = req.query;
+    const { departmentId } = req.body || {};
+    console.log("departmentId from body:", departmentId);  // ← check terminal
+
+    if (!departmentId) {
+      return res.status(400).send("Department ID is missing from form submission");
+    }
+
+    console.log("=== ASSIGN DEPARTMENT DEBUG ===");
+    console.log("reportId:", reportId);
+    console.log("secret:", secret);
+    console.log("departmentId:", departmentId);
+
+    // Step 1: find report
+    const report = await prisma.report.findUnique({
+      where: { id: parseInt(reportId) }
+    });
+    console.log("report found:", report?.id, "| secret match:", report?.accessSecret === secret);
+
+    if (!report || report.accessSecret !== secret) {
+      return res.status(403).send("Invalid or expired link");
+    }
+
+    // Step 2: find department
+    const dept = await prisma.department.findUnique({
+      where: { id: parseInt(departmentId) }
+    });
+    console.log("department found:", dept?.id, dept?.name, dept?.email);
+
+    if (!dept) {
+      return res.status(404).send("Department not found");
+    }
+
+    // Step 3: create assignment
+    await prisma.reportDepartment.create({
+      data: {
+        reportId: parseInt(reportId),
+        departmentId: parseInt(departmentId),
+      },
+    });
+    console.log("Assignment created successfully");
+
+    // Step 4: send email
+    const links = generateMagicLinks(report);
+    await sendStatusEmail(dept.email, report, links);
+    console.log("Email sent to:", dept.email);
+
+    res.send(`
+      <html><body style="font-family:sans-serif; max-width:400px; margin:40px auto; padding:20px;">
+        <h2>✅ Department Assigned</h2>
+        <p><strong>${dept.name}</strong> has been notified by email.</p>
+      </body></html>
+    `);
+
+  } catch (error) {
+    console.error("=== ASSIGN ERROR DETAILS ===");
+    console.error("Message:", error.message);
+    console.error("Code:", error.code);
+    console.error("Stack:", error.stack);
+    
+    if (error.code === "P2002") {
+      return res.status(400).send("Department already assigned to this report");
+    }
+    res.status(500).send(`Server error: ${error.message}`);
+  }
+};
 
 module.exports = {
     createReport, 
@@ -477,5 +590,8 @@ module.exports = {
     deleteReport,
     updateStatusByMagicLink,
     getNearbyReports,
-    getAllCategories
+    getAllCategories,
+    assignDepartment,
+    showAssignDepartmentForm
 };
+

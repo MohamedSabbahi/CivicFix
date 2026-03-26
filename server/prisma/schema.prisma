@@ -20,6 +20,12 @@ enum ReportStatus {
   RESOLVED
 }
 
+enum DepartmentWorkStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
 // 2. User Model
 model User {
   id           Int       @id @default(autoincrement())
@@ -64,6 +70,9 @@ model Report {
   
   comments     Comment[]
 
+  // this is for a reverse relation to get all reports for a department through category
+  departments ReportDepartment[]
+
   @@index([status])
   @@index([userId])
   @@index([categoryId])
@@ -89,8 +98,25 @@ model Department {
   name       String
   email      String     @unique
   
-
+  reports ReportDepartment[]
   categories Category[] 
+}
+
+model ReportDepartment {
+  id            Int                   @id @default(autoincrement())
+  reportId      Int
+  departmentId  Int
+
+  status        DepartmentWorkStatus @default(PENDING)
+
+  assignedAt    DateTime             @default(now())
+  completedAt   DateTime?
+
+  // RELATIONS
+  report        Report               @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  department    Department           @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, departmentId])
 }
 
 // 6. Comment Model

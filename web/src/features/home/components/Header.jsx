@@ -4,7 +4,7 @@ const Header = () => {
   const { user } = useAuth();
 
   return (
-<header className="flex items-center justify-center px-4 py-3 rounded-2xl bg-white/[0.06] border border-white/10">
+    <header className="flex items-center justify-center px-4 py-3 rounded-2xl bg-white/[0.06] border border-white/10">
       <h2 className="text-lg font-semibold text-white/90">
 
         Welcome back,{" "}
