@@ -4,9 +4,21 @@ const reportService = {
   getReports(params = {}) {
     return api.get("/reports", { params });
   },
+
+  getMyReports() {
+    return api.get("/reports/my-reports");
+  },
+
+  getReportDepartments(id) {
+    return api.get(`/reports/${id}/departments`);
+  },
   
   getReportById(id) {
     return api.get(`/reports/${id}`);
+  },
+
+  getReportDepartments(id) {
+    return api.get(`/reports/${id}/departments`);
   },
   
   getCategories() {

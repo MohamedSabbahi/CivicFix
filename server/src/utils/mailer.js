@@ -12,7 +12,7 @@ const sendStatusEmail = async (deptEmail, report, links) => {
 const mailOptions = {
     from: '"CivicFix" <no-reply@civicfix.com>',
     to: deptEmail,
-      subject: `CivicFix: New Report - ${report.title}`, // Subject translated
+        subject: `CivicFix: New Report - ${report.title}`,
     html: `
         <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
         <h2 style="color: #333;">New Report: ${report.title}</h2>

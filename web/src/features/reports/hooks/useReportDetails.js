@@ -26,13 +26,18 @@ const useReportDetails = () => {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await reportService.getReportById(id);
-      setReport(data.data);
-      setEditData({
-        title: data.data.title || '',
-        description: data.data.description || ''
+      const { data: reportData } = await reportService.getReportById(id);
+      const { data: deptsData } = await reportService.getReportDepartments(id);
+      
+      setReport({
+        ...reportData.data,
+        departments: deptsData.data || []
       });
-      // Auto-enter edit mode if ?edit=true in URL
+      setEditData({
+        title: reportData.data.title || '',
+        description: reportData.data.description || ''
+      });
+
       if (searchParams.get('edit') === 'true') {
         setIsEditing(true);
       }
@@ -92,7 +97,14 @@ const useReportDetails = () => {
         title: editData.title.trim(),
         description: editData.description.trim()
       });
-      setReport(data.data);
+
+      // Preserve departments — updateReport response doesn't include them
+      setReport(prev => ({
+        ...prev,
+        ...data.data,
+        departments: prev?.departments || []
+      }));
+
       setIsEditing(false);
       toast.success("Report updated successfully!");
     } catch (err) {
@@ -136,7 +148,6 @@ const useReportDetails = () => {
     editData,
     setEditData,
     isUpdating,
-
     fetchReport,
     fetchComments,
     handleAddComment,
@@ -147,4 +158,3 @@ const useReportDetails = () => {
 };
 
 export default useReportDetails;
-

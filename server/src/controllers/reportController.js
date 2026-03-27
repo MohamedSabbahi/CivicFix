@@ -235,6 +235,13 @@ const getMyReports = async (req, res) => {
       orderBy: { createdAt: "desc" },
       include: {
         category: true,
+        departments: {
+          include: {
+            department: {
+              select: { id: true, name: true }
+            }
+          }
+        }
       },
     });
 
@@ -262,11 +269,21 @@ const getReportById = async (req, res) => {
         category: true,
         user: { select: { name: true, email: true } },
         comments: {
-          include: {
-            user: { select: { name: true, email: true } },
-          },
-        },
+        include: {
+        user: { select: { name: true, email: true } },
+      },
+    },
+    departments: {
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
+  }
+}
     });
 
     if (!report) {
@@ -437,35 +454,85 @@ const updateStatusByMagicLink = async (req, res) => {
         });
 
         if (!report) {
-            return res.status(403).send("<h1>Invalid Link</h1><p>This link is no longer valid or has already been used.</p>");
+            return res.status(403).send("<h1>Invalid Link</h1>");
         }
 
-        const updateData = { 
-          status: status,
-        };
+        // ✅ Validate status value
+        const validStatuses = ['PENDING', 'IN_PROGRESS', 'RESOLVED'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).send("<h1>Invalid status</h1>");
+        }
 
+        const updateData = { status };
+
+        // ✅ Block RESOLVED if any department is not COMPLETED
         if (status === 'RESOLVED') {
+            const pendingDepts = await prisma.reportDepartment.count({
+                where: {
+                    reportId: parseInt(id),
+                    status: { not: 'COMPLETED' }
+                }
+            });
+
+            if (pendingDepts > 0) {
+                return res.status(400).send(`
+                    <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
+                        <h1 style="color:#dc2626;">Cannot Resolve Yet</h1>
+                        <p>${pendingDepts} department(s) are still not completed.</p>
+                        <p>All departments must be COMPLETED before resolving.</p>
+                    </div>
+                `);
+            }
+
             updateData.resolvedAt = new Date();
-            updateData.accessSecret = null; 
+            updateData.accessSecret = null;
         }
 
-        await prisma.report.update({
-            where: { id: parseInt(id) },
-            data: updateData
-        });
+        // ✅ Full transaction with all 3 cases
+        await prisma.$transaction([
+            // 1. Update report status
+            prisma.report.update({
+                where: { id: parseInt(id) },
+                data: updateData
+            }),
+
+            // 2. If RESOLVED → mark all departments COMPLETED
+            ...(status === 'RESOLVED' ? [
+                prisma.reportDepartment.updateMany({
+                    where: { reportId: parseInt(id) },
+                    data: {
+                        status: 'COMPLETED',
+                        completedAt: new Date()
+                    }
+                })
+            ] : []),
+
+            // 3. If IN_PROGRESS → move PENDING departments to IN_PROGRESS
+            ...(status === 'IN_PROGRESS' ? [
+                prisma.reportDepartment.updateMany({
+                    where: {
+                        reportId: parseInt(id),
+                        status: 'PENDING'
+                    },
+                    data: { status: 'IN_PROGRESS' }
+                })
+            ] : [])
+        ]);
 
         res.send(`
-            <div style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-                <h1 style="color: #059669;">Status Updated Successfully!</h1>
-                <p>Report #${id} is now marked as: <strong>${status}</strong>.</p>
+            <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
+                <h1 style="color:#059669;">Status Updated Successfully!</h1>
+                <p>Report #${id} is now: <strong>${status}</strong></p>
                 <p>You can now close this tab.</p>
             </div>
         `);
+
     } catch (error) {
         console.error("Magic Link Update Error:", error);
         res.status(500).send("An error occurred while updating the status.");
     }
 };
+
 
 const showAssignDepartmentForm = async (req, res) => {
   const { reportId } = req.params;
@@ -580,12 +647,58 @@ const assignDepartment = async (req, res) => {
     res.status(500).send(`Server error: ${error.message}`);
   }
 };
+const getReportDepartments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reportId = parseInt(id);
+    const report = await prisma.report.findUnique({
+      where: { id: reportId },
+      include: {
+        departments: {
+          include: {
+            department: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+    if (!report) {
+      return res.status(404).json({
+        status: "error",
+        message: "Report not found"
+      });
+    }
+    const departments = report.departments.map(({ id, department, status, assignedAt, completedAt }) => ({
+      id,
+      department,
+      status,
+      assignedAt,
+      completedAt
+    }));
+    res.status(200).json({
+      status: "success",
+      data: departments
+    });
+  } catch (error) {
+    console.error('Error fetching report departments:', error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch report departments",
+      details: error.message
+    });
+  }
+};
 
 module.exports = {
     createReport, 
     getAllReports,
     getMyReports,
     getReportById,
+    getReportDepartments,
     updateReport,
     deleteReport,
     updateStatusByMagicLink,
@@ -594,4 +707,5 @@ module.exports = {
     assignDepartment,
     showAssignDepartmentForm
 };
+
 

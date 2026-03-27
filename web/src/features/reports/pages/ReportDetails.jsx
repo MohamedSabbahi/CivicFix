@@ -307,7 +307,7 @@ const ReportDetails = () => {
           />
 
           {/* Tracking timeline */}
-          <TrackingStatus status={report.status} />
+          <TrackingStatus status={report.status} departments={report.departments || []} />
         </div>
 
         {/* Right sidebar */}

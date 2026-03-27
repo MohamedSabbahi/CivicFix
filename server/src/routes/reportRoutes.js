@@ -13,7 +13,8 @@ const { createReport,
         deleteReport,
         getAllCategories,
         assignDepartment,
-        showAssignDepartmentForm }
+        showAssignDepartmentForm,
+        getReportDepartments }
         = require('../controllers/reportController');
 
 const { getReportComments,
@@ -28,6 +29,7 @@ router.get('/', getAllReports);
 router.get('/nearby', getNearbyReports);
 router.get('/my-reports', protect, getMyReports);
 router.get('/:id' ,getReportById);
+router.get('/:id/departments', protect, getReportDepartments);
 router.put('/:id', protect, updateReport);
 router.delete('/:id', protect, admin, deleteReport);
 
@@ -39,5 +41,7 @@ router.delete('/:id/comments/:commentId', protect, deleteComment);
 // Department assignment routes
 router.get('/:reportId/assign-department', showAssignDepartmentForm);
 router.post('/:reportId/assign-department', assignDepartment);
+
+router.get('/:id/departments', protect, getReportDepartments);
 
 module.exports = router;
