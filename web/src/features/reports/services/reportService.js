@@ -15,12 +15,7 @@ const reportService = {
   
   getReportById(id) {
     return api.get(`/reports/${id}`);
-  },
-
-  getReportDepartments(id) {
-    return api.get(`/reports/${id}/departments`);
-  },
-  
+  },  
   getCategories() {
     return api.get("/reports/categories");
   },

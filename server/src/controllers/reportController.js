@@ -28,15 +28,26 @@ const getAllCategories = async (req, res) => {
 };
 
 const createReport = async (req, res) => {
+  console.log("BODY:", req.body);
+  console.log("FILE:", req.file);
+  console.log("USER:", req.user);
+
   if (!req.file) {
     return res.status(400).json({ error: "Image is required" });
   }
 
+  if (!req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   try {
     const { title, description, latitude, longitude, categoryId } = req.body;
-    
-    const photoUrl = `/uploads/${req.file.filename}`;
 
+    if (!title || !latitude || !longitude || !categoryId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const photoUrl = `/uploads/${req.file.filename}`;
     const secret = crypto.randomUUID();
 
     const report = await prisma.report.create({
@@ -53,23 +64,42 @@ const createReport = async (req, res) => {
       include: {
         category: {
           include: {
-            department: true
-          }
-        }
-      }
+            department: true,
+          },
+        },
+      },
     });
-    
-    const links = generateMagicLinks(report);
-    if (report.category?.department?.email) {
-        sendStatusEmail(report.category.department.email, report, links)
-            .catch(err => console.error("Async Email Error:", err));
+
+    const department = report.category?.department;
+
+    if (!department) {
+      return res.status(400).json({ error: "Category has no department" });
     }
+
+    await prisma.reportDepartment.upsert({
+      where: {
+        reportId_departmentId: {
+          reportId: report.id,
+          departmentId: department.id,
+        },
+      },
+      update: {},
+      create: {
+        reportId: report.id,
+        departmentId: department.id,
+      },
+    });
+
+    const links = generateMagicLinks(report, department.id);
+
+    sendStatusEmail(department.email, report, links)
+      .catch(err => console.error("Email Error:", err));
 
     res.status(201).json(report);
 
   } catch (error) {
-    console.error("Report Creation Error:", error);
-    res.status(500).json({ message: "Server error while creating report" });
+    console.error("❌ Report Creation Error FULL:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -443,94 +473,90 @@ const deleteReport = async (req, res) => {
 };
 
 const updateStatusByMagicLink = async (req, res) => {
-    const { id, secret, status } = req.query;
+  const { id, secret, status, departmentId } = req.query;
 
-    try {
-        const report = await prisma.report.findFirst({
-            where: {
-                id: parseInt(id),
-                accessSecret: secret
-            }
+  if (!id || !secret || !status || !departmentId) {
+    return res.status(400).send("<h1>Missing parameters</h1>");
+  }
+
+  try {
+    const report = await prisma.report.findFirst({
+      where: {
+        id: parseInt(id),
+        accessSecret: secret,
+      },
+    });
+
+    if (!report) {
+      return res.status(403).send("<h1>Invalid Link</h1>");
+    }
+
+    const reportDept = await prisma.reportDepartment.findFirst({
+      where: {
+        reportId: parseInt(id),
+        departmentId: parseInt(departmentId),
+      },
+    });
+
+    if (!reportDept) {
+      console.log("❌ No department match", { id, departmentId });
+      return res.status(404).send("<h1>Department not assigned</h1>");
+    }
+
+    const validStatuses = ["IN_PROGRESS", "RESOLVED"];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).send("<h1>Invalid status</h1>");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.reportDepartment.update({
+        where: { id: reportDept.id },
+        data: {
+          status: status === "IN_PROGRESS" ? "IN_PROGRESS" : "COMPLETED",
+          completedAt: status === "RESOLVED" ? new Date() : null,
+        },
+      });
+
+      if (status === "IN_PROGRESS") {
+        await tx.report.update({
+          where: { id: parseInt(id) },
+          data: { status: "IN_PROGRESS" },
+        });
+      }
+
+      if (status === "RESOLVED") {
+        const pending = await tx.reportDepartment.count({
+          where: {
+            reportId: parseInt(id),
+            status: { not: "COMPLETED" },
+          },
         });
 
-        if (!report) {
-            return res.status(403).send("<h1>Invalid Link</h1>");
+        if (pending === 0) {
+          await tx.report.update({
+            where: { id: parseInt(id) },
+            data: {
+              status: "RESOLVED",
+              resolvedAt: new Date(),
+              accessSecret: null,
+            },
+          });
         }
+      }
+    });
 
-        // ✅ Validate status value
-        const validStatuses = ['PENDING', 'IN_PROGRESS', 'RESOLVED'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).send("<h1>Invalid status</h1>");
-        }
+    res.send(`
+      <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
+        <h1 style="color:#059669;">✅ Status Updated Successfully</h1>
+        <p>You can close this tab.</p>
+      </div>
+    `);
 
-        const updateData = { status };
-
-        // ✅ Block RESOLVED if any department is not COMPLETED
-        if (status === 'RESOLVED') {
-            const pendingDepts = await prisma.reportDepartment.count({
-                where: {
-                    reportId: parseInt(id),
-                    status: { not: 'COMPLETED' }
-                }
-            });
-
-            if (pendingDepts > 0) {
-                return res.status(400).send(`
-                    <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
-                        <h1 style="color:#dc2626;">Cannot Resolve Yet</h1>
-                        <p>${pendingDepts} department(s) are still not completed.</p>
-                        <p>All departments must be COMPLETED before resolving.</p>
-                    </div>
-                `);
-            }
-
-            updateData.resolvedAt = new Date();
-            updateData.accessSecret = null;
-        }
-
-        // ✅ Full transaction with all 3 cases
-        await prisma.$transaction([
-            // 1. Update report status
-            prisma.report.update({
-                where: { id: parseInt(id) },
-                data: updateData
-            }),
-
-            // 2. If RESOLVED → mark all departments COMPLETED
-            ...(status === 'RESOLVED' ? [
-                prisma.reportDepartment.updateMany({
-                    where: { reportId: parseInt(id) },
-                    data: {
-                        status: 'COMPLETED',
-                        completedAt: new Date()
-                    }
-                })
-            ] : []),
-
-            // 3. If IN_PROGRESS → move PENDING departments to IN_PROGRESS
-            ...(status === 'IN_PROGRESS' ? [
-                prisma.reportDepartment.updateMany({
-                    where: {
-                        reportId: parseInt(id),
-                        status: 'PENDING'
-                    },
-                    data: { status: 'IN_PROGRESS' }
-                })
-            ] : [])
-        ]);
-
-        res.send(`
-            <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
-                <h1 style="color:#059669;">Status Updated Successfully!</h1>
-                <p>Report #${id} is now: <strong>${status}</strong></p>
-                <p>You can now close this tab.</p>
-            </div>
-        `);
-
-    } catch (error) {
-        console.error("Magic Link Update Error:", error);
-        res.status(500).send("An error occurred while updating the status.");
-    }
+  } catch (error) {
+    console.error("❌ Magic Link Error:", error);
+    res.status(500).send("<h1>Server Error</h1>");
+  }
 };
 
 
@@ -581,72 +607,70 @@ const showAssignDepartmentForm = async (req, res) => {
 const assignDepartment = async (req, res) => {
   try {
     const { reportId } = req.params;
-    const { secret } = req.query;
-    const { departmentId } = req.body || {};
-    console.log("departmentId from body:", departmentId);  // ← check terminal
+    const { departmentId, secret } = req.query;
+
+    console.log("Assign Query:", req.query);
 
     if (!departmentId) {
-      return res.status(400).send("Department ID is missing from form submission");
+      return res.status(400).send("Missing departmentId");
     }
 
-    console.log("=== ASSIGN DEPARTMENT DEBUG ===");
-    console.log("reportId:", reportId);
-    console.log("secret:", secret);
-    console.log("departmentId:", departmentId);
-
-    // Step 1: find report
     const report = await prisma.report.findUnique({
       where: { id: parseInt(reportId) }
     });
-    console.log("report found:", report?.id, "| secret match:", report?.accessSecret === secret);
 
     if (!report || report.accessSecret !== secret) {
       return res.status(403).send("Invalid or expired link");
     }
 
-    // Step 2: find department
     const dept = await prisma.department.findUnique({
       where: { id: parseInt(departmentId) }
     });
-    console.log("department found:", dept?.id, dept?.name, dept?.email);
 
     if (!dept) {
       return res.status(404).send("Department not found");
     }
 
-    // Step 3: create assignment
-    await prisma.reportDepartment.create({
-      data: {
+    await prisma.reportDepartment.upsert({
+      where: {
+        reportId_departmentId: {
+          reportId: parseInt(reportId),
+          departmentId: parseInt(departmentId),
+        },
+      },
+      update: {},
+      create: {
         reportId: parseInt(reportId),
         departmentId: parseInt(departmentId),
       },
     });
-    console.log("Assignment created successfully");
 
-    // Step 4: send email
-    const links = generateMagicLinks(report);
-    await sendStatusEmail(dept.email, report, links);
-    console.log("Email sent to:", dept.email);
+    const updatedReport = await prisma.report.findUnique({
+      where: { id: parseInt(reportId) }
+    });
+
+    const links = generateMagicLinks(updatedReport, dept.id);
+
+    console.log("📩 Second Email Links:", links);
+
+    sendStatusEmail(dept.email, updatedReport, links)
+      .catch(err => console.error("Email error:", err));
 
     res.send(`
-      <html><body style="font-family:sans-serif; max-width:400px; margin:40px auto; padding:20px;">
-        <h2>✅ Department Assigned</h2>
-        <p><strong>${dept.name}</strong> has been notified by email.</p>
-      </body></html>
+      <html>
+        <body style="font-family:sans-serif; text-align:center; margin-top:50px;">
+          <h2>✅ Department Assigned</h2>
+          <p>${dept.name} has been notified.</p>
+        </body>
+      </html>
     `);
 
   } catch (error) {
-    console.error("=== ASSIGN ERROR DETAILS ===");
-    console.error("Message:", error.message);
-    console.error("Code:", error.code);
-    console.error("Stack:", error.stack);
-    
-    if (error.code === "P2002") {
-      return res.status(400).send("Department already assigned to this report");
-    }
-    res.status(500).send(`Server error: ${error.message}`);
+    console.error("Assign Department Error:", error);
+    res.status(500).send("Server error");
   }
 };
+
 const getReportDepartments = async (req, res) => {
   try {
     const { id } = req.params;

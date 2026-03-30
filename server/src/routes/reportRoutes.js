@@ -42,6 +42,4 @@ router.delete('/:id/comments/:commentId', protect, deleteComment);
 router.get('/:reportId/assign-department', showAssignDepartmentForm);
 router.post('/:reportId/assign-department', assignDepartment);
 
-router.get('/:id/departments', protect, getReportDepartments);
-
 module.exports = router;
