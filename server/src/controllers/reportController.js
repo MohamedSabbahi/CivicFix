@@ -91,10 +91,12 @@ const createReport = async (req, res) => {
     });
 
     const links = generateMagicLinks(report, department.id);
-
-    sendStatusEmail(department.email, report, links)
-      .catch(err => console.error("Email Error:", err));
-
+    try {
+      await sendStatusEmail(department.email, report, links);
+      console.log("✅ Email sent to:", department.email);
+      } catch (err) {
+        console.error("❌ Email Error:", err);
+      }
     res.status(201).json(report);
 
   } catch (error) {
@@ -588,14 +590,14 @@ const showAssignDepartmentForm = async (req, res) => {
     <html><body style="font-family:sans-serif; max-width:400px; margin:40px auto; padding:20px;">
       <h2>Assign Additional Department</h2>
       <p>Report: <strong>${report.title}</strong></p>
-      <form method="POST" 
-            action="/api/reports/${reportId}/assign-department?secret=${secret}">
-        <select name="departmentId" 
+      <form method="GET" action="/api/reports/${reportId}/assign-department">
+        <input type="hidden" name="secret" value="${secret}" />
+        <select name="departmentId"
                 style="width:100%; padding:8px; margin:10px 0; border-radius:4px;">
           ${options}
         </select><br/>
-        <button type="submit" 
-                style="background:#17a2b8; color:white; padding:10px 20px; 
+        <button type="submit"
+                style="background:#17a2b8; color:white; padding:10px 20px;
                       border:none; border-radius:4px; cursor:pointer; margin-top:10px;">
           Assign Department
         </button>
@@ -603,6 +605,7 @@ const showAssignDepartmentForm = async (req, res) => {
     </body></html>
   `);
 };
+
 
 const assignDepartment = async (req, res) => {
   try {
@@ -717,6 +720,94 @@ const getReportDepartments = async (req, res) => {
   }
 };
 
+const updateReportStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!req.user?.departmentId) {
+    return res.status(403).json({ error: 'Department user required' });
+  }
+
+  const validStatuses = ['IN_PROGRESS', 'RESOLVED'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+
+  try {
+    const reportId = parseInt(id);
+    const deptId = req.user.departmentId;
+
+    // Fetch report and dept assignment
+    const [report, reportDept] = await Promise.all([
+      prisma.report.findUnique({ where: { id: reportId } }),
+      prisma.reportDepartment.findUnique({
+        where: {
+          reportId_departmentId: { reportId, departmentId: deptId }
+        }
+      })
+    ]);
+
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (!reportDept) return res.status(403).json({ error: 'Department not assigned to report' });
+
+    // Idempotency
+    const currentDeptStatus = reportDept.status;
+    const newDeptStatus = status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'COMPLETED';
+    if (currentDeptStatus === newDeptStatus) {
+      return res.status(200).json({ message: 'Status already up to date', status: status });
+    }
+
+    // Prevent regression
+    if (status === 'IN_PROGRESS' && report.status === 'RESOLVED') {
+      return res.status(400).json({ error: 'Cannot revert resolved report to in progress' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.reportDepartment.update({
+        where: { id: reportDept.id },
+        data: {
+          status: newDeptStatus,
+          completedAt: newDeptStatus === 'COMPLETED' ? new Date() : null,
+        },
+      });
+
+      if (status === 'RESOLVED') {
+        const pendingDepts = await tx.reportDepartment.count({
+          where: {
+            reportId: reportId,
+            status: { not: 'COMPLETED' },
+          },
+        });
+
+        if (pendingDepts === 0) {
+          await tx.report.update({
+            where: { id: reportId },
+            data: { 
+              status: 'RESOLVED', 
+              resolvedAt: new Date(), 
+              accessSecret: null 
+            },
+          });
+        }
+      } else {
+        await tx.report.update({
+          where: { id: reportId },
+          data: { status: 'IN_PROGRESS' },
+        });
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Status updated successfully',
+      status 
+    });
+  } catch (error) {
+    console.error('Status update error:', error);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+};
+
 module.exports = {
     createReport, 
     getAllReports,
@@ -729,7 +820,8 @@ module.exports = {
     getNearbyReports,
     getAllCategories,
     assignDepartment,
-    showAssignDepartmentForm
+    showAssignDepartmentForm,
+    updateReportStatus
 };
 
 
