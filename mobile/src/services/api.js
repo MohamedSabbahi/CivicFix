@@ -25,4 +25,15 @@ api.interceptors.request.use(
     }
 );
 
+export const sendChatMessage = async (message) => {
+  try {
+    // This hits your Node.js backend, which securely forwards it to the Python AI
+    const response = await api.post('/chatbot/chat', { message });
+    return response.data;
+  } catch (error) {
+    console.error("Chatbot API Error:", error);
+    throw error;
+  }
+};
+
 export default api;

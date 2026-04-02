@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/authRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const chatbotRoutes = require('./routes/chatbotRoutes');
 const app = express();
 
 app.set('trust proxy', 1);
@@ -54,6 +55,6 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/admin', adminRoutes); 
-app.use('/api/chatbot', require('./routes/chatbotRoutes'));
+app.use('/api/chatbot', chatbotRoutes);
 
 module.exports = app;

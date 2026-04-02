@@ -17,7 +17,6 @@ export default function MainFeedScreen({ navigation }){
     const [selectedCategoryId, setSelectedCategoryId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [isChatModalVisible, setIsChatModalVisible] = useState(false);
     const [isSidebarVisible, setIsSidebarVisible] = useState(false);
     const [userLocation, setUserLocation] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -248,10 +247,10 @@ export default function MainFeedScreen({ navigation }){
             <MaterialIcons name="add" size={30} color="#fff" />
         </TouchableOpacity>
 
-        {/* ── FAB: NLP Chatbot (Placed on Right) ── */}
+        {/* NLP Chatbot FAB (Navigates to dedicated screen) */}
         <TouchableOpacity 
             className="absolute bottom-6 right-6 w-14 h-14 bg-indigo-500 rounded-full items-center justify-center shadow-lg shadow-indigo-500/30 active:scale-95"
-            onPress={() => setIsChatModalVisible(true)}
+            onPress={() => navigation.navigate('Chatbot')}
         >
             <MaterialIcons name="smart-toy" size={30} color="#fff" />
         </TouchableOpacity>
@@ -328,78 +327,6 @@ export default function MainFeedScreen({ navigation }){
 
             </View>
         </Modal>
-        {/* ── Chatbot Bottom Sheet (Slide Up Modal) ── */}
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isChatModalVisible}
-            onRequestClose={() => setIsChatModalVisible(false)}
-        >
-            <View className="flex-1 justify-end">
-            
-            {/* Backdrop */}
-            <TouchableOpacity 
-                className="absolute inset-0 bg-black/60" 
-                activeOpacity={1} 
-                onPress={() => setIsChatModalVisible(false)} 
-            />
-            
-            {/* The Main Drawer Container 
-                (overflow-hidden ensures the header respects the rounded top corners)
-            */}
-            <View className="h-[60%] bg-slate-900 rounded-t-3xl overflow-hidden shadow-2xl border-t border-slate-700">
-                
-                {/* ── Chat Header (Distinct Background Color) ── */}
-                <View className="bg-slate-800 px-5 py-4 flex-row justify-between items-center border-b border-slate-700/50">
-                
-                {/* Left Side: Avatar & Info */}
-                <View className="flex-row items-center gap-3">
-                    
-                    {/* Robot Avatar with Absolute Status Dot */}
-                    <View className="relative">
-                    <View className="w-12 h-12 bg-slate-700/80 rounded-full items-center justify-center border border-indigo-500/30">
-                        <MaterialIcons name="smart-toy" size={26} color="#818cf8" />
-                    </View>
-                    {/* The overlapping green dot */}
-                    <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-slate-800" />
-                    </View>
-
-                    {/* Text Block */}
-                    <View>
-                    <Text className="text-white text-lg font-bold tracking-wide">Civic Assistant</Text>
-                    <View className="flex-row items-center gap-1.5 mt-0.5">
-                        {/* Small inline green dot */}
-                        <View className="w-2 h-2 bg-green-500 rounded-full" />
-                        <Text className="text-slate-400 text-sm font-medium">Online</Text>
-                    </View>
-                    </View>
-
-                </View>
-
-                {/* Right Side: Window Controls */}
-                <View className="flex-row items-center">
-                    <TouchableOpacity 
-                    onPress={() => setIsChatModalVisible(false)}
-                    className="p-2 -mr-2" // Adds a nice hit-box for the thumb
-                    >
-                    <MaterialIcons name="close" size={26} color="#94a3b8" />
-                    </TouchableOpacity>
-                </View>
-
-                </View>
-
-                {/* ── Chat Body Area ── */}
-                <View className="flex-1 p-6 items-center justify-center bg-slate-900">
-                <MaterialIcons name="forum" size={48} color="#334155" />
-                <Text className="text-slate-500 text-center text-base mt-4 leading-relaxed max-w-[80%]">
-                    NLP Chatbot interface will go here. Ready to process natural language!
-                </Text>
-                </View>
-
-            </View>
-            </View>
-        </Modal>
-
         </SafeAreaView>
     );
 }
