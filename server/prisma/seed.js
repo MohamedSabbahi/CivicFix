@@ -44,7 +44,6 @@ async function main() {
     ];
 
     for (const cat of uiCategories) {
-    // 1. Department (UNIQUE by email)
     const department = await prisma.department.upsert({
         where: { email: cat.email },
         update: {
@@ -56,7 +55,6 @@ async function main() {
         },
     });
 
-    // 2. Category
     const existingCategory = await prisma.category.findFirst({
         where: { name: cat.name },
     });

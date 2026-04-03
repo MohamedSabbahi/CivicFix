@@ -564,9 +564,12 @@ const updateStatusByMagicLink = async (req, res) => {
 
 const showAssignDepartmentForm = async (req, res) => {
   const { reportId } = req.params;
-  const { secret } = req.query;
+  const { secret ,  departmentId  } = req.query;
 
-  // Validate secret
+  if (departmentId) {
+    return assignDepartment(req, res);
+  }
+
   const report = await prisma.report.findUnique({
     where: { id: parseInt(reportId) },
     include: { departments: { include: { department: true } } }
@@ -576,7 +579,6 @@ const showAssignDepartmentForm = async (req, res) => {
     return res.status(403).send("Invalid or expired link");
   }
 
-  // Only show departments NOT already assigned
   const assignedIds = report.departments.map(d => d.departmentId);
   const available = await prisma.department.findMany({
     where: { id: { notIn: assignedIds } }
@@ -750,14 +752,12 @@ const updateReportStatus = async (req, res) => {
     if (!report) return res.status(404).json({ error: 'Report not found' });
     if (!reportDept) return res.status(403).json({ error: 'Department not assigned to report' });
 
-    // Idempotency
     const currentDeptStatus = reportDept.status;
     const newDeptStatus = status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'COMPLETED';
     if (currentDeptStatus === newDeptStatus) {
       return res.status(200).json({ message: 'Status already up to date', status: status });
     }
 
-    // Prevent regression
     if (status === 'IN_PROGRESS' && report.status === 'RESOLVED') {
       return res.status(400).json({ error: 'Cannot revert resolved report to in progress' });
     }
