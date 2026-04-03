@@ -16,13 +16,9 @@ const sendStatusEmail = async (deptEmail, report, links) => {
     console.log("🔐 Sender:", process.env.EMAIL_USER);
 
     const mailOptions = {
-      // ✅ FIX: use your real Gmail (important)
       from: `"CivicFix" <${process.env.EMAIL_USER}>`,
-
-      to: deptEmail,
-
+      to: process.env.TEST_EMAIL || deptEmail,
       subject: `CivicFix: New Report - ${report.title}`,
-
       html: `
         <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
           
@@ -31,11 +27,8 @@ const sendStatusEmail = async (deptEmail, report, links) => {
           <p style="color: #555;">
             ${report.description || "No description provided"}
           </p>
-
           <hr style="border: 0; border-top: 1px solid #eee;">
-
           <p style="font-weight: bold;">Quick actions for the department:</p>
-
           <div style="margin-top: 20px;">
             
             <a href="${links.inProgress}" 
@@ -72,7 +65,7 @@ const sendStatusEmail = async (deptEmail, report, links) => {
 
   } catch (error) {
     console.error("❌ Email sending failed:", error);
-    throw error; // important so controller can catch it
+    throw error; 
   }
 };
 
