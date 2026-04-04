@@ -5,10 +5,18 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { sendChatMessage } from '../../services/api';
 
-export default function ChatbotScreen({ navigation }) {
+export default function ChatbotScreen({ route, navigation }) {
+  // Extract the first name from route params, defaulting to 'Citizen' if undefined
+  const fullName = route.params?.userName || 'Citizen';
+  const firstName = fullName.split(' ')[0];
+
   // --- UI and Chat State ---
   const [messages, setMessages] = useState([
-    { id: '1', text: "Hi Mohamed! I'm the CivicFix AI. What issue would you like to report today?", sender: 'bot' }
+    { 
+        id: '1', 
+        text: `Hi ${firstName}! I'm the CivicFix AI. What issue would you like to report today?`, 
+        sender: 'bot' 
+    }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
