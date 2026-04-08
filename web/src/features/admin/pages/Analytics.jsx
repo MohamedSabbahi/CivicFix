@@ -1,7 +1,16 @@
-const Analytics = () => (
-  <div className="text-white">
-    <h2 className="text-xl font-semibold mb-4">Analytics</h2>
-    <p className="text-white/40 text-sm">Graphiques à venir...</p>
-  </div>
-);
-export default Analytics;
+import { useAdminContext }   from "../context/AdminContext";
+import PeriodChart           from "../components/analytics/PeriodChart";
+import AnalyticsSearch       from "../components/analytics/AnalyticsSearch";
+
+const Analytics = () => {
+  const { reports } = useAdminContext();
+
+  return (
+    <div className="space-y-6">
+      <PeriodChart />
+      <AnalyticsSearch reports={reports} />
+    </div>
+  );
+};
+
+export default Analytics

@@ -4,7 +4,7 @@ const crumbMap = {
     "/admin":             ["Admin", "Dashboard"],
     "/admin/analytics":   ["Admin", "Dashboard", "Analytics"],
     "/admin/departments": ["Admin", "Dashboard", "Departments"],
-    "/admin/settings":    ["Admin", "Dashboard", "Settings"],
+    "/admin/admprofile":    ["Admin", "Dashboard", "Profile"],
     "/admin/reports":     ["Admin", "Dashboard", "Active Reports"],
 };
 
