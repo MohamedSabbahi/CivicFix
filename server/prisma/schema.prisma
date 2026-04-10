@@ -107,6 +107,10 @@ model ReportDepartment {
   reportId      Int
   departmentId  Int
 
+  title         String
+  description   String
+  img           String?
+  
   status        DepartmentWorkStatus @default(PENDING)
 
   assignedAt    DateTime             @default(now())

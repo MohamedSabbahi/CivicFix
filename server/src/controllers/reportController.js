@@ -87,6 +87,9 @@ const createReport = async (req, res) => {
       create: {
         reportId: report.id,
         departmentId: department.id,
+        title: report.title,
+        description: report.description,
+        img: report.photoUrl,
       },
     });
 
@@ -647,6 +650,9 @@ const assignDepartment = async (req, res) => {
       create: {
         reportId: parseInt(reportId),
         departmentId: parseInt(departmentId),
+        title: report.title,
+        description: report.description,
+        img: report.photoUrl,
       },
     });
 
