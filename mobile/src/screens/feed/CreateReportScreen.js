@@ -47,7 +47,9 @@ export default function CreateReportScreen({ route, navigation }) {
         longitude: initialLng,
     });
 
-    // Fetches available issue categories from the API on component mount
+    /**
+     * Fetches available issue categories from the API on component mount.
+     */
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -62,15 +64,15 @@ export default function CreateReportScreen({ route, navigation }) {
     }, []);
 
     /**
-     * Auto-selects the appropriate category if navigating from the Chatbot.
-     * Attempts to match the AI-generated category string against the database category names.
+     * Auto-selects the appropriate category UI component based on AI-generated data.
+     * Matches the string passed from the Chatbot against the database category records.
      */
     useEffect(() => {
         if (categories.length > 0 && prefilledCategory) {
             const matchedCat = categories.find(
-                cat => cat.name.toLowerCase() === prefilledCategory.toLowerCase() || 
-                       cat.depName?.toLowerCase() === prefilledCategory.toLowerCase()
+                (cat) => cat.name?.toLowerCase() === prefilledCategory.toLowerCase()
             );
+            
             if (matchedCat) {
                 setSelectedCategoryId(matchedCat.id);
             }
@@ -79,7 +81,7 @@ export default function CreateReportScreen({ route, navigation }) {
 
     /**
      * Validates form data and constructs a multipart/form-data payload
-     * to submit the text details and image file to the backend.
+     * to securely transmit text details and the image buffer to the backend.
      */
     const handleSubmit = async () => {
         if (!photoUri) {
@@ -92,7 +94,7 @@ export default function CreateReportScreen({ route, navigation }) {
             return;
         }
 
-        if(!selectedCategoryId) {
+        if (!selectedCategoryId) {
             Alert.alert("Missing Category", "Please select a category that best fits the issue.");
             return;
         }
@@ -115,7 +117,7 @@ export default function CreateReportScreen({ route, navigation }) {
             formData.append('categoryId', selectedCategoryId.toString());
 
             // Extracts file extension and formats the image object for multer compatibility
-            const filename = photoUri.split('/').pop();
+            const filename = photoUri.split('/').pop() || 'photo.jpg';
             const match = /\.(\w+)$/.exec(filename);
             const type = match ? `image/${match[1]}` : `image/jpeg`;
 
@@ -165,6 +167,7 @@ export default function CreateReportScreen({ route, navigation }) {
 
                 <ScrollView className="flex-1 p-5" showsVerticalScrollIndicator={false}>
                     
+                    {/* Header Image and Title Input */}
                     <View className="flex-row gap-4 mb-8 mt-2">
                         {photoUri ? (
                             <Image 
@@ -186,6 +189,7 @@ export default function CreateReportScreen({ route, navigation }) {
                         />
                     </View>
 
+                    {/* Category Selection Carousel */}
                     <View className="mb-6">
                         <Text className="text-slate-400 text-sm font-bold uppercase tracking-wider ml-6 mb-3">
                             Category
@@ -222,6 +226,7 @@ export default function CreateReportScreen({ route, navigation }) {
 
                     <View className="px-5"></View>
 
+                    {/* Description Input area */}
                     <View className="flex-row items-center justify-between ml-1 mb-2">
                         <Text className="text-slate-400 text-sm font-bold uppercase tracking-wider">
                             Additional Details
@@ -243,14 +248,17 @@ export default function CreateReportScreen({ route, navigation }) {
                         textAlignVertical="top"
                     />
 
+                    {/* Interactive Leaflet Map for coordinate adjustments */}
                     <View className="h-[280px] rounded-2xl overflow-hidden border border-slate-700 mb-12 shadow-lg shadow-black/40">
                         <WebView
                             style={{ flex: 1 }}
+                            originWhitelist={['*']}
+                            javaScriptEnabled={true}
+                            domStorageEnabled={true}
                             scrollEnabled={false}
                             showsVerticalScrollIndicator={false}
                             showsHorizontalScrollIndicator={false}
                             onMessage={(event) => {
-                                // Updates local state when the user finishes dragging the map marker
                                 const { lat, lng } = JSON.parse(event.nativeEvent.data);
                                 setMarkerCoordinate({ latitude: lat, longitude: lng });
                             }}

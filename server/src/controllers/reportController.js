@@ -65,7 +65,8 @@ const createReport = async (req, res) => {
     photoUrl = publicUrlData.publicUrl;
     const secret = crypto.randomUUID();
 
-    const report = await prisma.report.create({
+
+    const report = await prisma.civicIssue.create({
       data: {
         title,
         description,
@@ -198,7 +199,7 @@ const getAllReports = async (req, res) => {
 
     // Execute data fetch and total count in parallel for performance
     const [reports, totalReports] = await Promise.all([
-      prisma.report.findMany({
+      prisma.civicIssue.findMany({
         where: whereCondition,
         skip: skip,
         take: limitNum,
@@ -208,7 +209,7 @@ const getAllReports = async (req, res) => {
           user: { select: { name: true, email: true } },
         },
       }),
-      prisma.report.count({
+      prisma.civicIssue.count({
         where: whereCondition,
       }),
     ]);
@@ -259,7 +260,8 @@ const getAllReports = async (req, res) => {
 
 const getMyReports = async (req, res) => {
   try{
-    const reports = await prisma.report.findMany({
+
+    const reports = await prisma.civicIssue.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: "desc" },
       include: {
@@ -284,7 +286,8 @@ const getMyReports = async (req, res) => {
 const getReportById = async (req, res) => {
   try {
     const { id } = req.params;
-    const report = await prisma.report.findUnique({
+
+    const report = await prisma.civicIssue.findUnique({
       where: { id: parseInt(id) },
       include: {
         category: true,
@@ -344,7 +347,8 @@ const getNearbyReports = async (req, res) => {
       if (!isNaN(categoryIdNum)) whereCondition.categoryId = categoryIdNum;
     }
 
-    const reports = await prisma.report.findMany({
+
+    const reports = await prisma.civicIssue.findMany({
       where: whereCondition,
       include: {
         category: true,
@@ -385,7 +389,8 @@ const updateReport = async (req, res) => {
     const { id } = req.params;
     const { title, description, categoryId } = req.body || {};
 
-    const existingReport = await prisma.report.findUnique({
+
+    const existingReport = await prisma.civicIssue.findUnique({
       where: { id: parseInt(id) } 
     });
 
@@ -402,7 +407,8 @@ const updateReport = async (req, res) => {
       });
     }
 
-    const updatedReport = await prisma.report.update({
+
+    const updatedReport = await prisma.civicIssue.update({
       where: { id: parseInt(id) },
       data: {
         title: title || existingReport.title,
@@ -432,7 +438,7 @@ const deleteReport = async (req, res) => {
     const { id } = req.params;
     const reportId = parseInt(id);
 
-    const existingReport = await prisma.report.findUnique({
+    const existingReport = await prisma.civicIssue.findUnique({
       where: { id: reportId }
     });
     if (!existingReport) {
@@ -441,8 +447,8 @@ const deleteReport = async (req, res) => {
 
     // Delete associated data securely within a transaction
     await prisma.$transaction([
-      prisma.comment.deleteMany({ where: { reportId } }),
-      prisma.report.delete({ where: { id: reportId } })
+      prisma.comment.deleteMany({ where: { civicIssueId: reportId } }),
+      prisma.civicIssue.delete({ where: { id: reportId } })
     ]);
 
     res.status(200).json({
@@ -462,7 +468,7 @@ const updateStatusByMagicLink = async (req, res) => {
     const { id, secret, status } = req.query;
 
     try {
-        const report = await prisma.report.findFirst({
+        const report = await prisma.civicIssue.findFirst({
             where: {
                 id: parseInt(id),
                 accessSecret: secret
@@ -482,7 +488,8 @@ const updateStatusByMagicLink = async (req, res) => {
             updateData.accessSecret = null; 
         }
 
-        await prisma.report.update({
+
+        await prisma.civicIssue.update({
             where: { id: parseInt(id) },
             data: updateData
         });
