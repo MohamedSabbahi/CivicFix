@@ -3,7 +3,7 @@ import { useAuth }             from "../../../context/AuthContext";
 import api                     from "../../../services/api";
 import ProfileHero             from "../components/profile/ProfileHero";
 import ProfileInfo             from "../components/profile/ProfileInfo";
-
+import ProfilePassword         from "../components/profile/ProfilePassword";
 const AVATAR_PLACEHOLDER = "https://i.pravatar.cc/150?img=11";
 
 const ADMprofile = () => {
@@ -36,7 +36,10 @@ const ADMprofile = () => {
   return (
     <div className="space-y-6">
       <ProfileHero formData={formData} />
-      <ProfileInfo formData={formData} />
+      <div className="grid grid-cols-2 gap-5">
+        <ProfileInfo     formData={formData} />
+        <ProfilePassword />
+      </div>
     </div>
   );
 };
