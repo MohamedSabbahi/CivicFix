@@ -1,4 +1,7 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+
+// Initialize Resend with the API key from your Render environment variables
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -10,20 +13,19 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (options) => {
   try {
-    const message = {
-      from: `"CivicFix" <${process.env.EMAIL_USER}>`, 
+    const data = await resend.emails.send({
+      from: 'CivicFix <onboarding@resend.dev>', 
       to: options.email,
       subject: options.subject,
-      html: options.html,
-      text: options.message || '',
-    };
+      text: options.message, 
+      html: options.html,    
+    });
 
-    const info = await transporter.sendMail(message);
-
-    console.log("📧 Email sent:", info.response);
+    console.log("Password reset email sent successfully!", data);
+    return data;
 
   } catch (error) {
-    console.error("❌ Email failed:", error);
+    console.error("Resend API Error (Password Reset):", error);
     throw error;
   }
 };

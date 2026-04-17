@@ -13,6 +13,8 @@ import MainFeedScreen from '../screens/feed/MainFeedScreen';
 import CreateReportScreen from '../screens/feed/CreateReportScreen';
 import MyReportsScreen from '../screens/feed/MyReportsScreen';
 import ReportDetailScreen from '../screens/feed/ReportDetailsScreen';
+import SettingsScreen from '../screens/feed/SettingsScreen';
+import ChatbotScreen from '../screens/feed/ChatbotScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,6 +39,8 @@ export default function AppNavigation(){
                         <Stack.Screen name = "CreateReport" component={CreateReportScreen} />
                         <Stack.Screen name="MyReports" component={MyReportsScreen} />
                         <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
+                        <Stack.Screen name="Settings" component={SettingsScreen} />
+                        <Stack.Screen name="Chatbot" component={ChatbotScreen} />
                     </Stack.Group>
             ) : (
                 <Stack.Group>

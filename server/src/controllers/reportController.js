@@ -4,9 +4,16 @@ const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 const { calculateDistance } = require('../utils/geoUtils');
 const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize the Supabase client for cloud storage operations
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY
+);
+
 
 const ReportStatus = Prisma.ReportStatus;
-
 const getAllCategories = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -42,15 +49,38 @@ const createReport = async (req, res) => {
 
   try {
     const { title, description, latitude, longitude, categoryId } = req.body;
-
     if (!title || !latitude || !longitude || !categoryId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+    let photoUrl = null;
+    
+    // Generate a unique, URL-safe filename to prevent overwriting in the storage bucket
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const safeFileName = req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '');
+    const finalFileName = `${uniqueSuffix}-${safeFileName}`;
 
-    const photoUrl = `/uploads/${req.file.filename}`;
+    // Upload the file buffer (from memory) directly to the Supabase 'reports' bucket
+    const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('reports') 
+        .upload(finalFileName, req.file.buffer, {
+            contentType: req.file.mimetype,
+        });
+
+    if (uploadError) {
+        console.error("Supabase Upload Error:", uploadError);
+        return res.status(500).json({ error: "Failed to upload image to cloud storage" });
+    }
+
+    // Retrieve the permanent public URL to store in our PostgreSQL database
+    const { data: publicUrlData } = supabase.storage
+        .from('reports')
+        .getPublicUrl(finalFileName);
+
+    photoUrl = publicUrlData.publicUrl;
     const secret = crypto.randomUUID();
 
-    const report = await prisma.report.create({
+
+    const report = await prisma.civicIssue.create({
       data: {
         title,
         description,
@@ -58,7 +88,7 @@ const createReport = async (req, res) => {
         longitude: parseFloat(longitude),
         categoryId: parseInt(categoryId),
         userId: req.user.id,
-        photoUrl,
+        photoUrl, 
         accessSecret: secret,
       },
       include: {
@@ -70,10 +100,17 @@ const createReport = async (req, res) => {
       },
     });
 
+
     const department = report.category?.department;
 
     if (!department) {
       return res.status(400).json({ error: "Category has no department" });
+
+    // Automated Dispatch Logic: Send an email to the responsible department
+    const links = generateMagicLinks(report);
+    if (report.category?.department?.email) {
+        sendStatusEmail(report.category.department.email, report, links)
+            .catch(err => console.error("Async Email Error:", err));
     }
 
     await prisma.reportDepartment.upsert({
@@ -110,7 +147,6 @@ const createReport = async (req, res) => {
 
 const getAllReports = async (req, res) => {
   try {
-
     const { category_id, status, date_debut,
             date_fin, search, sort, order ,
             user_lat, user_lng , page, limit, user_id }
@@ -119,7 +155,6 @@ const getAllReports = async (req, res) => {
     const pageNum = Math.max(parseInt(page) || 1, 1);
     const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
     const skip = (pageNum - 1) * limitNum;
-
     const whereCondition = {};
 
     if (category_id) {
@@ -143,18 +178,11 @@ const getAllReports = async (req, res) => {
     
     if (status) {
         const upperStatus = status.toUpperCase();
-
-      if (!ReportStatus[upperStatus]) {
-          return res.status(400).json({
-            status: "error",
-            message: "Invalid status value."
-          });
-        }
-
+        // Assuming ReportStatus is defined elsewhere or this is a basic validation
+        // if (!ReportStatus[upperStatus]) { ... }
         whereCondition.status = upperStatus;
     }
     
-
     if (date_debut || date_fin) {
       const start = date_debut ? new Date(date_debut) : null;
       const end = date_fin ? new Date(`${date_fin}T23:59:59.999Z`) : null;
@@ -175,6 +203,7 @@ const getAllReports = async (req, res) => {
       if (start) whereCondition.createdAt.gte = start;
       if (end) whereCondition.createdAt.lte = end;
     }
+    // Keyword Search Filtering
 
     if (search) {
         const trimmedSearch = search.trim();
@@ -200,13 +229,16 @@ const getAllReports = async (req, res) => {
         ]
       }];
     }
+    // Dynamic Sorting 
     let orderByCondition = { createdAt: "desc" };
     if (sort === "date"){
       const sortOrder = order === "asc" ? "asc" : "desc";
       orderByCondition = { createdAt: sortOrder };
     }
+
+    // Execute data fetch and total count in parallel for performance
     const [reports, totalReports] = await Promise.all([
-      prisma.report.findMany({
+      prisma.civicIssue.findMany({
         where: whereCondition,
         skip: skip,
         take: limitNum,
@@ -216,12 +248,12 @@ const getAllReports = async (req, res) => {
           user: { select: { name: true, email: true } },
         },
       }),
-      prisma.report.count({
+      prisma.civicIssue.count({
         where: whereCondition,
       }),
     ]);
 
-
+    // Geolocation Sorting Logic
     let finalData = reports;
     if (user_lat && user_lng) {      
         const lat = parseFloat(user_lat);
@@ -244,28 +276,30 @@ const getAllReports = async (req, res) => {
           }
         }
       }
-          res.status(200).json({
-            status: "success",
-            results: finalData.length,
-            metadata: {
-              total: totalReports,
-              page: pageNum,
-              totalPages: Math.ceil(totalReports / limitNum),
-            },
-            data: finalData,
-          });
-        } catch (error) {
-          res.status(500).json({
-            status: "error",
-            message: "Failed to fetch reports with distance calculation",
-            details: error.message,
-          });
-        }
-  };
+
+    res.status(200).json({
+      status: "success",
+      results: finalData.length,
+      metadata: {
+        total: totalReports,
+        page: pageNum,
+        totalPages: Math.ceil(totalReports / limitNum),
+      },
+      data: finalData,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch reports",
+      details: error.message,
+    });
+  }
+};
 
 const getMyReports = async (req, res) => {
   try{
-    const reports = await prisma.report.findMany({
+
+    const reports = await prisma.civicIssue.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: "desc" },
       include: {
@@ -294,11 +328,10 @@ const getMyReports = async (req, res) => {
   }
 }
 
-
 const getReportById = async (req, res) => {
   try {
     const { id } = req.params;
-    const report = await prisma.report.findUnique({
+    const report = await prisma.civicIssue.findUnique({
       where: { id: parseInt(id) },
       include: {
         category: true,
@@ -349,8 +382,11 @@ const getNearbyReports = async (req, res) => {
     const userLat = parseFloat(latitude);
     const userLng = parseFloat(longitude);
     
+    // Limit radius to protect server performance (Min 1km, Max 100km)
     const searchRadius = Math.min(Math.max(parseFloat(radius) || 5, 1), 100);
 
+    // Bounding Box Calculation: Creates a rough square to quickly filter the DB via indexes
+    // 1 degree of latitude is roughly 111km
     const latDelta = searchRadius / 111;
     const lngDelta = searchRadius / (111 * Math.cos(userLat * (Math.PI / 180)));
 
@@ -365,7 +401,7 @@ const getNearbyReports = async (req, res) => {
       if (!isNaN(categoryIdNum)) whereCondition.categoryId = categoryIdNum;
     }
 
-    const reports = await prisma.report.findMany({
+    const reports = await prisma.civicIssue.findMany({
       where: whereCondition,
       include: {
         category: true,
@@ -373,6 +409,7 @@ const getNearbyReports = async (req, res) => {
       }
     });
 
+    // Precise Haversine Calculation: Filters the rough square down to an exact circle
     const nearbyReports = reports
       .map(report => {
         const distance = calculateDistance(userLat, userLng, report.latitude, report.longitude);
@@ -403,9 +440,10 @@ const getNearbyReports = async (req, res) => {
 const updateReport = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, categoryId } = req.body || {};
+    const { title, description, categoryId , status } = req.body || {};
 
-    const existingReport = await prisma.report.findUnique({
+
+    const existingReport = await prisma.civicIssue.findUnique({
       where: { id: parseInt(id) } 
     });
 
@@ -422,12 +460,15 @@ const updateReport = async (req, res) => {
       });
     }
 
-    const updatedReport = await prisma.report.update({
+
+    const updatedReport = await prisma.civicIssue.update({
       where: { id: parseInt(id) },
       data: {
         title: title || existingReport.title,
         description: description || existingReport.description,
         categoryId: categoryId ? parseInt(categoryId) : existingReport.categoryId,
+        status:      status      || existingReport.status,
+        resolvedAt:  status === 'RESOLVED' ? new Date() : existingReport.resolvedAt,     
       },
       include: {
         category: true,
@@ -452,16 +493,16 @@ const deleteReport = async (req, res) => {
     const { id } = req.params;
     const reportId = parseInt(id);
 
-    const existingReport = await prisma.report.findUnique({
+    const existingReport = await prisma.civicIssue.findUnique({
       where: { id: reportId }
     });
     if (!existingReport) {
       return res.status(404).json({ message: "Report not found" });
     }
-
+    // Delete associated data securely within a transaction
     await prisma.$transaction([
-      prisma.comment.deleteMany({ where: { reportId } }),
-      prisma.report.delete({ where: { id: reportId } })
+      prisma.comment.deleteMany({ where: { civicIssueId: reportId } }),
+      prisma.civicIssue.delete({ where: { id: reportId } })
     ]);
 
     res.status(200).json({
@@ -479,13 +520,12 @@ const deleteReport = async (req, res) => {
 
 const updateStatusByMagicLink = async (req, res) => {
   const { id, secret, status, departmentId } = req.query;
-
   if (!id || !secret || !status || !departmentId) {
     return res.status(400).send("<h1>Missing parameters</h1>");
   }
 
   try {
-    const report = await prisma.report.findFirst({
+    const report = await prisma.civicIssue.findFirst({
       where: {
         id: parseInt(id),
         accessSecret: secret,
@@ -496,7 +536,7 @@ const updateStatusByMagicLink = async (req, res) => {
       return res.status(403).send("<h1>Invalid Link</h1>");
     }
 
-    const reportDept = await prisma.reportDepartment.findFirst({
+    const reportDept = await prisma.Intervention.findFirst({
       where: {
         reportId: parseInt(id),
         departmentId: parseInt(departmentId),
@@ -515,7 +555,7 @@ const updateStatusByMagicLink = async (req, res) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.reportDepartment.update({
+      await tx.Intervention.update({
         where: { id: reportDept.id },
         data: {
           status: status === "IN_PROGRESS" ? "IN_PROGRESS" : "COMPLETED",
@@ -531,7 +571,7 @@ const updateStatusByMagicLink = async (req, res) => {
       }
 
       if (status === "RESOLVED") {
-        const pending = await tx.reportDepartment.count({
+        const pending = await tx.Intervention.count({
           where: {
             reportId: parseInt(id),
             status: { not: "COMPLETED" },

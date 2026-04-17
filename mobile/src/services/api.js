@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-export const BASE_URL = 'http://192.168.1.109:5001';
+export const BASE_URL = 'https://civicfix-api-l5i5.onrender.com';
 
 const API_URL = `${BASE_URL}/api`;
 
@@ -24,5 +24,16 @@ api.interceptors.request.use(
         return Promise.reject(error);
     }
 );
+
+export const sendChatMessage = async (message) => {
+  try {
+    // This hits your Node.js backend, which securely forwards it to the Python AI
+    const response = await api.post('/chatbot/chat', { message });
+    return response.data;
+  } catch (error) {
+    console.error("Chatbot API Error:", error);
+    throw error;
+  }
+};
 
 export default api;

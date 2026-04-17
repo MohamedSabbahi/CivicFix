@@ -1,6 +1,7 @@
 const prisma = require('../src/utils/prisma');
 const bcrypt = require('bcryptjs');
 
+
 async function main() {
     console.log('Starting seeding process...');
 
@@ -36,6 +37,7 @@ async function main() {
   // ui categories + departments
 
     const uiCategories = [
+
     { name: 'Road', email: 'outakubenomar37@gmail.com', depName: 'Roads & infrastructure' },
     { name: 'Waste', email: 'mohamed.sabbahi21@gmail.com', depName: 'Sanitation & waste' },
     { name: 'Hazard', email: 'zakariae.elyaakoubi1@gmail.com', depName: 'Parks & Green spaces' },
@@ -74,6 +76,7 @@ async function main() {
         });
 
         console.log(`Updated category: ${cat.name}`);
+
     }
     }
 

@@ -191,21 +191,19 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// @desc    Reset Password - Validates token and updates password
-// @route   PUT /api/auth/resetpassword/:resettoken
+
 exports.resetPassword = async (req, res) => {
   try {
-    // 1. Hash the incoming token to compare with DB
+
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(req.params.resettoken)
       .digest('hex');
 
-    // 2. Find user with valid token AND valid expiration
     const user = await prisma.user.findFirst({
       where: {
         resetPasswordToken,
-        resetPasswordExpires: { gt: new Date() }, // Check if expiration is in the future
+        resetPasswordExpires: { gt: new Date() }, 
       },
     });
 
@@ -213,11 +211,9 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Invalid token or expired token' });
     }
 
-    // 3. Set new password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-    // 4. Update User & Clear Fields
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -234,38 +230,37 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// @desc Verify Reset Code - Check OTP validity without updating password
-// @route POST /api/auth/verifyResetCode
-exports.verifyResetCode = async (req, res) => {
+  exports.changePassword = async (req, res) => {
   try {
-    const { code } = req.body;
-    
-    if (!code || code.length !== 4 || !/^\d{4}$/.test(code)) {
-      return res.status(400).json({ message: 'Invalid code format' });
-    }
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
 
-    // Hash the incoming code
-    const resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(code)
-      .digest('hex');
-
-    // Find user with valid token AND expiration
-    const user = await prisma.user.findFirst({
-      where: {
-        resetPasswordToken,
-        resetPasswordExpires: { gt: new Date() },
-      },
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, password: true }
     });
 
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired code' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect." });
     }
 
-    res.status(200).json({ valid: true, message: 'Code verified successfully' });
-  } catch (err) {
-    console.error('Verify Reset Code Error:', err);
-    res.status(500).json({ message: 'Server error' });
+    // Hasher le nouveau mot de passe
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Mettre à jour
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    res.status(200).json({ message: "Password changed successfully." });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ message: "Server error." });
+
   }
 };
 

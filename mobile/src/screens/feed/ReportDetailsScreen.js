@@ -4,8 +4,8 @@ import {
     TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Linking 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
-import api, { BASE_URL } from '../../services/api';
+import { WebView } from 'react-native-webview'; // Replaced Google Maps with WebView
+import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
 
 export default function ReportDetailScreen({ route, navigation }) {
@@ -151,8 +151,9 @@ export default function ReportDetailScreen({ route, navigation }) {
                 <View className="w-full h-[380px] bg-slate-800">
                     {currentReport.photoUrl ? (
                         <Image 
-                            source={{ uri: `${BASE_URL}${currentReport.photoUrl}` }} 
+                            source={{ uri: currentReport.photoUrl }} 
                             className="w-full h-full"
+                            style={{ width: '100%', height: '100%', backgroundColor: '#1e293b' }}
                             resizeMode="cover"
                         />
                     ) : (
@@ -197,28 +198,48 @@ export default function ReportDetailScreen({ route, navigation }) {
                         </Text>
                         
                        <View className="mt-5 w-full h-28 rounded-xl overflow-hidden border border-slate-700 relative">
-                            <MapView
+                            {/* NEW: OpenStreetMap Static Thumbnail via WebView */}
+                            <WebView
                                 style={{ flex: 1 }}
-                                initialRegion={{
-                                    latitude: currentReport.latitude || 35.5889,
-                                    longitude: currentReport.longitude || -5.3626,
-                                    latitudeDelta: 0.005,
-                                    longitudeDelta: 0.005,
-                                }}
                                 scrollEnabled={false}
-                                zoomEnabled={false}
-                                pitchEnabled={false}
-                            >
-                                <Marker coordinate={{ latitude: currentReport.latitude || 35.5889, longitude: currentReport.longitude || -5.3626 }} />
-                            </MapView>
+                                pointerEvents="none" 
+                                source={{
+                                    html: `
+                                    <!DOCTYPE html>
+                                    <html>
+                                    <head>
+                                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                                        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                                        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                                        <style>
+                                            body { padding: 0; margin: 0; background-color: #0f172a; }
+                                            #map { height: 100vh; width: 100vw; }
+                                            .leaflet-control-zoom, .leaflet-control-attribution { display: none; } 
+                                            .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+                                        </style>
+                                    </head>
+                                    <body>
+                                        <div id="map"></div>
+                                        <script>
+                                            var map = L.map('map', { zoomControl: false, dragging: false, scrollWheelZoom: false }).setView([${currentReport.latitude || 35.5889}, ${currentReport.longitude || -5.3626}], 15);
+                                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+                                            L.marker([${currentReport.latitude || 35.5889}, ${currentReport.longitude || -5.3626}]).addTo(map);
+                                        </script>
+                                    </body>
+                                    </html>
+                                    `
+                                }}
+                            />
+                            
+                            {/* The "Open in Maps" Overlay Button */}
                             <TouchableOpacity 
                                 activeOpacity={0.8}
                                 onPress={openNativeMap}
-                                className="absolute inset-0 bg-black/10 items-center justify-center"
+                                className="absolute inset-0 bg-black/30 items-center justify-center z-10"
                             >
-                                <View className="bg-[#0f172a] px-3 py-1.5 rounded-full flex-row items-center shadow-lg border border-slate-700">
-                                    <MaterialIcons name="map" size={14} color="#3b82f6" />
-                                    <Text className="text-xs font-bold text-white ml-1.5">View on Map</Text>
+                                <View className="bg-[#0f172a] px-4 py-2 rounded-full flex-row items-center shadow-lg border border-slate-700">
+                                    <MaterialIcons name="map" size={16} color="#3b82f6" />
+                                    <Text className="text-sm font-bold text-white ml-2">Open in Native Maps</Text>
                                 </View>
                             </TouchableOpacity>
                         </View>

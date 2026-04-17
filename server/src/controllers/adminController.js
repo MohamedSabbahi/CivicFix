@@ -114,18 +114,238 @@ const addDepartment = async (req, res) => {
 
 // Removes a department and cleans up all related categories and reports
 const deleteDepartment = async (req, res) => {
+try {
+    const { id }  = req.params;
+    const deptId  = parseInt(id);
+
+    await prisma.comment.deleteMany({
+    where: {
+        report: {
+            category: { departmentId: deptId }
+        }
+    }
+    });
+
+    await prisma.report.deleteMany({
+        where: {
+            category: { departmentId: deptId }
+    }
+    });
+
+    await prisma.category.deleteMany({
+        where: { departmentId: deptId }
+    });
+
+    await prisma.department.delete({
+        where: { id: deptId }
+    });
+
+    res.status(200).json({ 
+        status: "success", 
+        message: "Department and all related data deleted successfully" 
+    });
+
+} catch (error) {
+    console.error("Delete Error:", error);
+    res.status(500).json({ error: "Server error during deletion" });
+}
+};
+
+
+const updateReportStatus = async (req, res) => {
+try {
+    const { id }     = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+    return res.status(400).json({ 
+        status: "error", 
+        message: "Status is required" 
+    });
+    }
+
+    const validStatuses = ['PENDING', 'IN_PROGRESS', 'RESOLVED'];
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ 
+        status: "error", 
+        message: "Invalid status value" 
+    });
+    }
+
+    const updated = await prisma.report.update({
+        where: { id: parseInt(id) },
+        data: {
+        status,
+        resolvedAt: status === 'RESOLVED' ? new Date() : null,
+    },
+    });
+
+    res.status(200).json({ 
+        status: 'success', 
+        data: updated 
+    });
+
+} catch (error) {
+    console.error("Update Status Error:", error);
+    res.status(500).json({ 
+        status: 'error', 
+        message: error.message 
+    });
+}
+};
+
+const getDepartments = async (req, res) => {
+    try {
+    const departments = await prisma.department.findMany({
+            include: { categories: true }
+    });
+    res.status(200).json({ 
+            status: 'success', 
+            data: departments 
+    });
+    } catch (error) {
+    res.status(500).json({ 
+        status: 'error', 
+        message: error.message 
+    });
+}
+};
+
+
+const updateDepartment = async (req, res) => {
     try {
         const { id } = req.params;
-        const deptId = parseInt(id);
+        const { name, email, categoriesToAdd, categoriesToDelete } = req.body;
 
-        // Due to the schema's 'onDelete: Cascade' rules, removing the department also clears related data
-        await prisma.department.delete({ where: { id: deptId } });
+        // Met à jour nom et email du département
+        const updated = await prisma.department.update({
+            where: { id: parseInt(id) },
+            data: { name, email },
+        });
 
-        res.status(200).json({ status: "success", message: "Department deleted successfully" });
+        // Supprime les catégories cochées pour suppression
+        if (categoriesToDelete && categoriesToDelete.length > 0) {
+            await prisma.category.deleteMany({
+                where: { id: { in: categoriesToDelete } }
+            });
+        }
+
+        // Ajoute les nouvelles catégories
+        if (categoriesToAdd && categoriesToAdd.length > 0) {
+            for (const catName of categoriesToAdd) {
+                await prisma.category.create({
+                    data: { name: catName, departmentId: updated.id }
+                });
+            }
+        }
+
+        const result = await prisma.department.findUnique({
+            where: { id: parseInt(id) },
+            include: { categories: true }
+        });
+
+        res.status(200).json({ status: 'success', data: result });
     } catch (error) {
-        console.error("Delete Error:", error);
-        res.status(500).json({ error: "Server error during deletion" });
+        console.error("Update Department Error:", error);
+        res.status(500).json({ status: 'error', message: error.message });
     }
 };
 
-module.exports = { getDepartmentStats, getOverviewStats, addDepartment, deleteDepartment };
+const getReportsByPeriod = async (req, res) => {
+try {
+    const { period } = req.query; // day / month / year
+
+    const now   = new Date();
+    let start, groupBy, labels = [];
+
+    if (period === "day") {
+      // 7 derniers jours
+        start = new Date(now);
+        start.setDate(now.getDate() - 6);
+        start.setHours(0, 0, 0, 0);
+
+    const reports = await prisma.report.findMany({
+        where: { createdAt: { gte: start } },
+        select: { createdAt: true }
+    });
+
+    const counts = {};
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const key = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+        counts[key] = 0;
+    }
+    reports.forEach(r => {
+        const key = new Date(r.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+        if (counts[key] !== undefined) counts[key]++;
+    });
+    return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
+    }
+
+    if (period === "month") {
+      // 12 derniers mois
+        start = new Date(now);
+        start.setMonth(now.getMonth() - 11);
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+
+    const reports = await prisma.report.findMany({
+        where: { createdAt: { gte: start } },
+        select: { createdAt: true }
+    });
+
+    const counts = {};
+    for (let i = 11; i >= 0; i--) {
+        const d = new Date(now);
+        d.setMonth(now.getMonth() - i);
+        const key = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+        counts[key] = 0;
+    }
+    reports.forEach(r => {
+        const key = new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+        if (counts[key] !== undefined) counts[key]++;
+    });
+        return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
+    }
+
+    if (period === "year") {
+      // 5 dernières années
+        start = new Date(now);
+        start.setFullYear(now.getFullYear() - 4);
+        start.setMonth(0, 1);
+        start.setHours(0, 0, 0, 0);
+
+    const reports = await prisma.report.findMany({
+        where: { createdAt: { gte: start } },
+        select: { createdAt: true }
+    });
+
+    const counts = {};
+    for (let i = 4; i >= 0; i--) {
+        const key = String(now.getFullYear() - i);
+        counts[key] = 0;
+    }
+    reports.forEach(r => {
+        const key = String(new Date(r.createdAt).getFullYear());
+        if (counts[key] !== undefined) counts[key]++;
+    });
+        return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
+    }
+
+    res.status(400).json({ status: "error", message: "Invalid period" });
+
+} catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
+}
+};
+
+module.exports = { getDepartmentStats, 
+    getOverviewStats, 
+    addDepartment, 
+    deleteDepartment, 
+    updateReportStatus , 
+    getDepartments,
+    updateDepartment,
+    getReportsByPeriod
+};

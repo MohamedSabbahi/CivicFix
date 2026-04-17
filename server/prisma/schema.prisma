@@ -4,17 +4,21 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// 1. Enums
+// ==========================================
+// ENUMS
+// ==========================================
+
 enum Role {
   CITIZEN
   ADMIN
 }
 
-enum ReportStatus {
+enum IssueStatus {
   PENDING
   IN_PROGRESS
   RESOLVED
@@ -26,90 +30,89 @@ enum DepartmentWorkStatus {
   COMPLETED
 }
 
-// 2. User Model
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
-  password     String
-  name         String
-  role         Role      @default(CITIZEN)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                   Int       @id @default(autoincrement())
+  email                String    @unique
+  password             String
+  name                 String
+  role                 Role      @default(CITIZEN)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
   
-  reports      Report[]
-  comments     Comment[]
+  // Relationships
+  civicIssues          CivicIssue[]
+  comments             Comment[]
 }
 
-// 3. Report Model
-model Report {
-  id           Int          @id @default(autoincrement())
+model Department {
+  id    Int    @id @default(autoincrement())
+  name  String
+  email String @unique
+
+  // Relationships
+  categories    Category[] 
+  interventions Intervention[]
+}
+
+model Category {
+  id           Int        @id @default(autoincrement())
+  name         String
+  
+  // Strict 1-to-Many
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  
+  // Relationships
+  civicIssues  CivicIssue[]
+
+  @@index([departmentId]) // Speeds up fetching categories for a specific department
+}
+
+model CivicIssue {
+  id           Int         @id @default(autoincrement())
   title        String
   description  String?
   photoUrl     String
   latitude     Float
   longitude    Float
-  status       ReportStatus @default(PENDING)
+  status       IssueStatus @default(PENDING)
   
-  accessSecret String?      @default(uuid())
+  accessSecret String?     @unique @default(uuid())
   expiresAt    DateTime?
 
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   resolvedAt   DateTime? 
 
-  // RELATIONS
+  // Strict 1-to-Many
   userId       Int
-  user         User         @relation(fields: [userId], references: [id])
+  user         User        @relation(fields: [userId], references: [id])
   
   categoryId   Int
+  category     Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  category     Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  
-  comments     Comment[]
+  // Relationships
+  interventions Intervention[]
+  comments      Comment[]
 
   // this is for a reverse relation to get all reports for a department through category
   departments ReportDepartment[]
-
+  
   @@index([status])
   @@index([userId])
   @@index([categoryId])
-  @@index([latitude, longitude])
-  @@index([title])
+  @@index([latitude, longitude]) // Critical for the Bounding Box Map Feed
+  @@index([title])               // Critical for Search
 }
 
-// 4. Category Model
-model Category {
-  id           Int        @id @default(autoincrement())
-  name         String
-  
-  departmentId Int
 
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  
-  reports      Report[]
-}
-
-// 5. Department Model
-model Department {
-  id         Int        @id @default(autoincrement())
-  name       String
-  email      String     @unique
-  
-  reports ReportDepartment[]
-  categories Category[] 
-}
-
-model ReportDepartment {
+model Intervention {
   id            Int                   @id @default(autoincrement())
   reportId      Int
   departmentId  Int
-
-  title         String
-  description   String
-  img           String?
   
   status        DepartmentWorkStatus @default(PENDING)
 
@@ -117,23 +120,24 @@ model ReportDepartment {
   completedAt   DateTime?
 
   // RELATIONS
-  report        Report               @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  civicIssue        CivicIssue               @relation(fields: [civicIssueId], references: [id], onDelete: Cascade)
   department    Department           @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
-  @@unique([reportId, departmentId])
+  @@unique([civicIssueId, departmentId])
 }
 
-// 6. Comment Model
 model Comment {
-  id        Int      @id @default(autoincrement())
-  text      String
-  createdAt DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  text         String
+  createdAt    DateTime @default(now())
 
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
+  // Strict 1-to-Many
+  userId       Int
+  user         User       @relation(fields: [userId], references: [id])
   
-  reportId  Int
+  civicIssueId Int
+  civicIssue   CivicIssue @relation(fields: [civicIssueId], references: [id], onDelete: Cascade)
 
-  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  // Performance Indexes
+  @@index([civicIssueId]) // Speeds up loading the comment section on an issue
 }
-
