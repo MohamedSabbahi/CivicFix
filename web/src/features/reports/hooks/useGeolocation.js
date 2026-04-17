@@ -1,4 +1,3 @@
-// useGeolocation - Reusable hook for GPS location logic
 import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 

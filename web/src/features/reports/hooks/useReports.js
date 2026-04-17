@@ -70,7 +70,7 @@ const useReports = () => {
   }, []);
 
   const handleEditReport = useCallback((report) => {
-    navigate(`/edit-report/${report.id}`);
+    navigate(`/reports/${report.id}?edit=true`);
   }, [navigate]);
 
   return {

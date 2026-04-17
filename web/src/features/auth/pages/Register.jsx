@@ -11,9 +11,6 @@ import authService from "../services/authService";
 import AuthInput from "../../../components/ui/AuthInput";
 import bgImage from "../../../assets/background-CivicFix.img.png";
 
-
-// validation schema
-
 const schema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email"),

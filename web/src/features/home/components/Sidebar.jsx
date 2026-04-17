@@ -1,6 +1,6 @@
 import { Home, FileText, Map, Bell, User, Settings, LogOut } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
-import authService from "../../auth/services/authService"; // adjust path as needed
+import authService from "../../auth/services/authService"; 
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -25,12 +25,11 @@ const Sidebar = () => {
 
       {/* NAV */}
       <nav className="space-y-2 text-sm text-white/80">
-        <SidebarItem icon={<Home size={18} />}     label="Dashboard"     to="/admindashboard" />
-        <SidebarItem icon={<FileText size={18} />} label="My Reports"    to="/reports" />
+        <SidebarItem icon={<Home size={18} />}     label="Dashboard"     to="/" />
+        <SidebarItem icon={<FileText size={18} />} label="All Reports"  to="/reports" />
+        <SidebarItem icon={<FileText size={18} />} label="My Reports"   to="/my-reports" />
         <SidebarItem icon={<Map size={18} />}      label="Map"           to="/map" />
-        <SidebarItem icon={<Bell size={18} />}     label="Notifications" to="/notifications" />
         <SidebarItem icon={<User size={18} />}     label="Profile"       to="/profile" />
-        <SidebarItem icon={<Settings size={18} />} label="Settings"      to="/settings" />
       </nav>
 
       {/* SPACER */}

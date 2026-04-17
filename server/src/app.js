@@ -42,6 +42,9 @@ const generalLimiter = rateLimit({
 
 app.use(generalLimiter);
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 
 // Define routes here

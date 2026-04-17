@@ -19,13 +19,11 @@ export const AuthProvider = ({ children }) => {
 
             api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-            // First, try to get user from localStorage for immediate display
             const storedUser = localStorage.getItem(USER_KEY);
             if (storedUser) {
                 setUser(JSON.parse(storedUser));
             }
 
-            // Then validate token and get fresh user data from API
             const { data } = await api.get("/auth/profile");
             setUser(data);
             localStorage.setItem(USER_KEY, JSON.stringify(data));
@@ -37,20 +35,16 @@ export const AuthProvider = ({ children }) => {
                 localStorage.removeItem(USER_KEY);
                 setUser(null);
             }
-            // If API fails but we have stored user, keep them logged in
-            // This handles network errors gracefully
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        // First set user from localStorage immediately for faster UX
         const storedUser = localStorage.getItem(USER_KEY);
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
-        // Then validate with API in background
         initializeAuth();
     }, [initializeAuth]);
 

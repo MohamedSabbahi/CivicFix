@@ -3,6 +3,14 @@ const { Resend } = require('resend');
 // Initialize Resend with the API key from your Render environment variables
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 const sendEmail = async (options) => {
   try {
     const data = await resend.emails.send({

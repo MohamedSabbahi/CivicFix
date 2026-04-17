@@ -24,15 +24,11 @@ enum IssueStatus {
   RESOLVED
 }
 
-enum ActionType {
-  STATUS_UPDATE
-  DEPT_INVITED
-  RESOLUTION
+enum DepartmentWorkStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
 }
-
-// ==========================================
-// MODELS
-// ==========================================
 
 model User {
   id                   Int       @id @default(autoincrement())
@@ -102,7 +98,9 @@ model CivicIssue {
   interventions Intervention[]
   comments      Comment[]
 
-  // Performance Indexes
+  // this is for a reverse relation to get all reports for a department through category
+  departments ReportDepartment[]
+  
   @@index([status])
   @@index([userId])
   @@index([categoryId])
@@ -110,23 +108,22 @@ model CivicIssue {
   @@index([title])               // Critical for Search
 }
 
+
 model Intervention {
-  id           Int        @id @default(autoincrement())
-  actionType   ActionType
-  details      String
-  timestamp    DateTime   @default(now())
+  id            Int                   @id @default(autoincrement())
+  reportId      Int
+  departmentId  Int
+  
+  status        DepartmentWorkStatus @default(PENDING)
 
-  // Strict 1-to-Many (Traceability)
-  civicIssueId Int
-  civicIssue   CivicIssue @relation(fields: [civicIssueId], references: [id], onDelete: Cascade)
+  assignedAt    DateTime             @default(now())
+  completedAt   DateTime?
 
-  departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id])
+  // RELATIONS
+  civicIssue        CivicIssue               @relation(fields: [civicIssueId], references: [id], onDelete: Cascade)
+  department    Department           @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
-  // Performance Indexes
-  @@index([civicIssueId]) // Instantly loads the timeline for a specific issue
-  @@index([departmentId]) // Instantly loads analytics for the Admin dashboard
-  @@index([timestamp])    // Optimizes chronological sorting of the timeline
+  @@unique([civicIssueId, departmentId])
 }
 
 model Comment {

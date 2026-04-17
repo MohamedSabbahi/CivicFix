@@ -1,4 +1,3 @@
-// useCreateReport - Hook for create report form submission (for CreateReport.jsx)
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import reportService from '../services/reportService';
@@ -11,7 +10,6 @@ const useCreateReport = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   
-  // Form state hook
   const {
     formData,
     image,
@@ -26,15 +24,12 @@ const useCreateReport = () => {
     updateLocation,
   } = useCreateReportForm();
 
-  // Loading states
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [fetchingCategories, setFetchingCategories] = useState(true);
 
-  // Geolocation
   const { getCurrentPosition: getLocation, loading: geoLoading } = useGeolocation();
 
-  // Fetch categories
   const fetchCategories = useCallback(async () => {
     try {
       const { data } = await reportService.getCategories();
@@ -47,12 +42,10 @@ const useCreateReport = () => {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
-  // Get current location
   const handleGetCurrentLocation = useCallback(async () => {
     try {
       const location = await getLocation();
@@ -65,20 +58,17 @@ const useCreateReport = () => {
     }
   }, [getLocation, updateLocation]);
 
-  // Location from map click
   const handleLocationSelect = useCallback((lat, lng) => {
     updateLocation(lat, lng);
     toast.success("Location selected from map!");
   }, [updateLocation]);
 
-  // Validate form
   const validateForm = useCallback(() => {
     const { errors: validationErrors, isValid } = validateReportForm(formData, image);
     setErrors(validationErrors);
     return isValid;
   }, [formData, image, setErrors]);
 
-  // Submit handler
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
@@ -123,18 +113,15 @@ const useCreateReport = () => {
     }
   }, [formData, image, navigate, validateForm, setErrors]);
 
-  // Go back handler
   const handleGoBack = useCallback(() => {
     navigate("/reports");
   }, [navigate]);
 
-  // Wrapper for removeImage that handles the ref
   const handleRemoveImage = useCallback(() => {
     removeImage(fileInputRef);
   }, [removeImage]);
 
   return {
-    // State
     formData,
     imagePreview,
     errors,
@@ -145,7 +132,7 @@ const useCreateReport = () => {
     geoLoading,
     fileInputRef,
     setShowMap,
-    // Handlers
+
     handleInputChange,
     handleImageChange,
     removeImage: handleRemoveImage,

@@ -1,4 +1,3 @@
-// MapFilters - Filter panel UI component for map page
 const MapFilters = ({ 
   statusFilter, 
   categoryFilter, 
@@ -74,11 +73,11 @@ const MapFilters = ({
         {/* Stats Display */}
         <div className="flex items-center gap-2">
           <div className="flex-1 text-center p-2 rounded-lg bg-white/[0.05]">
-            <div className="text-lg font-bold text-blue-400">{stats.new}</div>
+            <div className="text-lg font-bold text-cyan-400">{stats.new}</div>
             <div className="text-[10px] text-white/40">New</div>
           </div>
           <div className="flex-1 text-center p-2 rounded-lg bg-white/[0.05]">
-            <div className="text-lg font-bold text-yellow-400">{stats.inProgress}</div>
+            <div className="text-lg font-bold text-orange-400">{stats.inProgress}</div>
             <div className="text-[10px] text-white/40">Progress</div>
           </div>
           <div className="flex-1 text-center p-2 rounded-lg bg-white/[0.05]">

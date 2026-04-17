@@ -35,12 +35,23 @@ const getAllCategories = async (req, res) => {
 };
 
 const createReport = async (req, res) => {
+  console.log("BODY:", req.body);
+  console.log("FILE:", req.file);
+  console.log("USER:", req.user);
+
   if (!req.file) {
     return res.status(400).json({ error: "Image is required" });
   }
 
+  if (!req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   try {
     const { title, description, latitude, longitude, categoryId } = req.body;
+    if (!title || !latitude || !longitude || !categoryId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
     let photoUrl = null;
     
     // Generate a unique, URL-safe filename to prevent overwriting in the storage bucket
@@ -83,12 +94,18 @@ const createReport = async (req, res) => {
       include: {
         category: {
           include: {
-            department: true
-          }
-        }
-      }
+            department: true,
+          },
+        },
+      },
     });
-    
+
+
+    const department = report.category?.department;
+
+    if (!department) {
+      return res.status(400).json({ error: "Category has no department" });
+
     // Automated Dispatch Logic: Send an email to the responsible department
     const links = generateMagicLinks(report);
     if (report.category?.department?.email) {
@@ -96,11 +113,35 @@ const createReport = async (req, res) => {
             .catch(err => console.error("Async Email Error:", err));
     }
 
+    await prisma.reportDepartment.upsert({
+      where: {
+        reportId_departmentId: {
+          reportId: report.id,
+          departmentId: department.id,
+        },
+      },
+      update: {},
+      create: {
+        reportId: report.id,
+        departmentId: department.id,
+        title: report.title,
+        description: report.description,
+        img: report.photoUrl,
+      },
+    });
+
+    const links = generateMagicLinks(report, department.id);
+    try {
+      await sendStatusEmail(department.email, report, links);
+      console.log("✅ Email sent to:", department.email);
+      } catch (err) {
+        console.error("❌ Email Error:", err);
+      }
     res.status(201).json(report);
 
   } catch (error) {
-    console.error("Report Creation Error:", error);
-    res.status(500).json({ message: "Server error while creating report" });
+    console.error("❌ Report Creation Error FULL:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -114,8 +155,6 @@ const getAllReports = async (req, res) => {
     const pageNum = Math.max(parseInt(page) || 1, 1);
     const limitNum = Math.min(Math.max(parseInt(limit) || 10, 1), 100);
     const skip = (pageNum - 1) * limitNum;
-
-    // Dynamic construction of the WHERE condition
     const whereCondition = {};
 
     if (category_id) {
@@ -144,7 +183,6 @@ const getAllReports = async (req, res) => {
         whereCondition.status = upperStatus;
     }
     
-    // Date Range Filtering
     if (date_debut || date_fin) {
       const start = date_debut ? new Date(date_debut) : null;
       const end = date_fin ? new Date(`${date_fin}T23:59:59.999Z`) : null;
@@ -165,8 +203,8 @@ const getAllReports = async (req, res) => {
       if (start) whereCondition.createdAt.gte = start;
       if (end) whereCondition.createdAt.lte = end;
     }
-
     // Keyword Search Filtering
+
     if (search) {
         const trimmedSearch = search.trim();
           
@@ -191,7 +229,6 @@ const getAllReports = async (req, res) => {
         ]
       }];
     }
-
     // Dynamic Sorting 
     let orderByCondition = { createdAt: "desc" };
     if (sort === "date"){
@@ -232,7 +269,6 @@ const getAllReports = async (req, res) => {
             );
             return { ...report, distance };
           });
-          
           if (sort === "distance") {
             finalData.sort((a, b) => {
               return order === "desc" ? b.distance - a.distance : a.distance - b.distance;
@@ -268,6 +304,13 @@ const getMyReports = async (req, res) => {
       orderBy: { createdAt: "desc" },
       include: {
         category: true,
+        departments: {
+          include: {
+            department: {
+              select: { id: true, name: true }
+            }
+          }
+        }
       },
     });
 
@@ -288,18 +331,27 @@ const getMyReports = async (req, res) => {
 const getReportById = async (req, res) => {
   try {
     const { id } = req.params;
-
     const report = await prisma.civicIssue.findUnique({
       where: { id: parseInt(id) },
       include: {
         category: true,
         user: { select: { name: true, email: true } },
         comments: {
-          include: {
-            user: { select: { name: true, email: true } },
-          },
-        },
+        include: {
+        user: { select: { name: true, email: true } },
+      },
+    },
+    departments: {
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
+  }
+}
     });
 
     if (!report) {
@@ -348,7 +400,6 @@ const getNearbyReports = async (req, res) => {
       const categoryIdNum = parseInt(category_id);
       if (!isNaN(categoryIdNum)) whereCondition.categoryId = categoryIdNum;
     }
-
 
     const reports = await prisma.civicIssue.findMany({
       where: whereCondition,
@@ -448,7 +499,6 @@ const deleteReport = async (req, res) => {
     if (!existingReport) {
       return res.status(404).json({ message: "Report not found" });
     }
-
     // Delete associated data securely within a transaction
     await prisma.$transaction([
       prisma.comment.deleteMany({ where: { civicIssueId: reportId } }),
@@ -469,46 +519,339 @@ const deleteReport = async (req, res) => {
 };
 
 const updateStatusByMagicLink = async (req, res) => {
-    const { id, secret, status } = req.query;
+  const { id, secret, status, departmentId } = req.query;
+  if (!id || !secret || !status || !departmentId) {
+    return res.status(400).send("<h1>Missing parameters</h1>");
+  }
 
-    try {
-        const report = await prisma.civicIssue.findFirst({
-            where: {
-                id: parseInt(id),
-                accessSecret: secret
-            }
-        });
+  try {
+    const report = await prisma.civicIssue.findFirst({
+      where: {
+        id: parseInt(id),
+        accessSecret: secret,
+      },
+    });
 
-        if (!report) {
-            return res.status(403).send("<h1>Invalid Link</h1><p>This link is no longer valid or has already been used.</p>");
-        }
-
-        const updateData = { 
-          status: status,
-        };
-
-        if (status === 'RESOLVED') {
-            updateData.resolvedAt = new Date();
-            updateData.accessSecret = null; 
-        }
-
-
-        await prisma.civicIssue.update({
-            where: { id: parseInt(id) },
-            data: updateData
-        });
-
-        res.send(`
-            <div style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-                <h1 style="color: #059669;">Status Updated Successfully!</h1>
-                <p>Report #${id} is now marked as: <strong>${status}</strong>.</p>
-                <p>You can now close this tab.</p>
-            </div>
-        `);
-    } catch (error) {
-        console.error("Magic Link Update Error:", error);
-        res.status(500).send("An error occurred while updating the status.");
+    if (!report) {
+      return res.status(403).send("<h1>Invalid Link</h1>");
     }
+
+    const reportDept = await prisma.Intervention.findFirst({
+      where: {
+        reportId: parseInt(id),
+        departmentId: parseInt(departmentId),
+      },
+    });
+
+    if (!reportDept) {
+      console.log("❌ No department match", { id, departmentId });
+      return res.status(404).send("<h1>Department not assigned</h1>");
+    }
+
+    const validStatuses = ["IN_PROGRESS", "RESOLVED"];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).send("<h1>Invalid status</h1>");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.Intervention.update({
+        where: { id: reportDept.id },
+        data: {
+          status: status === "IN_PROGRESS" ? "IN_PROGRESS" : "COMPLETED",
+          completedAt: status === "RESOLVED" ? new Date() : null,
+        },
+      });
+
+      if (status === "IN_PROGRESS") {
+        await tx.report.update({
+          where: { id: parseInt(id) },
+          data: { status: "IN_PROGRESS" },
+        });
+      }
+
+      if (status === "RESOLVED") {
+        const pending = await tx.Intervention.count({
+          where: {
+            reportId: parseInt(id),
+            status: { not: "COMPLETED" },
+          },
+        });
+
+        if (pending === 0) {
+          await tx.report.update({
+            where: { id: parseInt(id) },
+            data: {
+              status: "RESOLVED",
+              resolvedAt: new Date(),
+              accessSecret: null,
+            },
+          });
+        }
+      }
+    });
+
+    res.send(`
+      <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
+        <h1 style="color:#059669;">✅ Status Updated Successfully</h1>
+        <p>You can close this tab.</p>
+      </div>
+    `);
+
+  } catch (error) {
+    console.error("❌ Magic Link Error:", error);
+    res.status(500).send("<h1>Server Error</h1>");
+  }
+};
+
+
+const showAssignDepartmentForm = async (req, res) => {
+  const { reportId } = req.params;
+  const { secret ,  departmentId  } = req.query;
+
+  if (departmentId) {
+    return assignDepartment(req, res);
+  }
+
+  const report = await prisma.report.findUnique({
+    where: { id: parseInt(reportId) },
+    include: { departments: { include: { department: true } } }
+  });
+
+  if (!report || report.accessSecret !== secret) {
+    return res.status(403).send("Invalid or expired link");
+  }
+
+  const assignedIds = report.departments.map(d => d.departmentId);
+  const available = await prisma.department.findMany({
+    where: { id: { notIn: assignedIds } }
+  });
+
+  const options = available.map(d =>
+    `<option value="${d.id}">${d.name}</option>`
+  ).join('');
+
+  res.send(`
+    <html><body style="font-family:sans-serif; max-width:400px; margin:40px auto; padding:20px;">
+      <h2>Assign Additional Department</h2>
+      <p>Report: <strong>${report.title}</strong></p>
+      <form method="GET" action="/api/reports/${reportId}/assign-department">
+        <input type="hidden" name="secret" value="${secret}" />
+        <select name="departmentId"
+                style="width:100%; padding:8px; margin:10px 0; border-radius:4px;">
+          ${options}
+        </select><br/>
+        <button type="submit"
+                style="background:#17a2b8; color:white; padding:10px 20px;
+                      border:none; border-radius:4px; cursor:pointer; margin-top:10px;">
+          Assign Department
+        </button>
+      </form>
+    </body></html>
+  `);
+};
+
+
+const assignDepartment = async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const { departmentId, secret } = req.query;
+
+    console.log("Assign Query:", req.query);
+
+    if (!departmentId) {
+      return res.status(400).send("Missing departmentId");
+    }
+
+    const report = await prisma.report.findUnique({
+      where: { id: parseInt(reportId) }
+    });
+
+    if (!report || report.accessSecret !== secret) {
+      return res.status(403).send("Invalid or expired link");
+    }
+
+    const dept = await prisma.department.findUnique({
+      where: { id: parseInt(departmentId) }
+    });
+
+    if (!dept) {
+      return res.status(404).send("Department not found");
+    }
+
+    await prisma.reportDepartment.upsert({
+      where: {
+        reportId_departmentId: {
+          reportId: parseInt(reportId),
+          departmentId: parseInt(departmentId),
+        },
+      },
+      update: {},
+      create: {
+        reportId: parseInt(reportId),
+        departmentId: parseInt(departmentId),
+        title: report.title,
+        description: report.description,
+        img: report.photoUrl,
+      },
+    });
+
+    const updatedReport = await prisma.report.findUnique({
+      where: { id: parseInt(reportId) }
+    });
+
+    const links = generateMagicLinks(updatedReport, dept.id);
+
+    console.log("📩 Second Email Links:", links);
+
+    sendStatusEmail(dept.email, updatedReport, links)
+      .catch(err => console.error("Email error:", err));
+
+    res.send(`
+      <html>
+        <body style="font-family:sans-serif; text-align:center; margin-top:50px;">
+          <h2>✅ Department Assigned</h2>
+          <p>${dept.name} has been notified.</p>
+        </body>
+      </html>
+    `);
+
+  } catch (error) {
+    console.error("Assign Department Error:", error);
+    res.status(500).send("Server error");
+  }
+};
+
+const getReportDepartments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reportId = parseInt(id);
+    const report = await prisma.report.findUnique({
+      where: { id: reportId },
+      include: {
+        departments: {
+          include: {
+            department: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+    if (!report) {
+      return res.status(404).json({
+        status: "error",
+        message: "Report not found"
+      });
+    }
+    const departments = report.departments.map(({ id, department, status, assignedAt, completedAt }) => ({
+      id,
+      department,
+      status,
+      assignedAt,
+      completedAt
+    }));
+    res.status(200).json({
+      status: "success",
+      data: departments
+    });
+  } catch (error) {
+    console.error('Error fetching report departments:', error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch report departments",
+      details: error.message
+    });
+  }
+};
+
+const updateReportStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!req.user?.departmentId) {
+    return res.status(403).json({ error: 'Department user required' });
+  }
+
+  const validStatuses = ['IN_PROGRESS', 'RESOLVED'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+
+  try {
+    const reportId = parseInt(id);
+    const deptId = req.user.departmentId;
+
+    // Fetch report and dept assignment
+    const [report, reportDept] = await Promise.all([
+      prisma.report.findUnique({ where: { id: reportId } }),
+      prisma.reportDepartment.findUnique({
+        where: {
+          reportId_departmentId: { reportId, departmentId: deptId }
+        }
+      })
+    ]);
+
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    if (!reportDept) return res.status(403).json({ error: 'Department not assigned to report' });
+
+    const currentDeptStatus = reportDept.status;
+    const newDeptStatus = status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'COMPLETED';
+    if (currentDeptStatus === newDeptStatus) {
+      return res.status(200).json({ message: 'Status already up to date', status: status });
+    }
+
+    if (status === 'IN_PROGRESS' && report.status === 'RESOLVED') {
+      return res.status(400).json({ error: 'Cannot revert resolved report to in progress' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.reportDepartment.update({
+        where: { id: reportDept.id },
+        data: {
+          status: newDeptStatus,
+          completedAt: newDeptStatus === 'COMPLETED' ? new Date() : null,
+        },
+      });
+
+      if (status === 'RESOLVED') {
+        const pendingDepts = await tx.reportDepartment.count({
+          where: {
+            reportId: reportId,
+            status: { not: 'COMPLETED' },
+          },
+        });
+
+        if (pendingDepts === 0) {
+          await tx.report.update({
+            where: { id: reportId },
+            data: { 
+              status: 'RESOLVED', 
+              resolvedAt: new Date(), 
+              accessSecret: null 
+            },
+          });
+        }
+      } else {
+        await tx.report.update({
+          where: { id: reportId },
+          data: { status: 'IN_PROGRESS' },
+        });
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Status updated successfully',
+      status 
+    });
+  } catch (error) {
+    console.error('Status update error:', error);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
 };
 
 module.exports = {
@@ -516,9 +859,15 @@ module.exports = {
     getAllReports,
     getMyReports,
     getReportById,
+    getReportDepartments,
     updateReport,
     deleteReport,
     updateStatusByMagicLink,
     getNearbyReports,
-    getAllCategories
+    getAllCategories,
+    assignDepartment,
+    showAssignDepartmentForm,
+    updateReportStatus
 };
+
+

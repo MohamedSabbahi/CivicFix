@@ -211,7 +211,6 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Invalid token or expired token' });
     }
 
-    
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
@@ -230,6 +229,7 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
   exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -260,6 +260,7 @@ exports.resetPassword = async (req, res) => {
   } catch (error) {
     console.error("Change password error:", error);
     res.status(500).json({ message: "Server error." });
+
   }
 };
 

@@ -57,13 +57,6 @@ const ReportCard = ({ report, onView, onEdit, onDelete }) => {
           >
             <Edit size={16} />
           </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onDelete(report); }} 
-            className="p-2 rounded-lg bg-white/[0.06] hover:bg-red-500/20 text-white/60 hover:text-red-400 transition"
-            title="Delete"
-          >
-            <Trash2 size={16} />
-          </button>
         </div>
       </div>
     </div>

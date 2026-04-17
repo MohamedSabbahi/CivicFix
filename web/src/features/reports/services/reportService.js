@@ -1,37 +1,37 @@
-// Report Service - Centralized API calls for reports feature
 import api from "../../../services/api";
 
 const reportService = {
-  // Get all reports with optional filters
   getReports(params = {}) {
     return api.get("/reports", { params });
   },
-  
-  // Get a single report by ID
-  getReportById(id) {
-    return api.get(`/reports/${id}`);
+
+  getMyReports() {
+    return api.get("/reports/my-reports");
+  },
+
+  getReportDepartments(id) {
+    return api.get(`/reports/${id}/departments`);
   },
   
-  // Get all categories
+  getReportById(id) {
+    return api.get(`/reports/${id}`);
+  },  
   getCategories() {
     return api.get("/reports/categories");
   },
   
-  // Get reports near a location (for map)
   getNearbyReports(latitude, longitude, radius = 5, categoryId = null) {
     return api.get("/reports/nearby", {
       params: { latitude, longitude, radius, category_id: categoryId }
     });
   },
   
-  // Get reports with distance from user location
   getReportsWithDistance(userLat, userLng, params = {}) {
     return api.get("/reports", {
       params: { user_lat: userLat, user_lng: userLng, ...params }
     });
   },
   
-  // Create a new report
   createReport(formData) {
     return api.post("/reports", formData, {
       headers: {
@@ -40,27 +40,22 @@ const reportService = {
     });
   },
   
-  // Delete a report
   deleteReport(id) {
     return api.delete(`/reports/${id}`);
   },
   
-  // Update a report
   updateReport(id, data) {
     return api.put(`/reports/${id}`, data);
   },
   
-  // Get comments for a report
   getReportComments(reportId) {
     return api.get(`/reports/${reportId}/comments`);
   },
   
-  // Add a comment to a report
   addComment(reportId, data) {
     return api.post(`/reports/${reportId}/comments`, data);
   },
   
-  // Delete a comment
   deleteComment(commentId) {
     return api.delete(`/comments/${commentId}`);
   },

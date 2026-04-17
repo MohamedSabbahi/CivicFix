@@ -73,7 +73,6 @@ const Login = () => {
                 remember,
             });
             
-            // Use user.role from backend API response (more secure)
             if (user.role === 'ADMIN') {
                 toast.success("Welcome, Admin 👋");
                 navigate('/admin');

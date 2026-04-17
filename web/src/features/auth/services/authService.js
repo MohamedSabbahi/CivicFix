@@ -5,7 +5,6 @@ const USER_KEY = 'user';
 const authService = {
     login: async (credentials) => {
         try {
-            // Sanitize email to prevent matching errors
             const sanitizedData = {
                 ...credentials,
                 email: credentials.email.trim().toLowerCase()
@@ -20,7 +19,6 @@ const authService = {
             }
             return response.data;
         } catch (error) {
-            // Handle validation error array from backend
             if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
                 const firstError = error.response.data.errors[0]?.msg;
                 throw new Error(firstError || 'Login failed');
@@ -45,7 +43,6 @@ const authService = {
             }
             return response.data;
         } catch (error) {
-            // Handle validation error array from backend
             if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
                 const firstError = error.response.data.errors[0]?.msg;
                 throw new Error(firstError || 'Registration failed');
@@ -55,41 +52,44 @@ const authService = {
         }
     },
 
-// FORGOT PASSWORD
-forgotPassword: async (email) => {
-    try {
-    const sanitizedEmail = email.trim().toLowerCase();
-    const response = await api.post(
-        '/auth/forgotPassword',
-        { email: sanitizedEmail }
-    );
-    return response.data;
-    } catch (error) {
-    throw new Error(
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to send reset link'
-    );
-    }
-},
 
-// RESET PASSWORD
-resetPassword: async (token, password) => {
+
+
+
+
+    forgotPassword: async (email) => {
         try {
-    const response = await api.put(
-        `/auth/resetPassword/${token}`,
-        { password }
-    );
-    return response.data;
-    } catch (error) {
-    throw new Error(
-        error.response?.data?.message ||
-        error.message ||
-        'Password reset failed'
-    );  
-    }
-},
+            const response = await api.post('/auth/forgotPassword', { email: email.trim().toLowerCase() });
+            return response.data;
+        } catch (error) {
+            const msg = error.response?.data?.message || 
+                    (error.response?.data?.errors && Array.isArray(error.response.data.errors) ? error.response.data.errors[0]?.msg : null) || 
+                    error.message || 'Forgot password failed';
+            throw new Error(msg);
+        }
+    },
 
+    verifyResetCode: async (code) => {
+        try {
+            const response = await api.post('/auth/verifyResetCode', { code });
+            return response.data;
+        } catch (error) {
+            const msg = error.response?.data?.message || error.message || 'Code verification failed';
+            throw new Error(msg);
+        }
+    },
+
+    resetPassword: async (code, password) => {
+        try {
+            const response = await api.put(`/auth/resetPassword/${code}`, { password });
+            return response.data;
+        } catch (error) {
+            const msg = error.response?.data?.message || 
+                    (error.response?.data?.errors && Array.isArray(error.response.data.errors) ? error.response.data.errors[0]?.msg : null) || 
+                    error.message || 'Reset password failed';
+            throw new Error(msg);
+        }
+    },
 
     logout: () => {
         localStorage.removeItem(TOKEN_KEY);
@@ -102,9 +102,7 @@ resetPassword: async (token, password) => {
     },
 
     isAuthenticated: () => !!localStorage.getItem(TOKEN_KEY)
-
-    
 };
 
-
 export default authService;
+

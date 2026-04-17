@@ -1,24 +1,24 @@
 export const statusColors = {
-  NEW: '#3B82F6',     
-  IN_PROGRESS: '#EAB308',
+  NEW: '#06B6D4',      
+  IN_PROGRESS: '#F97316', 
   RESOLVED: '#22C55E',  
 };
 
 export const statusConfig = {
   PENDING: { 
     color: statusColors.NEW, 
-  label: 'PENDING ', 
-    bg: 'bg-blue-500', 
-    dot: 'bg-blue-400',
-    text: 'text-blue-400'
+    label: 'New', 
+    bg: 'bg-cyan-500', 
+    dot: 'bg-cyan-400',
+    text: 'text-cyan-400'
   },
   
   IN_PROGRESS: { 
     color: statusColors.IN_PROGRESS, 
     label: 'In Progress', 
-    bg: 'bg-yellow-500', 
-    dot: 'bg-yellow-400',
-    text: 'text-yellow-400'
+    bg: 'bg-orange-500', 
+    dot: 'bg-orange-400',
+    text: 'text-orange-400'
   },
   RESOLVED: { 
     color: statusColors.RESOLVED, 

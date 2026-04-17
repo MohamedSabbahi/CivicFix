@@ -1,8 +1,8 @@
 const { Resend } = require('resend');
-
 // Initialize Resend with the API key from Render
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Send email function
 const sendStatusEmail = async (deptEmail, report, links) => {
     try {
         const data = await resend.emails.send({

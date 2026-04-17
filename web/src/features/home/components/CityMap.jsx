@@ -27,7 +27,7 @@ const colorMap = {
   },
 };
 
-const CityMap = () => {
+const CityMap = ({ onViewFullMap }) => {
   return (
     <div className="relative w-full h-full rounded-xl overflow-hidden">
 
@@ -88,15 +88,17 @@ const CityMap = () => {
         );
       })}
 
-      {/* View Full Map button */}
       <div className="absolute bottom-4 left-4 z-20">
-        <button className="
-          flex items-center gap-2 px-4 py-2 rounded-xl
-          bg-white/[0.08] border border-white/15
-          text-white/70 text-sm
-          hover:bg-white/15 hover:text-white
-          backdrop-blur-md transition-all duration-200
-        ">
+        <button
+          onClick={onViewFullMap}
+          className="
+            flex items-center gap-2 px-4 py-2 rounded-xl
+            bg-white/[0.08] border border-white/15
+            text-white/70 text-sm
+            hover:bg-white/15 hover:text-white
+            backdrop-blur-md transition-all duration-200
+          "
+        >
           <Navigation size={14} />
           View Full Map
         </button>
