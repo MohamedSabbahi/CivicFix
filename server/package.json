@@ -3,17 +3,19 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-"scripts": {
-  "start": "node src/index.js",
-  "dev": "nodemon src/index.js",
-  "test": "jest --detectOpenHandles"
-},
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest --detectOpenHandles"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "5.19.1",
+    "@supabase/supabase-js": "^2.99.2",
+    "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
@@ -28,6 +30,7 @@
     "nodemailer": "^7.0.12",
     "pg": "^8.17.2",
     "prisma": "5.19.1",
+    "resend": "^6.9.4",
     "winston": "^3.19.0"
   },
   "devDependencies": {

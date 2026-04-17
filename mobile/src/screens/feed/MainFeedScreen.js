@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, TextInput, ScrollView } from 'react-native';
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Modal, TextInput, ScrollView, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../../services/api';
@@ -10,17 +10,20 @@ import * as ImagePicker from 'expo-image-picker';
 
 export default function MainFeedScreen({ navigation }){
 
-    const { logout, userInfo } = useContext(AuthContext);
+    const { userInfo } = useContext(AuthContext);
 
     const [reports, setReports] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [isChatModalVisible, setIsChatModalVisible] = useState(false);
     const [isSidebarVisible, setIsSidebarVisible] = useState(false);
     const [userLocation, setUserLocation] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // --- Ephemeral UX Tooltip State ---
+    const [showTooltip, setShowTooltip] = useState(true);
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const fetchReports = async (lat = null, lng = null, search = '', categoryId = null) => {
         setIsLoading(true);
@@ -73,44 +76,38 @@ export default function MainFeedScreen({ navigation }){
         setIsLoading(true);
         await fetchCategories();
         try {
-            // Ask for GPS permissions
             let { status } = await Location.requestForegroundPermissionsAsync();
             
             if (status !== 'granted') {
                 console.log('Permission to access location was denied');
-                // Fallback: Fetch general reports if they say no
                 await fetchReports(); 
                 return;
             }
 
-            // Grab the actual coordinates
             let locationData = await Location.getCurrentPositionAsync({});
             setUserLocation(locationData.coords);
 
-            // Fetch reports, passing the coordinates to the API!
             await fetchReports(locationData.coords.latitude, locationData.coords.longitude);
 
         } catch (error) {
             console.error("Location error:", error);
-            await fetchReports(); // Fallback on error
+            await fetchReports(); 
         }
     };
 
     const handleCreateReportFlow = async () => {
-        // 1. Ask for Camera Permissions
         const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
         if (cameraStatus !== 'granted') {
             alert('We need camera permissions to capture the issue.');
             return;
         }
 
-        // 2. Launch the Native Camera with 0.4 compression for the 5MB limit
         const result = await ImagePicker.launchCameraAsync({
             mediaTypes: ['images'], 
-            quality: 0.4, 
+            allowsEditing: false, 
+            quality: 0.3, 
         });
 
-        // 3. If they took a picture, navigate to the next screen!
         if (!result.canceled) {
             navigation.navigate('CreateReport', { 
                 photoUri: result.assets[0].uri,
@@ -120,24 +117,39 @@ export default function MainFeedScreen({ navigation }){
         }
     };
 
-// Change this to call the new function instead of fetchReports()
     useEffect(() => {
         getPermissionsAndLoadFeed();
     }, []);
+
+    // --- UX Tooltip Animation Lifecycle ---
+    useEffect(() => {
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+        }).start();
+
+        const timer = setTimeout(() => {
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 500,
+                useNativeDriver: true,
+            }).start(() => setShowTooltip(false));
+        }, 6000);
+
+        return () => clearTimeout(timer);
+    }, [fadeAnim]);
 
     const handleCategorySelect = (categoryId) => {
         setSelectedCategoryId(categoryId);
         fetchReports(userLocation?.latitude, userLocation?.longitude, searchQuery, categoryId);
     };
 
-    // Update this to use the saved location
     const onRefresh = () => {
         setIsRefreshing(true);
         if (userLocation) {
-            // Re-fetch using the coordinates we already have
-            fetchReports(userLocation.latitude, userLocation.longitude, selectedCategoryId);
+            fetchReports(userLocation.latitude, userLocation.longitude, searchQuery, selectedCategoryId);
         } else {
-            // If we don't have location yet, try to get it
             getPermissionsAndLoadFeed();
         }
     };
@@ -158,6 +170,7 @@ export default function MainFeedScreen({ navigation }){
                 CivicFix
             </Text>
         </View>
+
         {/* ── Search Bar ── */}
         <View className="px-6 py-2 bg-background-dark border-b border-slate-800">
             <View className="flex-row items-center bg-slate-900 rounded-xl border border-slate-700 px-4 h-12">
@@ -239,7 +252,7 @@ export default function MainFeedScreen({ navigation }){
             />
         )}
 
-        {/* FAB */}
+        {/* Manual Report FAB */}
         <TouchableOpacity 
             className="absolute bottom-6 left-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95"
             onPress={handleCreateReportFlow}
@@ -247,13 +260,29 @@ export default function MainFeedScreen({ navigation }){
             <MaterialIcons name="add" size={30} color="#fff" />
         </TouchableOpacity>
 
-        {/* ── FAB: NLP Chatbot (Placed on Right) ── */}
-        <TouchableOpacity 
-            className="absolute bottom-6 right-6 w-14 h-14 bg-indigo-500 rounded-full items-center justify-center shadow-lg shadow-indigo-500/30 active:scale-95"
-            onPress={() => setIsChatModalVisible(true)}
-        >
-            <MaterialIcons name="smart-toy" size={30} color="#fff" />
-        </TouchableOpacity>
+        {/* NLP Chatbot FAB with Ephemeral UX Tooltip */}
+        <View className="absolute bottom-6 right-6 items-end z-50">
+            {showTooltip && (
+                <Animated.View style={{ opacity: fadeAnim }} className="mb-3 mr-2">
+                    <View className="bg-indigo-600 rounded-2xl p-3 shadow-lg shadow-black/30 max-w-[220px]">
+                        <Text className="text-white font-medium text-sm leading-5">
+                            Hi! Need to report an issue or check city stats? I can help! ✨
+                        </Text>
+                        <View className="absolute -bottom-2 right-4 w-4 h-4 bg-indigo-600 transform rotate-45" />
+                    </View>
+                </Animated.View>
+            )}
+            <TouchableOpacity 
+                className="w-14 h-14 bg-indigo-500 rounded-full items-center justify-center shadow-lg shadow-indigo-500/30 active:scale-95"
+                onPress={() => {
+                    setShowTooltip(false);
+                    // Pass userName to ChatbotScreen to enable personalized greetings
+                    navigation.navigate('Chatbot', { userName: userInfo?.name }); 
+                }}
+            >
+                <MaterialIcons name="smart-toy" size={30} color="#fff" />
+            </TouchableOpacity>
+        </View>
 
         {/* ── Custom Sidebar Drawer (Left Slide) ── */}
         <Modal
@@ -264,13 +293,13 @@ export default function MainFeedScreen({ navigation }){
         >
             <View className="flex-1 flex-row">
                 
-                {/* 1. The Visual Backdrop (Just color, no clicks) */}
+                {/* Visual Backdrop */}
                 <View className="absolute inset-0 bg-black/60" />
                 
-                {/* 2. The Sidebar Content (Left Side) */}
+                {/* Sidebar Content (Left Side) */}
                 <View className="w-[280px] h-full bg-[#0f172a] shadow-2xl p-6 pt-24 flex-col z-10">
                     
-                    {/* ── User Profile Section ── */}
+                    {/* User Profile Section */}
                     <View className="mb-8 px-2">
                         <Text className="text-white text-xl font-bold capitalize">
                             {userInfo?.name || 'User Name'}
@@ -282,7 +311,7 @@ export default function MainFeedScreen({ navigation }){
 
                     <View className="h-[1px] bg-slate-800 mb-6" />
 
-                    {/* ── Navigation Links ── */}
+                    {/* Navigation Links */}
                     <View className="gap-y-2">
                         <TouchableOpacity 
                             className="flex-row items-center px-4 py-3.5 bg-[#1e293b] rounded-xl"
@@ -295,36 +324,28 @@ export default function MainFeedScreen({ navigation }){
                         <TouchableOpacity 
                             className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-slate-800"
                             onPress={() => {
-                                setIsSidebarVisible(false); // 1. Hide the sidebar
-                                navigation.navigate('MyReports'); // 2. Navigate to the new screen!
+                                setIsSidebarVisible(false);
+                                navigation.navigate('MyReports');
                             }}
                         >
                             <MaterialIcons name="assignment" size={24} color="#cbd5e1" />
                             <Text className="text-slate-200 font-medium text-[17px] ml-4 mt-0.5">My Reports</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-slate-800">
+                        <TouchableOpacity 
+                            onPress={() => {
+                                setIsSidebarVisible(false);
+                                navigation.navigate('Settings');
+                            }} 
+                            className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-slate-800"
+                        >
                             <MaterialIcons name="settings" size={24} color="#cbd5e1" />
                             <Text className="text-slate-200 font-medium text-[17px] ml-4 mt-0.5">Settings</Text>
                         </TouchableOpacity>
                     </View>
-
-                    {/* ── Bottom Section: Log Out ── */}
-                    <View className="mt-auto border-t border-slate-800 pt-6">
-                        <TouchableOpacity 
-                            onPress={logout} 
-                            className="flex-row items-center px-4 py-3.5 rounded-xl active:bg-red-500/10"
-                        >
-                            <MaterialIcons name="logout" size={24} color="#ef4444" />
-                            <Text className="text-[#ef4444] font-bold text-[17px] ml-4 mt-0.5">Log Out</Text>
-                        </TouchableOpacity>
-                    </View>
-
                 </View>
 
-                {/* 3. The Clickable Area (Right Side) 
-                    This invisible button stretches to fill the rest of the screen! 
-                */}
+                {/* Clickable Overlay for Dismissal */}
                 <TouchableOpacity 
                     className="flex-1 z-10" 
                     activeOpacity={1} 
@@ -333,78 +354,6 @@ export default function MainFeedScreen({ navigation }){
 
             </View>
         </Modal>
-        {/* ── Chatbot Bottom Sheet (Slide Up Modal) ── */}
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isChatModalVisible}
-            onRequestClose={() => setIsChatModalVisible(false)}
-        >
-            <View className="flex-1 justify-end">
-            
-            {/* Backdrop */}
-            <TouchableOpacity 
-                className="absolute inset-0 bg-black/60" 
-                activeOpacity={1} 
-                onPress={() => setIsChatModalVisible(false)} 
-            />
-            
-            {/* The Main Drawer Container 
-                (overflow-hidden ensures the header respects the rounded top corners)
-            */}
-            <View className="h-[60%] bg-slate-900 rounded-t-3xl overflow-hidden shadow-2xl border-t border-slate-700">
-                
-                {/* ── Chat Header (Distinct Background Color) ── */}
-                <View className="bg-slate-800 px-5 py-4 flex-row justify-between items-center border-b border-slate-700/50">
-                
-                {/* Left Side: Avatar & Info */}
-                <View className="flex-row items-center gap-3">
-                    
-                    {/* Robot Avatar with Absolute Status Dot */}
-                    <View className="relative">
-                    <View className="w-12 h-12 bg-slate-700/80 rounded-full items-center justify-center border border-indigo-500/30">
-                        <MaterialIcons name="smart-toy" size={26} color="#818cf8" />
-                    </View>
-                    {/* The overlapping green dot */}
-                    <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-slate-800" />
-                    </View>
-
-                    {/* Text Block */}
-                    <View>
-                    <Text className="text-white text-lg font-bold tracking-wide">Civic Assistant</Text>
-                    <View className="flex-row items-center gap-1.5 mt-0.5">
-                        {/* Small inline green dot */}
-                        <View className="w-2 h-2 bg-green-500 rounded-full" />
-                        <Text className="text-slate-400 text-sm font-medium">Online</Text>
-                    </View>
-                    </View>
-
-                </View>
-
-                {/* Right Side: Window Controls */}
-                <View className="flex-row items-center">
-                    <TouchableOpacity 
-                    onPress={() => setIsChatModalVisible(false)}
-                    className="p-2 -mr-2" // Adds a nice hit-box for the thumb
-                    >
-                    <MaterialIcons name="close" size={26} color="#94a3b8" />
-                    </TouchableOpacity>
-                </View>
-
-                </View>
-
-                {/* ── Chat Body Area ── */}
-                <View className="flex-1 p-6 items-center justify-center bg-slate-900">
-                <MaterialIcons name="forum" size={48} color="#334155" />
-                <Text className="text-slate-500 text-center text-base mt-4 leading-relaxed max-w-[80%]">
-                    NLP Chatbot interface will go here. Ready to process natural language!
-                </Text>
-                </View>
-
-            </View>
-            </View>
-        </Modal>
-
         </SafeAreaView>
     );
 }

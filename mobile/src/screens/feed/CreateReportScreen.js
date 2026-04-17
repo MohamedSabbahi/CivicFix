@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import api from '../../services/api';
 
+/**
+ * Maps category names to corresponding Material Icons.
+ * Provides a default fallback icon if no specific keyword match is found.
+ */
 const getCategoryIcon = (categoryName) => {
     const name = categoryName?.toLowerCase() || '';
     if (name.includes('road')) return 'add-road';
@@ -12,30 +16,40 @@ const getCategoryIcon = (categoryName) => {
     if (name.includes('hazard')) return 'warning-amber';
     if (name.includes('graffiti')) return 'palette';
     if (name.includes('light')) return 'lightbulb-outline';
-    return 'category'; // Fallback icon
+    return 'category'; 
 };
 
 export default function CreateReportScreen({ route, navigation }) {
-    // 1. Data passed from the Feed screen's camera flow
-    const { photoUri, latitude, longitude } = route.params || {};
+    // Extracts standard camera flow data or AI-prefilled data passed via navigation routing
+    const { 
+        photoUri, 
+        latitude, 
+        longitude, 
+        prefilledTitle, 
+        prefilledDescription, 
+        prefilledCategory 
+    } = route.params || {};
 
-    // Fallback coordinates (e.g., center of Tetouan) if GPS was still loading
+    // Fallback coordinates (center of Tetouan) if device GPS is unavailable
     const initialLat = latitude || 35.5889;
     const initialLng = longitude || -5.3626;
 
-    // 2. Form State
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
+    // Initialize form state, prioritizing prefilled AI data if available
+    const [title, setTitle] = useState(prefilledTitle || '');
+    const [description, setDescription] = useState(prefilledDescription || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [categories, setCategories] = useState([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState(null);
-    // Draggable Pin State
+    
     const [markerCoordinate, setMarkerCoordinate] = useState({
         latitude: initialLat,
         longitude: initialLng,
     });
 
+    /**
+     * Fetches available issue categories from the API on component mount.
+     */
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -49,26 +63,42 @@ export default function CreateReportScreen({ route, navigation }) {
         fetchCategories();
     }, []);
 
-    // 3. Submit Handler with Pre-Flight Validation
+    /**
+     * Auto-selects the appropriate category UI component based on AI-generated data.
+     * Matches the string passed from the Chatbot against the database category records.
+     */
+    useEffect(() => {
+        if (categories.length > 0 && prefilledCategory) {
+            const matchedCat = categories.find(
+                (cat) => cat.name?.toLowerCase() === prefilledCategory.toLowerCase()
+            );
+            
+            if (matchedCat) {
+                setSelectedCategoryId(matchedCat.id);
+            }
+        }
+    }, [categories, prefilledCategory]);
+
+    /**
+     * Validates form data and constructs a multipart/form-data payload
+     * to securely transmit text details and the image buffer to the backend.
+     */
     const handleSubmit = async () => {
-        // Validation: Must have a photo
         if (!photoUri) {
             Alert.alert("Missing Photo", "Please snap a photo of the issue before submitting.");
             return;
         }
 
-        // Validation: Must have a title
         if (!title.trim()) {
             Alert.alert("Missing Title", "Please provide a short title for the issue.");
             return;
         }
 
-        if(!selectedCategoryId) {
+        if (!selectedCategoryId) {
             Alert.alert("Missing Category", "Please select a category that best fits the issue.");
             return;
         }
 
-        // Validation: Description (Optional, but if provided, must be >= 10 chars)
         const descText = description.trim();
         if (descText.length > 0 && descText.length < 10) {
             Alert.alert("Description Too Short", "If you provide a description, it needs to be at least 10 characters long to be helpful.");
@@ -78,7 +108,6 @@ export default function CreateReportScreen({ route, navigation }) {
         setIsSubmitting(true);
 
         try {
-            // 4. Construct Multipart FormData exactly as your backend expects
             const formData = new FormData();
             
             formData.append('title', title.trim());
@@ -87,8 +116,8 @@ export default function CreateReportScreen({ route, navigation }) {
             formData.append('longitude', markerCoordinate.longitude.toString());
             formData.append('categoryId', selectedCategoryId.toString());
 
-            // Append the image file. The key 'image' matches upload.single('image')
-            const filename = photoUri.split('/').pop();
+            // Extracts file extension and formats the image object for multer compatibility
+            const filename = photoUri.split('/').pop() || 'photo.jpg';
             const match = /\.(\w+)$/.exec(filename);
             const type = match ? `image/${match[1]}` : `image/jpeg`;
 
@@ -98,14 +127,12 @@ export default function CreateReportScreen({ route, navigation }) {
                 type,
             });
 
-            // 5. Fire off the request!
             await api.post('/reports', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
 
-            // Success! Return to the feed so the user can see their new post
             navigation.goBack();
 
         } catch (error) {
@@ -122,7 +149,6 @@ export default function CreateReportScreen({ route, navigation }) {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 className="flex-1"
             >
-                {/* ── Header ── */}
                 <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-800">
                     <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 -ml-2 rounded-full active:bg-slate-800">
                         <MaterialIcons name="arrow-back" size={26} color="#fff" />
@@ -141,7 +167,7 @@ export default function CreateReportScreen({ route, navigation }) {
 
                 <ScrollView className="flex-1 p-5" showsVerticalScrollIndicator={false}>
                     
-                    {/* ── Image & Title Row ── */}
+                    {/* Header Image and Title Input */}
                     <View className="flex-row gap-4 mb-8 mt-2">
                         {photoUri ? (
                             <Image 
@@ -163,7 +189,7 @@ export default function CreateReportScreen({ route, navigation }) {
                         />
                     </View>
 
-                    {/* ── Category Selection (Square Icons UI) ── */}
+                    {/* Category Selection Carousel */}
                     <View className="mb-6">
                         <Text className="text-slate-400 text-sm font-bold uppercase tracking-wider ml-6 mb-3">
                             Category
@@ -200,19 +226,17 @@ export default function CreateReportScreen({ route, navigation }) {
 
                     <View className="px-5"></View>
 
-                    {/* ── Dynamic Description Section ── */}
+                    {/* Description Input area */}
                     <View className="flex-row items-center justify-between ml-1 mb-2">
                         <Text className="text-slate-400 text-sm font-bold uppercase tracking-wider">
                             Additional Details
                         </Text>
-                        {/* Dynamic Character Counter Text */}
                         <Text className={`text-xs font-medium ${description.length > 0 && description.trim().length < 10 ? 'text-red-400' : 'text-slate-500'}`}>
                             {description.length > 0 ? `${description.trim().length}/10 min` : '(Optional)'}
                         </Text>
                     </View>
                     
                     <TextInput
-                        // Dynamic Border Color
                         className={`bg-[#1e293b] text-white px-4 py-4 rounded-xl border text-base min-h-[120px] mb-8 
                             ${description.length > 0 && description.trim().length < 10 ? 'border-red-500 shadow-sm shadow-red-500/20' : 'border-slate-700'}`
                         }
@@ -224,33 +248,63 @@ export default function CreateReportScreen({ route, navigation }) {
                         textAlignVertical="top"
                     />
 
-                    {/* ── Interactive Map Section ── */}
-                    <View className="flex-row items-center justify-between mb-3 ml-1 mt-2">
-                        <Text className="text-slate-400 text-sm font-bold uppercase tracking-wider">
-                            Confirm Location
-                        </Text>
-                        <View className="flex-row items-center gap-1 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
-                            <MaterialIcons name="touch-app" size={14} color="#60a5fa" />
-                            <Text className="text-blue-400 text-xs font-semibold">Hold pin to drag</Text>
-                        </View>
-                    </View>
-                    
+                    {/* Interactive Leaflet Map for coordinate adjustments */}
                     <View className="h-[280px] rounded-2xl overflow-hidden border border-slate-700 mb-12 shadow-lg shadow-black/40">
-                        <MapView
+                        <WebView
                             style={{ flex: 1 }}
-                            initialRegion={{
-                                latitude: initialLat,
-                                longitude: initialLng,
-                                latitudeDelta: 0.005, // Controls the zoom level (0.005 is roughly neighborhood level)
-                                longitudeDelta: 0.005,
+                            originWhitelist={['*']}
+                            javaScriptEnabled={true}
+                            domStorageEnabled={true}
+                            scrollEnabled={false}
+                            showsVerticalScrollIndicator={false}
+                            showsHorizontalScrollIndicator={false}
+                            onMessage={(event) => {
+                                const { lat, lng } = JSON.parse(event.nativeEvent.data);
+                                setMarkerCoordinate({ latitude: lat, longitude: lng });
                             }}
-                        >
-                            <Marker
-                                coordinate={markerCoordinate}
-                                draggable
-                                onDragEnd={(e) => setMarkerCoordinate(e.nativeEvent.coordinate)}
-                            />
-                        </MapView>
+                            source={{
+                                html: `
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                                    <style>
+                                        body { padding: 0; margin: 0; background-color: #0f172a; }
+                                        #map { height: 100vh; width: 100vw; }
+                                        .leaflet-layer,
+                                        .leaflet-control-zoom-in,
+                                        .leaflet-control-zoom-out,
+                                        .leaflet-control-attribution {
+                                            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div id="map"></div>
+                                    <script>
+                                        var map = L.map('map', { zoomControl: false }).setView([${initialLat}, ${initialLng}], 15);
+                                        
+                                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                            maxZoom: 19,
+                                        }).addTo(map);
+
+                                        var marker = L.marker([${initialLat}, ${initialLng}], {draggable: true}).addTo(map);
+                                        
+                                        marker.on('dragend', function(event) {
+                                            var position = marker.getLatLng();
+                                            window.ReactNativeWebView.postMessage(JSON.stringify({
+                                                lat: position.lat,
+                                                lng: position.lng
+                                            }));
+                                        });
+                                    </script>
+                                </body>
+                                </html>
+                                `
+                            }}
+                        />
                     </View>
 
                 </ScrollView>
