@@ -20,7 +20,7 @@ const ReportsList = ({ reports, selectedReport, onReportClick }) => {
           </div>
         ) : (
           reports.map((report) => {
-            const status = statusConfig[report.status] || statusConfig.NEW;
+            const status = statusConfig[report.status] || statusConfig.PENDING;
             
             return (
               <div

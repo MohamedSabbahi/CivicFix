@@ -1,20 +1,18 @@
-// Report status configuration - single source of truth for all status-related styling
-// Status colors for maps and UI elements
 export const statusColors = {
-  NEW: '#3B82F6',        // Blue
-  IN_PROGRESS: '#EAB308', // Yellow
-  RESOLVED: '#22C55E',    // Green
+  NEW: '#3B82F6',     
+  IN_PROGRESS: '#EAB308',
+  RESOLVED: '#22C55E',  
 };
 
-// Complete status configuration with labels, colors, and CSS classes
 export const statusConfig = {
-  NEW: { 
+  PENDING: { 
     color: statusColors.NEW, 
-    label: 'New', 
+  label: 'PENDING ', 
     bg: 'bg-blue-500', 
     dot: 'bg-blue-400',
     text: 'text-blue-400'
   },
+  
   IN_PROGRESS: { 
     color: statusColors.IN_PROGRESS, 
     label: 'In Progress', 
@@ -31,11 +29,8 @@ export const statusConfig = {
   },
 };
 
-// Get status config by status key, with fallback to NEW
 export const getStatusConfig = (status) => {
-  return statusConfig[status] || statusConfig.NEW;
+  return statusConfig[status] || statusConfig.PENDING;
 };
 
-// Export default for convenience
 export default statusConfig;
-

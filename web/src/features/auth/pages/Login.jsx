@@ -8,6 +8,12 @@ import AuthInput from '../../../components/ui/AuthInput';
 
 import bgImage from '../../../assets/background-CivicFix.img.png';
 
+const ADMIN_EMAILS = [
+    "admin@civicfix.com",
+    "superadmin@civicfix.com",
+    "manager@civicfix.com",
+];
+
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [fieldErrors, setFieldErrors] = useState({});
@@ -61,20 +67,27 @@ const Login = () => {
 
         setLoading(true);
         try {
-        await login({
-        email: formData.email,
-        password: formData.password,
-        remember,
-        });
-            toast.success("Welcome back 👋");
-            navigate('/');
+            const user = await login({
+                email: formData.email,
+                password: formData.password,
+                remember,
+            });
+            
+            // Use user.role from backend API response (more secure)
+            if (user.role === 'ADMIN') {
+                toast.success("Welcome, Admin 👋");
+                navigate('/admin');
+            } else {
+                toast.success("Welcome back 👋");
+                navigate('/');
+            }
         } catch (err) {
             const message =
-            err.response?.data?.message ||
-            err.message ||
-            "Login failed. Please check your credentials.";
+                err.response?.data?.message ||
+                err.message ||
+                "Login failed. Please check your credentials.";
             toast.error(message);
-            setError(err.message);
+            setError(message);
         } finally {
             setLoading(false);
         }

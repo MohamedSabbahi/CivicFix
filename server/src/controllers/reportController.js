@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { Prisma } = require('@prisma/client');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 const { calculateDistance } = require('../utils/geoUtils');
@@ -11,6 +12,8 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
+
+const ReportStatus = Prisma.ReportStatus;
 const getAllCategories = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -103,7 +106,6 @@ const createReport = async (req, res) => {
 
 const getAllReports = async (req, res) => {
   try {
-    // Parameter extraction and normalization
     const { category_id, status, date_debut,
             date_fin, search, sort, order ,
             user_lat, user_lng , page, limit, user_id }
@@ -387,7 +389,7 @@ const getNearbyReports = async (req, res) => {
 const updateReport = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, categoryId } = req.body || {};
+    const { title, description, categoryId , status } = req.body || {};
 
 
     const existingReport = await prisma.civicIssue.findUnique({
@@ -414,6 +416,8 @@ const updateReport = async (req, res) => {
         title: title || existingReport.title,
         description: description || existingReport.description,
         categoryId: categoryId ? parseInt(categoryId) : existingReport.categoryId,
+        status:      status      || existingReport.status,
+        resolvedAt:  status === 'RESOLVED' ? new Date() : existingReport.resolvedAt,     
       },
       include: {
         category: true,

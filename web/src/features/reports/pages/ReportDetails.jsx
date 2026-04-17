@@ -1,4 +1,4 @@
-// ReportDetails.jsx - Full report details page with comments
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import { 
@@ -13,13 +13,61 @@ import background from "../../../assets/background-dashbord.png";
 import { statusConfig } from '../components/report/reportConstants';
 import useReportDetails from '../hooks/useReportDetails';
 
-// Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
+
+const getImageUrl = (photo) => {
+  if (!photo) return null;
+  
+  // If it's already a full URL, return it
+  if (photo.startsWith('http://') || photo.startsWith('https://')) {
+    return photo;
+  }
+  
+  // Clean the API URL - remove trailing slashes
+  const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5001').replace(/\/+$/, '');
+  
+  // Remove leading slash from photo if present to avoid double slashes
+  const cleanPhoto = photo.replace(/^\/+/, '');
+  
+  const fullUrl = `${apiUrl}/${cleanPhoto}`;
+  
+  // Debug log in development
+  if (import.meta.env.DEV) {
+    console.log('[ReportDetails] Image URL:', fullUrl);
+  }
+  
+  return fullUrl;
+};
+
+// ImageWithFallback component for handling image loading errors
+const ImageWithFallback = ({ src, alt }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <MapPin size={48} className="text-slate-600" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-full h-full object-cover"
+      onError={() => {
+        console.error('[ReportDetails] Image failed to load:', src);
+        setHasError(true);
+      }}
+    />
+  );
+};
 
 const ReportDetails = () => {
   const navigate = useNavigate();
@@ -43,10 +91,18 @@ const ReportDetails = () => {
     handleGoBack,
   } = useReportDetails();
 
-  // Get status config
-  const status = report ? (statusConfig[report.status] || statusConfig.NEW) : statusConfig.NEW;
+  // Debug: Log report data to check photoUrl value
+  if (report) {
+    console.log('[ReportDetails] Report data:', {
+      id: report.id,
+      title: report.title,
+      photoUrl: report.photoUrl,
+      status: report.status
+    });                                      
+  }
 
-  // Format date
+  const status = report ? (statusConfig[report.status] || statusConfig.PENDING) : statusConfig.PENDING;
+
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', {
       day: 'numeric',
@@ -57,7 +113,6 @@ const ReportDetails = () => {
     });
   };
 
-  // Open in Google Maps
   const openInMaps = () => {
     if (report?.latitude && report?.longitude) {
       window.open(
@@ -150,23 +205,15 @@ const ReportDetails = () => {
           </div>
 
           <div className="grid grid-cols-3 gap-6">
-            {/* Main Content - Left 2/3 */}
+            {/* Main Content */}
             <div className="col-span-2 space-y-6">
               {/* Hero Image */}
               <div className="relative h-64 rounded-2xl overflow-hidden bg-slate-800">
-                {report.photoUrl ? (
-                  <img 
-                    src={`getImageUrl(report.photoUrl)`}
-                    alt={report.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <MapPin size={48} className="text-slate-600" />
-                  </div>
-                )}
+                <ImageWithFallback
+                  src={getImageUrl(report.photoUrl)}
+                  alt={report.title || "Report Image"}
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
-                
                 {/* Status Badge */}
                 <div className="absolute top-4 left-4">
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white/[0.1] backdrop-blur-sm border ${status.text} ${status.bg.replace('bg-', 'bg-white/[0.1] border-')}`}>
@@ -313,7 +360,7 @@ const ReportDetails = () => {
               </div>
             </div>
 
-            {/* Sidebar - Right 1/3 */}
+            {/* Sidebar -  */}
             <div className="space-y-6">
               {/* Report Info Card */}
               <div className="bg-white/[0.02] rounded-2xl p-6 border border-white/[0.08] space-y-4">
@@ -400,6 +447,4 @@ const ReportDetails = () => {
 };
 
 export default ReportDetails;
-
-
 

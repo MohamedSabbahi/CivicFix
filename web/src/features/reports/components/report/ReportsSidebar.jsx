@@ -38,7 +38,7 @@ const ReportsSidebar = ({ reports, onCreateNew, onExploreMap }) => {
         <h3 className="text-sm font-bold uppercase tracking-widest text-white/50 mb-4">Live Updates</h3>
         <div className="space-y-4">
           {recentReports.map((r, i) => {
-            const status = statusConfig[r.status] || statusConfig.NEW;
+            const status = statusConfig[r.status] || statusConfig.PENDING;
             return (
               <div 
                 key={i} 

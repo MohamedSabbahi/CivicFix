@@ -1,10 +1,9 @@
-// ReportCard - Single report row component with action buttons
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, Eye, Edit, Trash2 } from 'lucide-react';
 import { statusConfig } from './reportConstants';
 
 const ReportCard = ({ report, onView, onEdit, onDelete }) => {
-  const status = statusConfig[report.status] || statusConfig.NEW;
+  const status = statusConfig[report.status] || statusConfig.PENDING;
   const navigate = useNavigate();
 
   const handleClick = () => {
