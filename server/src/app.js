@@ -1,4 +1,3 @@
-// server/src/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -12,14 +11,14 @@ const chatbotRoutes = require('./routes/chatbotRoutes');
 
 const app = express();
 
-// Trust Render's proxy so rate limiting works correctly
+// Trust Render's proxy so rate limiting IP detection works correctly
 app.set('trust proxy', 1);
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-
+// Use environment variable for production, fallback to localhost for development
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -31,17 +30,17 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate Limiters
+// --- RATE LIMITERS ---
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 attempts
   message: { message: 'Too many attempts, please try again after 15 minutes.' }
 });
 
-//prevent brute-forcing the 4-digit code
+// Protect the entire password recovery flow
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/forgotpassword', authLimiter);
-app.use('/api/auth/resetpassword', authLimiter); 
+app.use('/api/auth/resetpassword', authLimiter); // Added to protect the 4-digit PIN
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -49,12 +48,12 @@ const generalLimiter = rateLimit({
 });
 app.use(generalLimiter);
 
-// Routes
+// --- ROUTES ---
 app.get('/', (req, res) => {
   res.json({
     status: 'success',
     message: 'CivicFix Backend is Running!'
-  })
+  });
 });
 
 app.use('/api/auth', authRoutes);

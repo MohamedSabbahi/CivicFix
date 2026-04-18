@@ -6,13 +6,12 @@ const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 
 const generateToken = (id) => {
-    return jwt.sign({id}, process.env.JWT_SECRET, {
-        expiresIn: '30d',
+    return jwt.sign({id}, process.env.JWT_SECRET || 'fallback_secret_for_dev', {
+        expiresIn: process.env.JWT_EXPIRES_IN || '30d',
     });
 };
 
 exports.register = async (req, res) => {
-    // Check if there are validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -53,7 +52,6 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-    // We check if there are validation errors. if any, we return 400 with the errors array.
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -94,11 +92,8 @@ exports.getMe = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const { name, username, location } = req.body;
-        
-        // Get the user ID from the authenticated user
         const userId = req.user.id;
 
-        // Update the user profile
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
@@ -122,7 +117,6 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// server/src/controllers/authController.js
 exports.forgotPassword = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -139,22 +133,39 @@ exports.forgotPassword = async (req, res) => {
       .update(resetToken)
       .digest('hex');
 
-    // 1. Save the token to the database first
+    // 1. Update DB first
     await prisma.user.update({
       where: { id: user.id },
       data: {
         resetPasswordToken,
-        resetPasswordExpires: new Date(Date.now() + 10 * 60 * 1000), 
+        resetPasswordExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 Minutes
       },
     });
 
     const htmlMessage = `
-      <span style="display: inline-block; background-color: #0f172a; color: #60a5fa; font-size: 42px; font-weight: bold; letter-spacing: 12px; padding: 20px 40px; border-radius: 12px; border: 2px dashed #3b82f6;">
-          ${resetToken}
-      </span>
-      `;
+      <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b;">
+          <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">CivicFix</h1>
+              <p style="color: #94a3b8; margin-top: 5px; font-size: 14px;">Password Reset Request</p>
+          </div>
+          <div style="background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155;">
+              <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                  Hello ${user.name || 'Citizen'},<br><br>
+                  We received a request to reset the password for your account. Please enter the following 4-digit verification code in your app to proceed:
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                  <span style="display: inline-block; background-color: #0f172a; color: #60a5fa; font-size: 42px; font-weight: bold; letter-spacing: 12px; padding: 20px 40px; border-radius: 12px; border: 2px dashed #3b82f6;">
+                      ${resetToken}
+                  </span>
+              </div>
+              <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-bottom: 0;">
+                  This code will expire in <strong style="color: #f8fafc;">10 minutes</strong>.
+              </p>
+          </div>
+      </div>
+    `;
 
-    // 2. Wrap the email dispatch in a try/catch
+    // 2. Safely attempt email dispatch
     try {
       await sendEmail({
         email: user.email,
@@ -164,11 +175,10 @@ exports.forgotPassword = async (req, res) => {
       });
 
       res.status(200).json({ success: true, message: 'OTP sent to email' });
-      
     } catch (emailError) {
       console.error("Resend API Error:", emailError);
       
-      // 3. Rollback the database if the email fails so the user can try again immediately
+      // 3. Rollback if email fails
       await prisma.user.update({
         where: { id: user.id },
         data: {
@@ -185,7 +195,6 @@ exports.forgotPassword = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
 
 exports.resetPassword = async (req, res) => {
   try {
@@ -239,11 +248,9 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ message: "Current password is incorrect." });
     }
 
-    // Hasher le nouveau mot de passe
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // Mettre à jour
     await prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
