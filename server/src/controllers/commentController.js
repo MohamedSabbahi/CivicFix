@@ -1,22 +1,22 @@
 const prisma = require('../utils/prisma');
 
-const getReportComments = async (req, res) => {
+const getCivicIssueComments = async (req, res) => {
     try{
         const { id } = req.params;
-        const reportId = parseInt(id);
+        const civicIssueId = parseInt(id);
 
-        const report = await prisma.report.findUnique({
-            where: { id: reportId },
+        const civicIssue = await prisma.civicIssue.findUnique({
+            where: { id: civicIssueId },
             select: { id: true },
         });
-        if (!report) {
+        if (!civicIssue) {
             return res.status(404).json({
                 status: "error",
-                message: "Report not found" 
+                message: "Civic issue not found" 
             });
         }
         const comments = await prisma.comment.findMany({
-            where: { reportId },
+            where: { civicIssueId },
             include: {
                 user: {
                     select: {name: true}
@@ -44,7 +44,7 @@ const createComment = async (req, res) => {
         const { id } = req.params;
         const { content } = req.body;
         const userId = req.user.id;
-        const reportId = parseInt(id);
+        const civicIssueId = parseInt(id);
 
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -73,20 +73,20 @@ const createComment = async (req, res) => {
                 message: "Comment is too long. Maximum length is 500 characters"
             });
         }
-        const report = await prisma.report.findUnique({
-            where: { id: reportId },
+        const civicIssue = await prisma.civicIssue.findUnique({
+            where: { id: civicIssueId },
             select: { id: true },
         });
-        if (!report) {
+        if (!civicIssue) {
             return res.status(404).json({
                 status: "error",
-                message: "Report not found"
+                message: "Civic issue not found"
             });
         }
         const newComment = await prisma.comment.create({
             data: {
                 text: content,
-                reportId : parseInt(id),
+                civicIssueId : parseInt(id),
                 userId: userId
             },
             include: {
@@ -105,6 +105,7 @@ const createComment = async (req, res) => {
         });
     }
 };
+
 const deleteComment = async (req, res) => {
     try {
         const { id , commentId} = req.params;
@@ -122,10 +123,10 @@ const deleteComment = async (req, res) => {
             });
         }
 
-        if (comment.reportId !== parseInt(id)) {
+        if (comment.civicIssueId !== parseInt(id)) {
             return res.status(400).json({
                 status: "error",
-                message: "This comment does not belong to this report"
+                message: "This comment does not belong to this civic issue"
             });
         }
 
@@ -155,9 +156,8 @@ const deleteComment = async (req, res) => {
     }
 };
 
-
 module.exports = {
-    getReportComments,
+    getCivicIssueComments,
     createComment,
     deleteComment
 };

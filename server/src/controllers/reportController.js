@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 const prisma = require('../utils/prisma');
 const { Prisma } = require('@prisma/client');
 const { generateMagicLinks } = require('../utils/linkGenerator');
@@ -13,8 +12,8 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
+const CivicIssueStatus = Prisma.CivicIssueStatus;
 
-const ReportStatus = Prisma.ReportStatus;
 const getAllCategories = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -35,7 +34,7 @@ const getAllCategories = async (req, res) => {
   }
 };
 
-const createReport = async (req, res) => {
+const createCivicIssue = async (req, res) => {
   console.log("BODY:", req.body);
   console.log("FILE:", req.file);
   console.log("USER:", req.user);
@@ -80,8 +79,7 @@ const createReport = async (req, res) => {
     photoUrl = publicUrlData.publicUrl;
     const secret = crypto.randomUUID();
 
-
-    const report = await prisma.civicIssue.create({
+    const civicIssue = await prisma.civicIssue.create({
       data: {
         title,
         description,
@@ -101,52 +99,53 @@ const createReport = async (req, res) => {
       },
     });
 
-
-    const department = report.category?.department;
+    const department = civicIssue.category?.department;
 
     if (!department) {
       return res.status(400).json({ error: "Category has no department" });
+    }
 
     // Automated Dispatch Logic: Send an email to the responsible department
-    const links = generateMagicLinks(report);
-    if (report.category?.department?.email) {
-        sendStatusEmail(report.category.department.email, report, links)
+    const links = generateMagicLinks(civicIssue);
+    if (civicIssue.category?.department?.email) {
+        sendStatusEmail(civicIssue.category.department.email, civicIssue, links)
             .catch(err => console.error("Async Email Error:", err));
     }
 
-    await prisma.reportDepartment.upsert({
+    await prisma.intervention.upsert({
       where: {
-        reportId_departmentId: {
-          reportId: report.id,
+        civicIssueId_departmentId: {
+          civicIssueId: civicIssue.id,
           departmentId: department.id,
         },
       },
       update: {},
       create: {
-        reportId: report.id,
+        civicIssueId: civicIssue.id,
         departmentId: department.id,
-        title: report.title,
-        description: report.description,
-        img: report.photoUrl,
+        title: civicIssue.title,
+        description: civicIssue.description,
+        img: civicIssue.photoUrl,
       },
     });
 
-    const links = generateMagicLinks(report, department.id);
+    const deptLinks = generateMagicLinks(civicIssue, department.id);
     try {
-      await sendStatusEmail(department.email, report, links);
+      await sendStatusEmail(department.email, civicIssue, deptLinks);
       console.log("✅ Email sent to:", department.email);
-      } catch (err) {
-        console.error("❌ Email Error:", err);
-      }
-    res.status(201).json(report);
+    } catch (err) {
+      console.error("❌ Email Error:", err);
+    }
+    
+    res.status(201).json(civicIssue);
 
   } catch (error) {
-    console.error("❌ Report Creation Error FULL:", error);
+    console.error("❌ Civic Issue Creation Error FULL:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-const getAllReports = async (req, res) => {
+const getAllCivicIssues = async (req, res) => {
   try {
     const { category_id, status, date_debut,
             date_fin, search, sort, order ,
@@ -161,7 +160,7 @@ const getAllReports = async (req, res) => {
     if (category_id) {
       const categoryIdNum = parseInt(category_id);
       if (!isNaN(categoryIdNum)) {
-      whereCondition.categoryId = categoryIdNum;
+        whereCondition.categoryId = categoryIdNum;
       } else {
         return res.status(400).json({
           status: "error",
@@ -179,8 +178,6 @@ const getAllReports = async (req, res) => {
     
     if (status) {
         const upperStatus = status.toUpperCase();
-        // Assuming ReportStatus is defined elsewhere or this is a basic validation
-        // if (!ReportStatus[upperStatus]) { ... }
         whereCondition.status = upperStatus;
     }
     
@@ -188,48 +185,49 @@ const getAllReports = async (req, res) => {
       const start = date_debut ? new Date(date_debut) : null;
       const end = date_fin ? new Date(`${date_fin}T23:59:59.999Z`) : null;
     
-    if ((start && isNaN(start.getTime())) || (end && isNaN(end.getTime())))  {
-        return res.status(400).json({
-          status: "error",
-          message: "Invalid date format. Use YYYY-MM-DD." 
-        });
+      if ((start && isNaN(start.getTime())) || (end && isNaN(end.getTime())))  {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid date format. Use YYYY-MM-DD." 
+          });
       }
-    if(start && end && start > end) {
-        return res.status(400).json({
-          status: "error",
-          message: "The start date must be before the end date."
-        });
+      if(start && end && start > end) {
+          return res.status(400).json({
+            status: "error",
+            message: "The start date must be before the end date."
+          });
       }
       whereCondition.createdAt = {};
       if (start) whereCondition.createdAt.gte = start;
       if (end) whereCondition.createdAt.lte = end;
     }
-    // Keyword Search Filtering
 
+    // Keyword Search Filtering
     if (search) {
         const trimmedSearch = search.trim();
           
-          if(trimmedSearch.length > 0 && trimmedSearch.length < 3) {
-            return res.status(400).json({
-              status: "error",
-              message: "Search term must be at least 3 characters long."
-            });
-          }
-          const forbiddenChars = /[;'"$¿\\]/;
-          if (forbiddenChars.test(trimmedSearch)) {
-            return res.status(400).json({
-              status: "error",
-              message: "Search term contains invalid characters."
-            });
-          }
+        if(trimmedSearch.length > 0 && trimmedSearch.length < 3) {
+          return res.status(400).json({
+            status: "error",
+            message: "Search term must be at least 3 characters long."
+          });
+        }
+        const forbiddenChars = /[;'"$¿\\]/;
+        if (forbiddenChars.test(trimmedSearch)) {
+          return res.status(400).json({
+            status: "error",
+            message: "Search term contains invalid characters."
+          });
+        }
 
-          whereCondition.AND = [{
+        whereCondition.AND = [{
           OR: [
-          { title: { contains: trimmedSearch, mode: "insensitive" } },
-          { description: { contains: trimmedSearch, mode: "insensitive" } }
-        ]
-      }];
+            { title: { contains: trimmedSearch, mode: "insensitive" } },
+            { description: { contains: trimmedSearch, mode: "insensitive" } }
+          ]
+        }];
     }
+
     // Dynamic Sorting 
     let orderByCondition = { createdAt: "desc" };
     if (sort === "date"){
@@ -238,7 +236,7 @@ const getAllReports = async (req, res) => {
     }
 
     // Execute data fetch and total count in parallel for performance
-    const [reports, totalReports] = await Promise.all([
+    const [civicIssues, totalCivicIssues] = await Promise.all([
       prisma.civicIssue.findMany({
         where: whereCondition,
         skip: skip,
@@ -255,20 +253,20 @@ const getAllReports = async (req, res) => {
     ]);
 
     // Geolocation Sorting Logic
-    let finalData = reports;
+    let finalData = civicIssues;
     if (user_lat && user_lng) {      
         const lat = parseFloat(user_lat);
         const lng = parseFloat(user_lng);
 
         if (!isNaN(lat) && !isNaN(lng)) {
-          finalData = reports.map(report => {
+          finalData = civicIssues.map(civicIssue => {
             const distance = calculateDistance(
               lat,
               lng,
-              report.latitude,
-              report.longitude
+              civicIssue.latitude,
+              civicIssue.longitude
             );
-            return { ...report, distance };
+            return { ...civicIssue, distance };
           });
           if (sort === "distance") {
             finalData.sort((a, b) => {
@@ -282,30 +280,29 @@ const getAllReports = async (req, res) => {
       status: "success",
       results: finalData.length,
       metadata: {
-        total: totalReports,
+        total: totalCivicIssues,
         page: pageNum,
-        totalPages: Math.ceil(totalReports / limitNum),
+        totalPages: Math.ceil(totalCivicIssues / limitNum),
       },
       data: finalData,
     });
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: "Failed to fetch reports",
+      message: "Failed to fetch civic issues",
       details: error.message,
     });
   }
 };
 
-const getMyReports = async (req, res) => {
-  try{
-
-    const reports = await prisma.civicIssue.findMany({
+const getMyCivicIssues = async (req, res) => {
+  try {
+    const civicIssues = await prisma.civicIssue.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: "desc" },
       include: {
         category: true,
-        departments: {
+        interventions: {
           include: {
             department: {
               select: { id: true, name: true }
@@ -317,62 +314,62 @@ const getMyReports = async (req, res) => {
 
     res.status(200).json({
       status: "success",
-      results: reports.length,
-      data: reports,
+      results: civicIssues.length,
+      data: civicIssues,
     });
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: "Failed to fetch your reports",
+      message: "Failed to fetch your civic issues",
       details: error.message,
     });
   }
 }
 
-const getReportById = async (req, res) => {
+const getCivicIssueById = async (req, res) => {
   try {
     const { id } = req.params;
-    const report = await prisma.civicIssue.findUnique({
+    const civicIssue = await prisma.civicIssue.findUnique({
       where: { id: parseInt(id) },
       include: {
         category: true,
         user: { select: { name: true, email: true } },
         comments: {
-        include: {
-        user: { select: { name: true, email: true } },
-      },
-    },
-    departments: {
-      include: {
-        department: {
-          select: {
-            id: true,
-            name: true
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+        },
+        interventions: {
+          include: {
+            department: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
           }
         }
       }
-  }
-}
     });
 
-    if (!report) {
-      return res.status(404).json({ message: "Report not found" });
+    if (!civicIssue) {
+      return res.status(404).json({ message: "Civic issue not found" });
     }
     res.status(200).json({
       status: "success",
-      data: report
+      data: civicIssue
     });
 
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: "Failed to fetch report",
+      message: "Failed to fetch civic issue",
       details: error.message,
     });
   }
 };
 
-const getNearbyReports = async (req, res) => {
+const getNearbyCivicIssues = async (req, res) => {
   try {
     const { latitude, longitude, radius, category_id } = req.query;
 
@@ -384,7 +381,7 @@ const getNearbyReports = async (req, res) => {
     const userLng = parseFloat(longitude);
     
     // Limit radius to protect server performance (Min 1km, Max 100km)
-    const searchRadius = Math.min(Math.max(parseFloat(radius) || 5, 1), 100);
+    const searchRadius = Math.min(Math.max(parseFloat(radwius) || 5, 1), 100);
 
     // Bounding Box Calculation: Creates a rough square to quickly filter the DB via indexes
     // 1 degree of latitude is roughly 111km
@@ -402,7 +399,7 @@ const getNearbyReports = async (req, res) => {
       if (!isNaN(categoryIdNum)) whereCondition.categoryId = categoryIdNum;
     }
 
-    const reports = await prisma.civicIssue.findMany({
+    const civicIssues = await prisma.civicIssue.findMany({
       where: whereCondition,
       include: {
         category: true,
@@ -411,65 +408,63 @@ const getNearbyReports = async (req, res) => {
     });
 
     // Precise Haversine Calculation: Filters the rough square down to an exact circle
-    const nearbyReports = reports
-      .map(report => {
-        const distance = calculateDistance(userLat, userLng, report.latitude, report.longitude);
-        return { ...report, distance };
+    const nearbyCivicIssues = civicIssues
+      .map(civicIssue => {
+        const distance = calculateDistance(userLat, userLng, civicIssue.latitude, civicIssue.longitude);
+        return { ...civicIssue, distance };
       })
-      .filter(report => report.distance <= searchRadius)
+      .filter(civicIssue => civicIssue.distance <= searchRadius)
       .sort((a, b) => a.distance - b.distance);
 
     res.status(200).json({
       status: "success",
-      results: nearbyReports.length,
+      results: nearbyCivicIssues.length,
       metadata: {
         radius_used: `${searchRadius}km`,
         center: { userLat, userLng }
       },
-      data: nearbyReports
+      data: nearbyCivicIssues
     });
 
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: "Failed to fetch nearby reports",
+      message: "Failed to fetch nearby civic issues",
       details: error.message
     });
   }
 };
 
-const updateReport = async (req, res) => {
+const updateCivicIssue = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, categoryId , status } = req.body || {};
 
-
-    const existingReport = await prisma.civicIssue.findUnique({
+    const existingCivicIssue = await prisma.civicIssue.findUnique({
       where: { id: parseInt(id) } 
     });
 
-    if (!existingReport) {
-      return res.status(404).json({ message: "Report not found" });
+    if (!existingCivicIssue) {
+      return res.status(404).json({ message: "Civic issue not found" });
     }
 
-    const isOwner = existingReport.userId === req.user.id;
+    const isOwner = existingCivicIssue.userId === req.user.id;
     const isAdmin = req.user.role === 'ADMIN';
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         status: "error", 
-        message: "You do not have permission to modify this report"
+        message: "You do not have permission to modify this civic issue"
       });
     }
 
-
-    const updatedReport = await prisma.civicIssue.update({
+    const updatedCivicIssue = await prisma.civicIssue.update({
       where: { id: parseInt(id) },
       data: {
-        title: title || existingReport.title,
-        description: description || existingReport.description,
-        categoryId: categoryId ? parseInt(categoryId) : existingReport.categoryId,
-        status:      status      || existingReport.status,
-        resolvedAt:  status === 'RESOLVED' ? new Date() : existingReport.resolvedAt,     
+        title: title || existingCivicIssue.title,
+        description: description || existingCivicIssue.description,
+        categoryId: categoryId ? parseInt(categoryId) : existingCivicIssue.categoryId,
+        status:      status      || existingCivicIssue.status,
+        resolvedAt:  status === 'RESOLVED' ? new Date() : existingCivicIssue.resolvedAt,     
       },
       include: {
         category: true,
@@ -478,42 +473,43 @@ const updateReport = async (req, res) => {
     });
     res.status(200).json({
       status: "success",
-      data: updatedReport
+      data: updatedCivicIssue
     });
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: "Error updating report",
+      message: "Error updating civic issue",
       details: error.message,
     });
   }
 };
 
-const deleteReport = async (req, res) => {
+const deleteCivicIssue = async (req, res) => {
   try {
     const { id } = req.params;
-    const reportId = parseInt(id);
+    const civicIssueId = parseInt(id);
 
-    const existingReport = await prisma.civicIssue.findUnique({
-      where: { id: reportId }
+    const existingCivicIssue = await prisma.civicIssue.findUnique({
+      where: { id: civicIssueId }
     });
-    if (!existingReport) {
-      return res.status(404).json({ message: "Report not found" });
+    if (!existingCivicIssue) {
+      return res.status(404).json({ message: "Civic issue not found" });
     }
+    
     // Delete associated data securely within a transaction
     await prisma.$transaction([
-      prisma.comment.deleteMany({ where: { civicIssueId: reportId } }),
-      prisma.civicIssue.delete({ where: { id: reportId } })
+      prisma.comment.deleteMany({ where: { civicIssueId: civicIssueId } }),
+      prisma.civicIssue.delete({ where: { id: civicIssueId } })
     ]);
 
     res.status(200).json({
       status: "success",
-      message: "Report and associated comments deleted successfully"
+      message: "Civic issue and associated comments deleted successfully"
     });
   } catch (error) {
     res.status(500).json({
       status: "error",
-      message: "Error deleting report",
+      message: "Error deleting civic issue",
       details: error.message,
     });
   }
@@ -526,25 +522,25 @@ const updateStatusByMagicLink = async (req, res) => {
   }
 
   try {
-    const report = await prisma.civicIssue.findFirst({
+    const civicIssue = await prisma.civicIssue.findFirst({
       where: {
         id: parseInt(id),
         accessSecret: secret,
       },
     });
 
-    if (!report) {
+    if (!civicIssue) {
       return res.status(403).send("<h1>Invalid Link</h1>");
     }
 
-    const reportDept = await prisma.Intervention.findFirst({
+    const intervention = await prisma.intervention.findFirst({
       where: {
-        reportId: parseInt(id),
+        civicIssueId: parseInt(id),
         departmentId: parseInt(departmentId),
       },
     });
 
-    if (!reportDept) {
+    if (!intervention) {
       console.log("❌ No department match", { id, departmentId });
       return res.status(404).send("<h1>Department not assigned</h1>");
     }
@@ -556,8 +552,8 @@ const updateStatusByMagicLink = async (req, res) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.Intervention.update({
-        where: { id: reportDept.id },
+      await tx.intervention.update({
+        where: { id: intervention.id },
         data: {
           status: status === "IN_PROGRESS" ? "IN_PROGRESS" : "COMPLETED",
           completedAt: status === "RESOLVED" ? new Date() : null,
@@ -565,22 +561,22 @@ const updateStatusByMagicLink = async (req, res) => {
       });
 
       if (status === "IN_PROGRESS") {
-        await tx.report.update({
+        await tx.civicIssue.update({
           where: { id: parseInt(id) },
           data: { status: "IN_PROGRESS" },
         });
       }
 
       if (status === "RESOLVED") {
-        const pending = await tx.Intervention.count({
+        const pending = await tx.intervention.count({
           where: {
-            reportId: parseInt(id),
+            civicIssueId: parseInt(id),
             status: { not: "COMPLETED" },
           },
         });
 
         if (pending === 0) {
-          await tx.report.update({
+          await tx.civicIssue.update({
             where: { id: parseInt(id) },
             data: {
               status: "RESOLVED",
@@ -605,25 +601,24 @@ const updateStatusByMagicLink = async (req, res) => {
   }
 };
 
-
 const showAssignDepartmentForm = async (req, res) => {
-  const { reportId } = req.params;
+  const { civicIssueId } = req.params;
   const { secret ,  departmentId  } = req.query;
 
   if (departmentId) {
     return assignDepartment(req, res);
   }
 
-  const report = await prisma.report.findUnique({
-    where: { id: parseInt(reportId) },
-    include: { departments: { include: { department: true } } }
+  const civicIssue = await prisma.civicIssue.findUnique({
+    where: { id: parseInt(civicIssueId) },
+    include: { interventions: { include: { department: true } } }
   });
 
-  if (!report || report.accessSecret !== secret) {
+  if (!civicIssue || civicIssue.accessSecret !== secret) {
     return res.status(403).send("Invalid or expired link");
   }
 
-  const assignedIds = report.departments.map(d => d.departmentId);
+  const assignedIds = civicIssue.interventions.map(d => d.departmentId);
   const available = await prisma.department.findMany({
     where: { id: { notIn: assignedIds } }
   });
@@ -635,8 +630,8 @@ const showAssignDepartmentForm = async (req, res) => {
   res.send(`
     <html><body style="font-family:sans-serif; max-width:400px; margin:40px auto; padding:20px;">
       <h2>Assign Additional Department</h2>
-      <p>Report: <strong>${report.title}</strong></p>
-      <form method="GET" action="/api/reports/${reportId}/assign-department">
+      <p>Civic Issue: <strong>${civicIssue.title}</strong></p>
+      <form method="GET" action="/api/civicIssues/${civicIssueId}/assign-department">
         <input type="hidden" name="secret" value="${secret}" />
         <select name="departmentId"
                 style="width:100%; padding:8px; margin:10px 0; border-radius:4px;">
@@ -652,10 +647,9 @@ const showAssignDepartmentForm = async (req, res) => {
   `);
 };
 
-
 const assignDepartment = async (req, res) => {
   try {
-    const { reportId } = req.params;
+    const { civicIssueId } = req.params;
     const { departmentId, secret } = req.query;
 
     console.log("Assign Query:", req.query);
@@ -664,11 +658,11 @@ const assignDepartment = async (req, res) => {
       return res.status(400).send("Missing departmentId");
     }
 
-    const report = await prisma.report.findUnique({
-      where: { id: parseInt(reportId) }
+    const civicIssue = await prisma.civicIssue.findUnique({
+      where: { id: parseInt(civicIssueId) }
     });
 
-    if (!report || report.accessSecret !== secret) {
+    if (!civicIssue || civicIssue.accessSecret !== secret) {
       return res.status(403).send("Invalid or expired link");
     }
 
@@ -680,32 +674,32 @@ const assignDepartment = async (req, res) => {
       return res.status(404).send("Department not found");
     }
 
-    await prisma.reportDepartment.upsert({
+    await prisma.intervention.upsert({
       where: {
-        reportId_departmentId: {
-          reportId: parseInt(reportId),
+        civicIssueId_departmentId: {
+          civicIssueId: parseInt(civicIssueId),
           departmentId: parseInt(departmentId),
         },
       },
       update: {},
       create: {
-        reportId: parseInt(reportId),
+        civicIssueId: parseInt(civicIssueId),
         departmentId: parseInt(departmentId),
-        title: report.title,
-        description: report.description,
-        img: report.photoUrl,
+        title: civicIssue.title,
+        description: civicIssue.description,
+        img: civicIssue.photoUrl,
       },
     });
 
-    const updatedReport = await prisma.report.findUnique({
-      where: { id: parseInt(reportId) }
+    const updatedCivicIssue = await prisma.civicIssue.findUnique({
+      where: { id: parseInt(civicIssueId) }
     });
 
-    const links = generateMagicLinks(updatedReport, dept.id);
+    const links = generateMagicLinks(updatedCivicIssue, dept.id);
 
     console.log("📩 Second Email Links:", links);
 
-    sendStatusEmail(dept.email, updatedReport, links)
+    sendStatusEmail(dept.email, updatedCivicIssue, links)
       .catch(err => console.error("Email error:", err));
 
     res.send(`
@@ -723,14 +717,14 @@ const assignDepartment = async (req, res) => {
   }
 };
 
-const getReportDepartments = async (req, res) => {
+const getCivicIssueInterventions = async (req, res) => {
   try {
     const { id } = req.params;
-    const reportId = parseInt(id);
-    const report = await prisma.report.findUnique({
-      where: { id: reportId },
+    const civicIssueId = parseInt(id);
+    const civicIssue = await prisma.civicIssue.findUnique({
+      where: { id: civicIssueId },
       include: {
-        departments: {
+        interventions: {
           include: {
             department: {
               select: {
@@ -742,13 +736,13 @@ const getReportDepartments = async (req, res) => {
         }
       }
     });
-    if (!report) {
+    if (!civicIssue) {
       return res.status(404).json({
         status: "error",
-        message: "Report not found"
+        message: "Civic issue not found"
       });
     }
-    const departments = report.departments.map(({ id, department, status, assignedAt, completedAt }) => ({
+    const interventions = civicIssue.interventions.map(({ id, department, status, assignedAt, completedAt }) => ({
       id,
       department,
       status,
@@ -757,19 +751,19 @@ const getReportDepartments = async (req, res) => {
     }));
     res.status(200).json({
       status: "success",
-      data: departments
+      data: interventions
     });
   } catch (error) {
-    console.error('Error fetching report departments:', error);
+    console.error('Error fetching civic issue interventions:', error);
     res.status(500).json({
       status: "error",
-      message: "Failed to fetch report departments",
+      message: "Failed to fetch civic issue interventions",
       details: error.message
     });
   }
 };
 
-const updateReportStatus = async (req, res) => {
+const updateCivicIssueStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -783,35 +777,35 @@ const updateReportStatus = async (req, res) => {
   }
 
   try {
-    const reportId = parseInt(id);
+    const civicIssueId = parseInt(id);
     const deptId = req.user.departmentId;
 
-    // Fetch report and dept assignment
-    const [report, reportDept] = await Promise.all([
-      prisma.report.findUnique({ where: { id: reportId } }),
-      prisma.reportDepartment.findUnique({
+    // Fetch civic issue and dept assignment
+    const [civicIssue, intervention] = await Promise.all([
+      prisma.civicIssue.findUnique({ where: { id: civicIssueId } }),
+      prisma.intervention.findUnique({
         where: {
-          reportId_departmentId: { reportId, departmentId: deptId }
+          civicIssueId_departmentId: { civicIssueId, departmentId: deptId }
         }
       })
     ]);
 
-    if (!report) return res.status(404).json({ error: 'Report not found' });
-    if (!reportDept) return res.status(403).json({ error: 'Department not assigned to report' });
+    if (!civicIssue) return res.status(404).json({ error: 'Civic issue not found' });
+    if (!intervention) return res.status(403).json({ error: 'Department not assigned to civic issue' });
 
-    const currentDeptStatus = reportDept.status;
+    const currentDeptStatus = intervention.status;
     const newDeptStatus = status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'COMPLETED';
     if (currentDeptStatus === newDeptStatus) {
       return res.status(200).json({ message: 'Status already up to date', status: status });
     }
 
-    if (status === 'IN_PROGRESS' && report.status === 'RESOLVED') {
-      return res.status(400).json({ error: 'Cannot revert resolved report to in progress' });
+    if (status === 'IN_PROGRESS' && civicIssue.status === 'RESOLVED') {
+      return res.status(400).json({ error: 'Cannot revert resolved civic issue to in progress' });
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.reportDepartment.update({
-        where: { id: reportDept.id },
+      await tx.intervention.update({
+        where: { id: intervention.id },
         data: {
           status: newDeptStatus,
           completedAt: newDeptStatus === 'COMPLETED' ? new Date() : null,
@@ -819,16 +813,16 @@ const updateReportStatus = async (req, res) => {
       });
 
       if (status === 'RESOLVED') {
-        const pendingDepts = await tx.reportDepartment.count({
+        const pendingDepts = await tx.intervention.count({
           where: {
-            reportId: reportId,
+            civicIssueId: civicIssueId,
             status: { not: 'COMPLETED' },
           },
         });
 
         if (pendingDepts === 0) {
-          await tx.report.update({
-            where: { id: reportId },
+          await tx.civicIssue.update({
+            where: { id: civicIssueId },
             data: { 
               status: 'RESOLVED', 
               resolvedAt: new Date(), 
@@ -837,8 +831,8 @@ const updateReportStatus = async (req, res) => {
           });
         }
       } else {
-        await tx.report.update({
-          where: { id: reportId },
+        await tx.civicIssue.update({
+          where: { id: civicIssueId },
           data: { status: 'IN_PROGRESS' },
         });
       }
@@ -856,104 +850,17 @@ const updateReportStatus = async (req, res) => {
 };
 
 module.exports = {
-    createReport, 
-    getAllReports,
-    getMyReports,
-    getReportById,
-    getReportDepartments,
-    updateReport,
-    deleteReport,
+    createCivicIssue, 
+    getAllCivicIssues,
+    getMyCivicIssues,
+    getCivicIssueById,
+    getCivicIssueInterventions,
+    updateCivicIssue,
+    deleteCivicIssue,
     updateStatusByMagicLink,
-    getNearbyReports,
+    getNearbyCivicIssues,
     getAllCategories,
     assignDepartment,
     showAssignDepartmentForm,
-    updateReportStatus
+    updateCivicIssueStatus
 };
-
-
-=======
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
-
-const createReport = async (req, res) => {
-    try {
-        console.log("Incoming Request Body:", req.body);
-
-        const { title, description, latitude, longitude, categoryId } = req.body;
-
-        const photoUrl = req.file ? `/uploads/${req.file.filename}` : req.body.photoUrl;
-
-        if (!photoUrl) {
-        return res.status(400).json({ error: "Image is required" });
-    }
-        const newReport = await prisma.report.create({
-            data: {
-                title,
-                description,
-                photoUrl,
-                latitude: parseFloat(latitude),
-                longitude: parseFloat(longitude),
-                userId: req.user.id,
-                categoryId: parseInt(categoryId),
-            },
-            include: {
-                category: true,
-            },
-        });
-
-        return res.status(201).json(newReport);
-    } catch (error) {
-        console.error("Detailed Prisma Error:", error);
-        return res.status(500).json({
-            error: "Internal Server Error",
-            message: error.message,
-        });
-    }
-};
-
-const getAllReports = async (req, res) => {
-    try {
-        // Pagination parameters
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        // Calculate the number of records to skip based on the current page and limit
-        const skip = (page - 1) * limit;
-        // Fetch reports with pagination and total count
-
-        //we use Promise.all to execute both the findMany and count operations concurrently, improving performance by reducing the total time taken to fetch data and count records. This way, we can return both the paginated reports and the total count in a single response.
-        const [reports, totalReports] = await Promise.all([
-            // Fetch reports with pagination, including related category and user info
-            prisma.report.findMany({
-                skip,
-                take: limit,
-                orderBy: { createdAt: "desc" },
-                include: {
-                    category: true,
-                    user: { select: { name: true, email: true } },
-                },
-            }),
-            prisma.report.count(),
-        ]);
-        // Return paginated response with metadata
-        res.status(200).json({
-            status: "success",
-            results: reports.length,
-            metadata: {
-                total: totalReports,
-                page,
-                totalPages: Math.ceil(totalReports / limit),
-            },
-            data: reports,
-        });
-    } catch (error) {
-        console.error("Detailed Prisma Error:", error);
-        res.status(500).json({
-            error: "Internal Server Error",
-            message: error.message,
-        });
-    }
-};
-
-module.exports = { createReport, getAllReports };
->>>>>>> Stashed changes

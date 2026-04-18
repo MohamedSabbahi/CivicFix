@@ -28,10 +28,6 @@ const Settings = () => <div className="p-8"><h1>Settings</h1></div>;
 const ReportDetail = () => <div className="p-8"><h1>Report Details</h1></div>;
 const NotFound = () => <div className="p-8 text-red-500"><h1>404 - Page Not Found</h1></div>;
 
-
-
-
-
 function App() {
   return (
     <>
@@ -50,8 +46,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-<Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-code" element={<VerifyCode />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected Routes */}
@@ -66,7 +61,7 @@ function App() {
           <Route path="/reports/:id" element={<ReportDetails />} />
           <Route path="/create-report" element={<CreateReport />} />
         </Route>
-//Admin Routes
+        {/*Admin Routes*/}
       <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="analytics"   element={<Analytics />} />

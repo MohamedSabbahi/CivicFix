@@ -97,9 +97,6 @@ model CivicIssue {
   // Relationships
   interventions Intervention[]
   comments      Comment[]
-
-  // this is for a reverse relation to get all reports for a department through category
-  departments ReportDepartment[]
   
   @@index([status])
   @@index([userId])
@@ -108,20 +105,19 @@ model CivicIssue {
   @@index([title])               // Critical for Search
 }
 
-
 model Intervention {
   id            Int                   @id @default(autoincrement())
-  reportId      Int
+  civicIssueId  Int
   departmentId  Int
   
-  status        DepartmentWorkStatus @default(PENDING)
+  status        DepartmentWorkStatus  @default(PENDING)
 
-  assignedAt    DateTime             @default(now())
+  assignedAt    DateTime              @default(now())
   completedAt   DateTime?
 
   // RELATIONS
-  civicIssue        CivicIssue               @relation(fields: [civicIssueId], references: [id], onDelete: Cascade)
-  department    Department           @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  civicIssue    CivicIssue            @relation(fields: [civicIssueId], references: [id], onDelete: Cascade)
+  department    Department            @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   @@unique([civicIssueId, departmentId])
 }
