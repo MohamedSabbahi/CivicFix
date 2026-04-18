@@ -17,8 +17,9 @@ const {
     getAllCategories,
     assignDepartment,
     showAssignDepartmentForm,
-    getCivicIssueInterventions, // Replaces 'getReportDepartments'
-    updateCivicIssueStatus
+    getCivicIssueInterventions, 
+    updateCivicIssueStatus,
+    getReportComments
 } = require('../controllers/reportController');
 
 const { 
@@ -40,7 +41,7 @@ router.put('/:id', protect, updateCivicIssue);
 router.delete('/:id', protect, admin, deleteCivicIssue);
 
 // Comment routes
-
+router.get('/:id/comments', getReportComments);
 router.post('/:id/comments', protect, createComment);
 router.delete('/:id/comments/:commentId', protect, deleteComment);
 
