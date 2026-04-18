@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect ,admin } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
+const { createReport, getAllReports } = require('../controllers/reportController');
 const { validateReport } = require('../middleware/reportValidator'); 
 const { createReport,
         updateStatusByMagicLink,
@@ -42,4 +43,5 @@ router.delete('/:id/comments/:commentId', protect, deleteComment);
 router.get('/:reportId/assign-department', showAssignDepartmentForm);
 router.post('/:reportId/assign-department', assignDepartment);
 
+router.get('/', getAllReports);
 module.exports = router;

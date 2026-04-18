@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 const prisma = require('../utils/prisma');
 const { Prisma } = require('@prisma/client');
 const { generateMagicLinks } = require('../utils/linkGenerator');
@@ -871,3 +872,88 @@ module.exports = {
 };
 
 
+=======
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+const createReport = async (req, res) => {
+    try {
+        console.log("Incoming Request Body:", req.body);
+
+        const { title, description, latitude, longitude, categoryId } = req.body;
+
+        const photoUrl = req.file ? `/uploads/${req.file.filename}` : req.body.photoUrl;
+
+        if (!photoUrl) {
+        return res.status(400).json({ error: "Image is required" });
+    }
+        const newReport = await prisma.report.create({
+            data: {
+                title,
+                description,
+                photoUrl,
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude),
+                userId: req.user.id,
+                categoryId: parseInt(categoryId),
+            },
+            include: {
+                category: true,
+            },
+        });
+
+        return res.status(201).json(newReport);
+    } catch (error) {
+        console.error("Detailed Prisma Error:", error);
+        return res.status(500).json({
+            error: "Internal Server Error",
+            message: error.message,
+        });
+    }
+};
+
+const getAllReports = async (req, res) => {
+    try {
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        // Calculate the number of records to skip based on the current page and limit
+        const skip = (page - 1) * limit;
+        // Fetch reports with pagination and total count
+
+        //we use Promise.all to execute both the findMany and count operations concurrently, improving performance by reducing the total time taken to fetch data and count records. This way, we can return both the paginated reports and the total count in a single response.
+        const [reports, totalReports] = await Promise.all([
+            // Fetch reports with pagination, including related category and user info
+            prisma.report.findMany({
+                skip,
+                take: limit,
+                orderBy: { createdAt: "desc" },
+                include: {
+                    category: true,
+                    user: { select: { name: true, email: true } },
+                },
+            }),
+            prisma.report.count(),
+        ]);
+        // Return paginated response with metadata
+        res.status(200).json({
+            status: "success",
+            results: reports.length,
+            metadata: {
+                total: totalReports,
+                page,
+                totalPages: Math.ceil(totalReports / limit),
+            },
+            data: reports,
+        });
+    } catch (error) {
+        console.error("Detailed Prisma Error:", error);
+        res.status(500).json({
+            error: "Internal Server Error",
+            message: error.message,
+        });
+    }
+};
+
+module.exports = { createReport, getAllReports };
+>>>>>>> Stashed changes
