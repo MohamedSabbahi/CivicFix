@@ -27,7 +27,6 @@ router.get('/profile', protect, getMe);
 router.put('/profileUpdate', protect, updateProfile);
 router.post('/forgotPassword', forgotPassword);
 router.put('/resetPassword/:resettoken', resetPassword);
-router.post('/verifyResetCode', verifyResetCode);
 router.put('/changePassword', protect, changePassword);
 
 module.exports = router;
