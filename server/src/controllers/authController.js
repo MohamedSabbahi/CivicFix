@@ -133,55 +133,53 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'There is no user with that email' });
     }
 
-    // 1. Generate a secure 4-digit numeric PIN (1000 to 9999)
     const resetToken = crypto.randomInt(1000, 10000).toString();
-
-    // 2. Hash the PIN for the Database securely
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
 
+    // 1. Save the token to the database first
     await prisma.user.update({
       where: { id: user.id },
       data: {
         resetPasswordToken,
-        resetPasswordExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 Minutes
+        resetPasswordExpires: new Date(Date.now() + 10 * 60 * 1000), 
       },
     });
 
-    // 3. Dark Mode HTML Email Template
     const htmlMessage = `
-      <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b;">
-          <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">CivicFix</h1>
-              <p style="color: #94a3b8; margin-top: 5px; font-size: 14px;">Password Reset Request</p>
-          </div>
-          <div style="background-color: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155;">
-              <p style="color: #cbd5e1; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
-                  Hello ${user.name || 'Citizen'},<br><br>
-                  We received a request to reset the password for your account. Please enter the following 4-digit verification code in your app to proceed:
-              </p>
-              <div style="text-align: center; margin: 30px 0;">
-                  <span style="display: inline-block; background-color: #0f172a; color: #60a5fa; font-size: 42px; font-weight: bold; letter-spacing: 12px; padding: 20px 40px; border-radius: 12px; border: 2px dashed #3b82f6;">
-                      ${resetToken}
-                  </span>
-              </div>
-              <p style="color: #94a3b8; font-size: 14px; text-align: center; margin-bottom: 0;">
-                  This code will expire in <strong style="color: #f8fafc;">10 minutes</strong>.
-              </p>
-          </div>
-      </div>
-    `;
+      <span style="display: inline-block; background-color: #0f172a; color: #60a5fa; font-size: 42px; font-weight: bold; letter-spacing: 12px; padding: 20px 40px; border-radius: 12px; border: 2px dashed #3b82f6;">
+          ${resetToken}
+      </span>
+      `;
 
-    await sendEmail({
-      email: user.email,
-      subject: 'Your Password Reset Code',
-      html: htmlMessage,
-      message: `Your reset code is: ${resetToken}`, 
-    });
+    // 2. Wrap the email dispatch in a try/catch
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Your Password Reset Code',
+        html: htmlMessage,
+        message: `Your reset code is: ${resetToken}`, 
+      });
 
-    res.status(200).json({ success: true, message: 'OTP sent to email' });
+      res.status(200).json({ success: true, message: 'OTP sent to email' });
+      
+    } catch (emailError) {
+      console.error("Resend API Error:", emailError);
+      
+      // 3. Rollback the database if the email fails so the user can try again immediately
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        },
+      });
+
+      return res.status(500).json({ message: 'Email could not be sent. Please try again.' });
+    }
+
   } catch (err) {
     console.error("Forgot PW Error:", err);
     res.status(500).json({ message: 'Server Error' });
