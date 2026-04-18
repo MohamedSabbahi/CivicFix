@@ -5,12 +5,11 @@ const { validationResult } = require('express-validator');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 
-
 const generateToken = (id) => {
     return jwt.sign({id}, process.env.JWT_SECRET, {
         expiresIn: '30d',
-    })
-}
+    });
+};
 
 exports.register = async (req, res) => {
     // Check if there are validation errors
@@ -19,7 +18,7 @@ exports.register = async (req, res) => {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    try{
+    try {
         const { name, email, password } = req.body;
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -54,14 +53,13 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-
-    //We check if there are validation errors. if any, we return 400 with the errors array.
+    // We check if there are validation errors. if any, we return 400 with the errors array.
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    try{
+    try {
         const { email, password } = req.body;
 
         const user = await prisma.user.findUnique({ where: { email } });
@@ -152,7 +150,6 @@ exports.forgotPassword = async (req, res) => {
       },
     });
 
-
     // 3. Dark Mode HTML Email Template
     const htmlMessage = `
       <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b;">
@@ -194,7 +191,6 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(req.params.resettoken)
@@ -230,7 +226,7 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-  exports.changePassword = async (req, res) => {
+exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
@@ -239,7 +235,6 @@ exports.resetPassword = async (req, res) => {
       where: { id: userId },
       select: { id: true, password: true }
     });
-
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
@@ -260,7 +255,5 @@ exports.resetPassword = async (req, res) => {
   } catch (error) {
     console.error("Change password error:", error);
     res.status(500).json({ message: "Server error." });
-
   }
 };
-

@@ -7,23 +7,23 @@ const getDepartmentStats = async (req, res) => {
         const stats = await prisma.$queryRaw`
             SELECT 
                 d.name as department,
-                COUNT(r.id) as "resolvedReportsCount",
-                AVG(EXTRACT(EPOCH FROM (r."resolvedAt" - r."createdAt")) / 3600) as "averageResolutionTime"
-            FROM "Report" r
-            JOIN "Category" c ON r."categoryId" = c.id
+                COUNT(ci.id) as "resolvedCivicIssuesCount",
+                AVG(EXTRACT(EPOCH FROM (ci."resolvedAt" - ci."createdAt")) / 3600) as "averageResolutionTime"
+            FROM "CivicIssue" ci
+            JOIN "Category" c ON ci."categoryId" = c.id
             JOIN "Department" d ON c."departmentId" = d.id
-            WHERE r.status = 'RESOLVED'
+            WHERE ci.status = 'RESOLVED'
             GROUP BY d.name;
         `;
 
         // Formats BigInt counts and float values into a clean, human-readable API response
         const formattedStats = stats.map(stat => ({
             department: stat.department,
-            resolvedReportsCount: Number(stat.resolvedReportsCount),
+            resolvedCivicIssuesCount: Number(stat.resolvedCivicIssuesCount),
             averageResolutionTime: stat.averageResolutionTime 
                 ? parseFloat(stat.averageResolutionTime).toFixed(2) + " hours" 
                 : "0.00 hours",
-            reportsDetail: [] 
+            civicIssuesDetail: [] 
         }));
 
         res.status(200).json(formattedStats);
@@ -36,43 +36,43 @@ const getDepartmentStats = async (req, res) => {
 // Provides a high-level overview of system activity and user distribution
 const getOverviewStats = async (req, res) => {
     try {
-        // Groups reports by their status enum to provide a quick summary
-        const statusCounts = await prisma.report.groupBy({
+        // Groups civic issues by their status enum to provide a quick summary
+        const statusCounts = await prisma.civicIssue.groupBy({
             by: ['status'],
             _count: true
         });
 
-        const totalReports = statusCounts.reduce((sum, s) => sum + s._count, 0);
-        const pendingReports = statusCounts.find(s => s.status === 'PENDING')?._count || 0;
-        const inProgressReports = statusCounts.find(s => s.status === 'IN_PROGRESS')?._count || 0;
-        const resolvedReports = statusCounts.find(s => s.status === 'RESOLVED')?._count || 0;
+        const totalCivicIssues = statusCounts.reduce((sum, s) => sum + s._count, 0);
+        const pendingCivicIssues = statusCounts.find(s => s.status === 'PENDING')?._count || 0;
+        const inProgressCivicIssues = statusCounts.find(s => s.status === 'IN_PROGRESS')?._count || 0;
+        const resolvedCivicIssues = statusCounts.find(s => s.status === 'RESOLVED')?._count || 0;
 
         const totalUsers = await prisma.user.count();
         const citizensCount = await prisma.user.count({ where: { role: 'CITIZEN' } });
 
         // Calculates the overall system average resolution speed
-        const resolvedWithTime = await prisma.report.findMany({
+        const resolvedWithTime = await prisma.civicIssue.findMany({
             where: { status: 'RESOLVED', resolvedAt: { not: null } },
             select: { createdAt: true, resolvedAt: true }
         });
 
         let overallAvgHours = 0;
         if (resolvedWithTime.length > 0) {
-            const totalTime = resolvedWithTime.reduce((sum, r) => sum + (new Date(r.resolvedAt) - new Date(r.createdAt)), 0);
+            const totalTime = resolvedWithTime.reduce((sum, ci) => sum + (new Date(ci.resolvedAt) - new Date(ci.createdAt)), 0);
             overallAvgHours = (totalTime / resolvedWithTime.length / (1000 * 60 * 60)).toFixed(2);
         }
 
-        const resolutionRate = totalReports > 0 ? ((resolvedReports / totalReports) * 100).toFixed(2) : '0.00';
+        const resolutionRate = totalCivicIssues > 0 ? ((resolvedCivicIssues / totalCivicIssues) * 100).toFixed(2) : '0.00';
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayReports = await prisma.report.count({ where: { createdAt: { gte: today } } });
+        const todayCivicIssues = await prisma.civicIssue.count({ where: { createdAt: { gte: today } } });
 
         res.status(200).json({
             status: 'success',
             data: {
-                totalReports, totalUsers, citizensCount, pendingReports,
-                inProgressReports, resolvedReports, todayReports,
+                totalCivicIssues, totalUsers, citizensCount, pendingCivicIssues,
+                inProgressCivicIssues, resolvedCivicIssues, todayCivicIssues,
                 overallAverageTime: `${overallAvgHours} hours`,
                 resolutionRate: `${resolutionRate}%`
             }
@@ -112,105 +112,103 @@ const addDepartment = async (req, res) => {
     }
 };
 
-// Removes a department and cleans up all related categories and reports
+// Removes a department and cleans up all related categories and civic issues
 const deleteDepartment = async (req, res) => {
-try {
-    const { id }  = req.params;
-    const deptId  = parseInt(id);
+    try {
+        const { id }  = req.params;
+        const deptId  = parseInt(id);
 
-    await prisma.comment.deleteMany({
-    where: {
-        report: {
-            category: { departmentId: deptId }
-        }
+        await prisma.comment.deleteMany({
+            where: {
+                civicIssue: {
+                    category: { departmentId: deptId }
+                }
+            }
+        });
+
+        await prisma.civicIssue.deleteMany({
+            where: {
+                category: { departmentId: deptId }
+            }
+        });
+
+        await prisma.category.deleteMany({
+            where: { departmentId: deptId }
+        });
+
+        await prisma.department.delete({
+            where: { id: deptId }
+        });
+
+        res.status(200).json({ 
+            status: "success", 
+            message: "Department and all related data deleted successfully" 
+        });
+
+    } catch (error) {
+        console.error("Delete Error:", error);
+        res.status(500).json({ error: "Server error during deletion" });
     }
-    });
-
-    await prisma.report.deleteMany({
-        where: {
-            category: { departmentId: deptId }
-    }
-    });
-
-    await prisma.category.deleteMany({
-        where: { departmentId: deptId }
-    });
-
-    await prisma.department.delete({
-        where: { id: deptId }
-    });
-
-    res.status(200).json({ 
-        status: "success", 
-        message: "Department and all related data deleted successfully" 
-    });
-
-} catch (error) {
-    console.error("Delete Error:", error);
-    res.status(500).json({ error: "Server error during deletion" });
-}
 };
 
+const updateCivicIssueStatus = async (req, res) => {
+    try {
+        const { id }     = req.params;
+        const { status } = req.body;
 
-const updateReportStatus = async (req, res) => {
-try {
-    const { id }     = req.params;
-    const { status } = req.body;
+        if (!status) {
+            return res.status(400).json({ 
+                status: "error", 
+                message: "Status is required" 
+            });
+        }
 
-    if (!status) {
-    return res.status(400).json({ 
-        status: "error", 
-        message: "Status is required" 
-    });
+        const validStatuses = ['PENDING', 'IN_PROGRESS', 'RESOLVED'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ 
+                status: "error", 
+                message: "Invalid status value" 
+            });
+        }
+
+        const updated = await prisma.civicIssue.update({
+            where: { id: parseInt(id) },
+            data: {
+                status,
+                resolvedAt: status === 'RESOLVED' ? new Date() : null,
+            },
+        });
+
+        res.status(200).json({ 
+            status: 'success', 
+            data: updated 
+        });
+
+    } catch (error) {
+        console.error("Update Status Error:", error);
+        res.status(500).json({ 
+            status: 'error', 
+            message: error.message 
+        });
     }
-
-    const validStatuses = ['PENDING', 'IN_PROGRESS', 'RESOLVED'];
-    if (!validStatuses.includes(status)) {
-        return res.status(400).json({ 
-        status: "error", 
-        message: "Invalid status value" 
-    });
-    }
-
-    const updated = await prisma.report.update({
-        where: { id: parseInt(id) },
-        data: {
-        status,
-        resolvedAt: status === 'RESOLVED' ? new Date() : null,
-    },
-    });
-
-    res.status(200).json({ 
-        status: 'success', 
-        data: updated 
-    });
-
-} catch (error) {
-    console.error("Update Status Error:", error);
-    res.status(500).json({ 
-        status: 'error', 
-        message: error.message 
-    });
-}
 };
 
 const getDepartments = async (req, res) => {
     try {
-    const departments = await prisma.department.findMany({
+        const departments = await prisma.department.findMany({
             include: { categories: true }
-    });
-    res.status(200).json({ 
+        });
+        res.status(200).json({ 
             status: 'success', 
             data: departments 
-    });
+        });
     } catch (error) {
-    res.status(500).json({ 
-        status: 'error', 
-        message: error.message 
-    });
-}
+        res.status(500).json({ 
+            status: 'error', 
+            message: error.message 
+        });
+    }
 };
-
 
 const updateDepartment = async (req, res) => {
     try {
@@ -251,101 +249,102 @@ const updateDepartment = async (req, res) => {
     }
 };
 
-const getReportsByPeriod = async (req, res) => {
-try {
-    const { period } = req.query; // day / month / year
+const getCivicIssuesByPeriod = async (req, res) => {
+    try {
+        const { period } = req.query; // day / month / year
 
-    const now   = new Date();
-    let start, groupBy, labels = [];
+        const now   = new Date();
+        let start, groupBy, labels = [];
 
-    if (period === "day") {
-      // 7 derniers jours
-        start = new Date(now);
-        start.setDate(now.getDate() - 6);
-        start.setHours(0, 0, 0, 0);
+        if (period === "day") {
+            // 7 derniers jours
+            start = new Date(now);
+            start.setDate(now.getDate() - 6);
+            start.setHours(0, 0, 0, 0);
 
-    const reports = await prisma.report.findMany({
-        where: { createdAt: { gte: start } },
-        select: { createdAt: true }
-    });
+            const civicIssues = await prisma.civicIssue.findMany({
+                where: { createdAt: { gte: start } },
+                select: { createdAt: true }
+            });
 
-    const counts = {};
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        const key = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-        counts[key] = 0;
+            const counts = {};
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(now);
+                d.setDate(now.getDate() - i);
+                const key = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                counts[key] = 0;
+            }
+            civicIssues.forEach(ci => {
+                const key = new Date(ci.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                if (counts[key] !== undefined) counts[key]++;
+            });
+            return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
+        }
+
+        if (period === "month") {
+            // 12 derniers mois
+            start = new Date(now);
+            start.setMonth(now.getMonth() - 11);
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
+
+            const civicIssues = await prisma.civicIssue.findMany({
+                where: { createdAt: { gte: start } },
+                select: { createdAt: true }
+            });
+
+            const counts = {};
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now);
+                d.setMonth(now.getMonth() - i);
+                const key = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                counts[key] = 0;
+            }
+            civicIssues.forEach(ci => {
+                const key = new Date(ci.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                if (counts[key] !== undefined) counts[key]++;
+            });
+            return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
+        }
+
+        if (period === "year") {
+            // 5 dernières années
+            start = new Date(now);
+            start.setFullYear(now.getFullYear() - 4);
+            start.setMonth(0, 1);
+            start.setHours(0, 0, 0, 0);
+
+            const civicIssues = await prisma.civicIssue.findMany({
+                where: { createdAt: { gte: start } },
+                select: { createdAt: true }
+            });
+
+            const counts = {};
+            for (let i = 4; i >= 0; i--) {
+                const key = String(now.getFullYear() - i);
+                counts[key] = 0;
+            }
+            civicIssues.forEach(ci => {
+                const key = String(new Date(ci.createdAt).getFullYear());
+                if (counts[key] !== undefined) counts[key]++;
+            });
+            return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
+        }
+
+        res.status(400).json({ status: "error", message: "Invalid period" });
+
+    } catch (error) {
+        res.status(500).json({ status: "error", message: error.message });
     }
-    reports.forEach(r => {
-        const key = new Date(r.createdAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-        if (counts[key] !== undefined) counts[key]++;
-    });
-    return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
-    }
-
-    if (period === "month") {
-      // 12 derniers mois
-        start = new Date(now);
-        start.setMonth(now.getMonth() - 11);
-        start.setDate(1);
-        start.setHours(0, 0, 0, 0);
-
-    const reports = await prisma.report.findMany({
-        where: { createdAt: { gte: start } },
-        select: { createdAt: true }
-    });
-
-    const counts = {};
-    for (let i = 11; i >= 0; i--) {
-        const d = new Date(now);
-        d.setMonth(now.getMonth() - i);
-        const key = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-        counts[key] = 0;
-    }
-    reports.forEach(r => {
-        const key = new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" });
-        if (counts[key] !== undefined) counts[key]++;
-    });
-        return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
-    }
-
-    if (period === "year") {
-      // 5 dernières années
-        start = new Date(now);
-        start.setFullYear(now.getFullYear() - 4);
-        start.setMonth(0, 1);
-        start.setHours(0, 0, 0, 0);
-
-    const reports = await prisma.report.findMany({
-        where: { createdAt: { gte: start } },
-        select: { createdAt: true }
-    });
-
-    const counts = {};
-    for (let i = 4; i >= 0; i--) {
-        const key = String(now.getFullYear() - i);
-        counts[key] = 0;
-    }
-    reports.forEach(r => {
-        const key = String(new Date(r.createdAt).getFullYear());
-        if (counts[key] !== undefined) counts[key]++;
-    });
-        return res.json({ status: "success", data: Object.entries(counts).map(([label, count]) => ({ label, count })) });
-    }
-
-    res.status(400).json({ status: "error", message: "Invalid period" });
-
-} catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
-}
 };
 
-module.exports = { getDepartmentStats, 
+module.exports = { 
+    getDepartmentStats, 
     getOverviewStats, 
     addDepartment, 
     deleteDepartment, 
-    updateReportStatus , 
+    updateCivicIssueStatus, 
     getDepartments,
     updateDepartment,
-    getReportsByPeriod
+    getCivicIssuesByPeriod
 };
