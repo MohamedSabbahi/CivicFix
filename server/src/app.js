@@ -3,56 +3,57 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+
 const authRoutes = require('./routes/authRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const chatbotRoutes = require('./routes/chatbotRoutes');
+
 const app = express();
 
+// Trust Render's proxy so rate limiting IP detection works correctly
 app.set('trust proxy', 1);
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-
+// Use environment variable for production, fallback to localhost for development
 app.use(cors({
-    origin: 'http://localhost:5173', 
+    origin: process.env.CLIENT_URL || 'http://localhost:5173', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 
 app.use(morgan('dev'));
-
-app.use(express.json());
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts
-  message: { message: 'Too many login attempts, please try again after 15 minutes.' }
-});
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/forgotpassword', authLimiter);
-
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 100 requests per windowMs
-});
-
-app.use(generalLimiter);
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// --- RATE LIMITERS ---
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts
+  message: { message: 'Too many attempts, please try again after 15 minutes.' }
+});
 
+// Protect the entire password recovery flow
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/forgotpassword', authLimiter);
+app.use('/api/auth/resetpassword', authLimiter); // Added to protect the 4-digit PIN
 
-// Define routes here
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // limit each IP to 500 requests per windowMs
+});
+app.use(generalLimiter);
+
+// --- ROUTES ---
 app.get('/', (req, res) => {
   res.json({
     status: 'success',
     message: 'CivicFix Backend is Running!'
-  })
+  });
 });
 
 app.use('/api/auth', authRoutes);

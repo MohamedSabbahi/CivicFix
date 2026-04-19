@@ -6,10 +6,10 @@ const { getDepartmentStats ,
         getOverviewStats ,
         addDepartment,
         deleteDepartment,
-        updateReportStatus,
+        updateCivicIssueStatus,
         getDepartments,
         updateDepartment,
-        getReportsByPeriod
+        getCivicIssuesByPeriod
     } = require('../controllers/adminController');
 
 
@@ -19,10 +19,10 @@ router.get('/departments',        protect, admin, getDepartments);
 router.get('/stats/department', protect, admin, getDepartmentStats);
 router.post('/departments', protect, admin, addDepartment);
 router.delete('/departments/:id', protect, admin, deleteDepartment);
-router.put('/reports/:id/status',protect, admin, updateReportStatus);
+router.put('/reports/:id/status',protect, admin, updateCivicIssueStatus);
 router.get('/departments', protect, admin, getDepartments);
 router.put('/departments/:id', protect, admin, updateDepartment);
-router.get('/reports/period',protect, admin, getReportsByPeriod);
+router.get('/reports/period',protect, admin, getCivicIssuesByPeriod);
 
 
 module.exports = router;

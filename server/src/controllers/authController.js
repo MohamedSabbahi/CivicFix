@@ -6,13 +6,12 @@ const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 
 const generateToken = (id) => {
-    return jwt.sign({id}, process.env.JWT_SECRET, {
-        expiresIn: '30d',
+    return jwt.sign({id}, process.env.JWT_SECRET || 'fallback_secret_for_dev', {
+        expiresIn: process.env.JWT_EXPIRES_IN || '30d',
     });
 };
 
 exports.register = async (req, res) => {
-    // Check if there are validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -53,7 +52,6 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-    // We check if there are validation errors. if any, we return 400 with the errors array.
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -94,11 +92,8 @@ exports.getMe = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const { name, username, location } = req.body;
-        
-        // Get the user ID from the authenticated user
         const userId = req.user.id;
 
-        // Update the user profile
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
@@ -122,7 +117,6 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// server/src/controllers/authController.js
 exports.forgotPassword = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -133,15 +127,13 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'There is no user with that email' });
     }
 
-    // 1. Generate a secure 4-digit numeric PIN (1000 to 9999)
     const resetToken = crypto.randomInt(1000, 10000).toString();
-
-    // 2. Hash the PIN for the Database securely
     const resetPasswordToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
 
+    // 1. Update DB first
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -150,7 +142,6 @@ exports.forgotPassword = async (req, res) => {
       },
     });
 
-    // 3. Dark Mode HTML Email Template
     const htmlMessage = `
       <div style="font-family: 'Segoe UI', Tahoma, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #0f172a; border-radius: 16px; border: 1px solid #1e293b;">
           <div style="text-align: center; margin-bottom: 30px;">
@@ -174,20 +165,36 @@ exports.forgotPassword = async (req, res) => {
       </div>
     `;
 
-    await sendEmail({
-      email: user.email,
-      subject: 'Your Password Reset Code',
-      html: htmlMessage,
-      message: `Your reset code is: ${resetToken}`, 
-    });
+    // 2. Safely attempt email dispatch
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Your Password Reset Code',
+        html: htmlMessage,
+        message: `Your reset code is: ${resetToken}`, 
+      });
 
-    res.status(200).json({ success: true, message: 'OTP sent to email' });
+      res.status(200).json({ success: true, message: 'OTP sent to email' });
+    } catch (emailError) {
+      console.error("Resend API Error:", emailError);
+      
+      // 3. Rollback if email fails
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        },
+      });
+
+      return res.status(500).json({ message: 'Email could not be sent. Please try again.' });
+    }
+
   } catch (err) {
     console.error("Forgot PW Error:", err);
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
 
 exports.resetPassword = async (req, res) => {
   try {
@@ -241,11 +248,9 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ message: "Current password is incorrect." });
     }
 
-    // Hasher le nouveau mot de passe
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // Mettre à jour
     await prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },

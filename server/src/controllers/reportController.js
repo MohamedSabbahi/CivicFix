@@ -848,6 +848,68 @@ const updateCivicIssueStatus = async (req, res) => {
     res.status(500).json({ error: 'Failed to update status' });
   }
 };
+const getReportComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page, limit } = req.query;
+
+    const pageNum = Math.max(parseInt(page) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+    const skip = (pageNum - 1) * limitNum;
+
+    const civicIssueId = parseInt(id);
+
+    // Validate that the report exists before fetching comments
+    const civicIssue = await prisma.civicIssue.findUnique({
+      where: { id: civicIssueId }
+    });
+
+    if (!civicIssue) {
+      return res.status(404).json({ message: "Civic issue not found" });
+    }
+
+    // Execute data fetch and total count in parallel for optimized performance
+    const [comments, totalComments] = await Promise.all([
+      prisma.comment.findMany({
+        where: { civicIssueId: civicIssueId },
+        skip: skip,
+        take: limitNum,
+        orderBy: { createdAt: "desc" }, // Show newest comments first
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              // email: true, // Optional: Include if you want to show email avatars
+            }
+          }
+        }
+      }),
+      prisma.comment.count({
+        where: { civicIssueId: civicIssueId }
+      })
+    ]);
+
+    res.status(200).json({
+      status: "success",
+      results: comments.length,
+      metadata: {
+        total: totalComments,
+        page: pageNum,
+        totalPages: Math.ceil(totalComments / limitNum)
+      },
+      data: comments
+    });
+
+  } catch (error) {
+    console.error("Error in getReportComments:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch comments",
+      details: error.message
+    });
+  }
+};
 
 module.exports = {
     createCivicIssue, 
@@ -862,5 +924,6 @@ module.exports = {
     getAllCategories,
     assignDepartment,
     showAssignDepartmentForm,
-    updateCivicIssueStatus
+    updateCivicIssueStatus,
+    getReportComments
 };
