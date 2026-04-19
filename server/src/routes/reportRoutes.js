@@ -18,7 +18,7 @@ const { createCivicIssue,
         updateCivicIssueStatus }
         = require('../controllers/reportController');
 
-const { getReportComments,
+const { getCivicIssueComments,
         createComment,
         deleteComment }
         = require('../controllers/commentController');
@@ -36,7 +36,7 @@ router.put('/:id/status', protect, admin, updateCivicIssueStatus);
 router.delete('/:id', protect, admin, deleteCivicIssue);
 
 // Comment routes
-router.get('/:id/comments', getReportComments);
+router.get('/:id/comments', getCivicIssueComments);
 router.post('/:id/comments', protect, createComment);
 router.delete('/:id/comments/:commentId', protect, deleteComment);
 
