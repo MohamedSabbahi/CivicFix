@@ -19,13 +19,34 @@ app.use(helmet({
 }));
 
 // Use environment variable for production, fallback to localhost for development
+/*
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173', 
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
+*/
 
+app.use(cors({
+    origin: function(origin, callback) {
+        const allowedOrigins = [
+            'https://civic-fix-delta.vercel.app',
+            'http://localhost:5173',
+            'http://localhost:3000',
+            process.env.CLIENT_URL,
+        ].filter(Boolean);
+
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
