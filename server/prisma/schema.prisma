@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  // Add "linux-musl-openssl-3.0.x" to ensure compatibility with Render
+  // Added "linux-musl-openssl-3.0.x" to ensure compatibility with Render
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
 }
 
@@ -31,12 +31,20 @@ enum DepartmentWorkStatus {
   COMPLETED
 }
 
+// ==========================================
+// MODELS
+// ==========================================
+
 model User {
   id                   Int       @id @default(autoincrement())
   email                String    @unique
   password             String
   name                 String
   role                 Role      @default(CITIZEN)
+  
+  departmentId         Int?
+  department           Department? @relation(fields: [departmentId], references: [id])
+
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -46,6 +54,8 @@ model User {
   // Relationships
   civicIssues          CivicIssue[]
   comments             Comment[]
+
+  @@index([departmentId])
 }
 
 model Department {
@@ -54,6 +64,7 @@ model Department {
   email String @unique
 
   // Relationships
+  users         User[]  
   categories    Category[] 
   interventions Intervention[]
 }
@@ -69,7 +80,7 @@ model Category {
   // Relationships
   civicIssues  CivicIssue[]
 
-  @@index([departmentId]) // Speeds up fetching categories for a specific department
+  @@index([departmentId])
 }
 
 model CivicIssue {
@@ -78,7 +89,7 @@ model CivicIssue {
   description  String?
   photoUrl     String
   latitude     Float
-  longitude    Float
+  longitude    Float    
   status       IssueStatus @default(PENDING)
   
   accessSecret String?     @unique @default(uuid())
@@ -102,18 +113,20 @@ model CivicIssue {
   @@index([status])
   @@index([userId])
   @@index([categoryId])
-  @@index([latitude, longitude]) // Critical for the Bounding Box Map Feed
-  @@index([title])               // Critical for Search
+  @@index([latitude, longitude]) 
+  @@index([title])               
 }
 
 model Intervention {
   id            Int                   @id @default(autoincrement())
   civicIssueId  Int
   departmentId  Int
-  
+
+  description   String?
   status        DepartmentWorkStatus  @default(PENDING)
 
   assignedAt    DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt 
   completedAt   DateTime?
 
   // RELATIONS
@@ -126,6 +139,7 @@ model Intervention {
 model Comment {
   id           Int      @id @default(autoincrement())
   text         String
+  
   createdAt    DateTime @default(now())
 
   // Strict 1-to-Many
@@ -135,6 +149,5 @@ model Comment {
   civicIssueId Int
   civicIssue   CivicIssue @relation(fields: [civicIssueId], references: [id], onDelete: Cascade)
 
-  // Performance Indexes
-  @@index([civicIssueId]) // Speeds up loading the comment section on an issue
+  @@index([civicIssueId])
 }

@@ -61,7 +61,7 @@ const createCivicIssue = async (req, res) => {
 
     // Upload the file buffer (from memory) directly to the Supabase 'reports' bucket
     const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('reports') 
+        .from('CivicIssue') 
         .upload(finalFileName, req.file.buffer, {
             contentType: req.file.mimetype,
         });
@@ -73,7 +73,7 @@ const createCivicIssue = async (req, res) => {
 
     // Retrieve the permanent public URL to store in our PostgreSQL database
     const { data: publicUrlData } = supabase.storage
-        .from('reports')
+        .from('CivicIssue')
         .getPublicUrl(finalFileName);
 
     photoUrl = publicUrlData.publicUrl;
