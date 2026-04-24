@@ -124,8 +124,7 @@ const createCivicIssue = async (req, res) => {
         civicIssueId: civicIssue.id,
         departmentId: department.id,
         title: civicIssue.title,
-        description: civicIssue.description,
-        img: civicIssue.photoUrl,
+        description: civicIssue.description
       },
     });
 
