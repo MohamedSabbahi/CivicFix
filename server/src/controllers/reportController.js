@@ -381,7 +381,7 @@ const getNearbyCivicIssues = async (req, res) => {
     const userLng = parseFloat(longitude);
     
     // Limit radius to protect server performance (Min 1km, Max 100km)
-    const searchRadius = Math.min(Math.max(parseFloat(radwius) || 5, 1), 100);
+    const searchRadius = Math.min(Math.max(parseFloat(radius) || 5, 1), 100);
 
     // Bounding Box Calculation: Creates a rough square to quickly filter the DB via indexes
     // 1 degree of latitude is roughly 111km
