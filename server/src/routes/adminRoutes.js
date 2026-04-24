@@ -15,7 +15,6 @@ const { getDepartmentStats ,
 
 // Stats endpoint - Admin seulement
 router.get('/stats/overview', protect, admin, getOverviewStats);
-router.get('/departments',        protect, admin, getDepartments);
 router.get('/stats/department', protect, admin, getDepartmentStats);
 router.post('/departments', protect, admin, addDepartment);
 router.delete('/departments/:id', protect, admin, deleteDepartment);
