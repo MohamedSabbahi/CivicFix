@@ -6,7 +6,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './features/auth/pages/Login';
 import Register from './features/auth/pages/Register';
 import PrivateRoute from './features/auth/components/PrivateRoute';
-import AdminRoute from './features/auth/components/AdminRoute';
+import AdminRoutes from './features/auth/components/AdminRoutes';
 import Profile from './features/profile/pages/Profile';
 import ForgotPassword from './features/auth/pages/ForgotPassword';
 import ResetPassword from './features/auth/pages/ResetPassword';
@@ -63,7 +63,7 @@ function App() {
           <Route path="/create-report" element={<CreateReport />} />
         </Route>
         {/*Admin Routes*/}
-      <Route element={<AdminRoute />}>
+      <Route element={<AdminRoutes />}>
             <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="analytics"   element={<Analytics />} />

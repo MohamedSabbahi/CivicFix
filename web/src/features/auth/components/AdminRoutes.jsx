@@ -19,4 +19,4 @@ const AdminRoute = () => {
     return <Outlet />;
 };
 
-export default AdminRoute;
+export default AdminRoutes;
