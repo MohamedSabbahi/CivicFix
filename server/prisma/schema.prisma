@@ -42,9 +42,6 @@ model User {
   name                 String
   role                 Role      @default(CITIZEN)
   
-  departmentId         Int?
-  department           Department? @relation(fields: [departmentId], references: [id])
-
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -54,8 +51,6 @@ model User {
   // Relationships
   civicIssues          CivicIssue[]
   comments             Comment[]
-
-  @@index([departmentId])
 }
 
 model Department {
@@ -64,7 +59,6 @@ model Department {
   email String @unique
 
   // Relationships
-  users         User[]  
   categories    Category[] 
   interventions Intervention[]
 }
