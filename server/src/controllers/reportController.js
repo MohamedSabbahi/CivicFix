@@ -45,7 +45,7 @@ const createCivicIssue = async (req, res) => {
     const finalFileName = `${uniqueSuffix}-${safeFileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('civicIssue')
+      .from('CivicIssue')
       .upload(finalFileName, req.file.buffer, { contentType: req.file.mimetype });
 
     if (uploadError) {
@@ -54,7 +54,7 @@ const createCivicIssue = async (req, res) => {
     }
 
     const { data: publicUrlData } = supabase.storage
-      .from('civicIssue')
+      .from('CivicIssue')
       .getPublicUrl(finalFileName);
 
     const photoUrl = publicUrlData.publicUrl;
