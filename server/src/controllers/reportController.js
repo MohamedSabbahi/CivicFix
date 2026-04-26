@@ -61,7 +61,7 @@ const createCivicIssue = async (req, res) => {
 
     // Upload the file buffer (from memory) directly to the Supabase 'reports' bucket
     const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('reports') 
+        .from('CivicIssue') 
         .upload(finalFileName, req.file.buffer, {
             contentType: req.file.mimetype,
         });
@@ -73,7 +73,7 @@ const createCivicIssue = async (req, res) => {
 
     // Retrieve the permanent public URL to store in our PostgreSQL database
     const { data: publicUrlData } = supabase.storage
-        .from('reports')
+        .from('CivicIssue')
         .getPublicUrl(finalFileName);
 
     photoUrl = publicUrlData.publicUrl;
@@ -124,8 +124,7 @@ const createCivicIssue = async (req, res) => {
         civicIssueId: civicIssue.id,
         departmentId: department.id,
         title: civicIssue.title,
-        description: civicIssue.description,
-        img: civicIssue.photoUrl,
+        description: civicIssue.description
       },
     });
 
@@ -381,7 +380,7 @@ const getNearbyCivicIssues = async (req, res) => {
     const userLng = parseFloat(longitude);
     
     // Limit radius to protect server performance (Min 1km, Max 100km)
-    const searchRadius = Math.min(Math.max(parseFloat(radwius) || 5, 1), 100);
+    const searchRadius = Math.min(Math.max(parseFloat(radius) || 5, 1), 100);
 
     // Bounding Box Calculation: Creates a rough square to quickly filter the DB via indexes
     // 1 degree of latitude is roughly 111km
