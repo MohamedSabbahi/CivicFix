@@ -12,8 +12,6 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
-const CivicIssueStatus = Prisma.CivicIssueStatus;
-
 const getAllCategories = async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -925,4 +923,4 @@ module.exports = {
     showAssignDepartmentForm,
     updateCivicIssueStatus,
     getReportComments
-};
+};  

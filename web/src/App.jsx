@@ -6,6 +6,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './features/auth/pages/Login';
 import Register from './features/auth/pages/Register';
 import PrivateRoute from './features/auth/components/PrivateRoute';
+import AdminRoute from './features/auth/components/AdminRoute';
 import Profile from './features/profile/pages/Profile';
 import ForgotPassword from './features/auth/pages/ForgotPassword';
 import ResetPassword from './features/auth/pages/ResetPassword';
@@ -62,14 +63,15 @@ function App() {
           <Route path="/create-report" element={<CreateReport />} />
         </Route>
         {/*Admin Routes*/}
-      <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="analytics"   element={<Analytics />} />
-            <Route path="reports/:id" element={<AdminReportDetail />} />
-            <Route path="Departments" element={<Departments />} />
-            <Route path="admprofile"    element={<AdminProfile />} />
-      </Route>
-        
+      <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="analytics"   element={<Analytics />} />
+                <Route path="reports/:id" element={<AdminReportDetail />} />
+                <Route path="Departments" element={<Departments />} />
+                <Route path="admprofile"    element={<AdminProfile />} />
+            </Route>
+    </Route>
         
         {/* Fallback Routes */}
         <Route path="/404" element={<NotFound />} />
