@@ -9,8 +9,8 @@ const reportService = {
     return api.get("/reports/my-reports");
   },
 
-  getReportDepartments(id) {
-    return api.get(`/reports/${id}/departments`);
+  getReportInterventions(id) {
+    return api.get(`/reports/${id}/interventions`);
   },
   
   getReportById(id) {

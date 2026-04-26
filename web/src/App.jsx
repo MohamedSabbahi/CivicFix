@@ -26,7 +26,6 @@ import Departments    from './features/admin/pages/Departments';
 import AdminProfile from './features/admin/pages/ADMprofile';
 // Placeholder components 
 const Settings = () => <div className="p-8"><h1>Settings</h1></div>;
-const ReportDetail = () => <div className="p-8"><h1>Report Details</h1></div>;
 const NotFound = () => <div className="p-8 text-red-500"><h1>404 - Page Not Found</h1></div>;
 
 function App() {
