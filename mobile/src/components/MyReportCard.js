@@ -34,7 +34,7 @@ export default function MyReportCard({ item }) {
             <View className="w-24 h-24 rounded-xl bg-[#0f172a] overflow-hidden border border-slate-700 items-center justify-center">
                 {imageUrl ? (
                     <Image 
-                        source={imageUrl} 
+                        source={{ uri: imageUrl }}
                         style={{ width: 96, height: 96, backgroundColor: '#1e293b' }}
                         contentFit="cover" 
                         transition={500}

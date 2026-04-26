@@ -28,7 +28,7 @@ export default function ReportCard({ item }){
         >
             {item.photoUrl && (
                 <Image 
-                    source={item.photoUrl.trim()} // expo-image can take the string directly
+                    source={{ uri: item.photoUrl.trim() }}// expo-image can take the string directly
                     style={{ width: '100%', height: 192, backgroundColor: '#1e293b' }}
                     contentFit="cover" // Note: This changed from resizeMode
                     transition={500} // Adds a smooth 0.5s fade-in when the image loads!
