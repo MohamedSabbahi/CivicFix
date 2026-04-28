@@ -62,7 +62,7 @@ const Departments = () => {
             key={s.department}
             icon="🏢"
             label={s.department}
-            value={s.resolvedReportsCount}
+            value={s.resolvedCivicIssuesCount}
             delta={s.averageResolutionTime}
             deltaUp={true}
           />
