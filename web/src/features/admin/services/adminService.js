@@ -28,4 +28,4 @@ export const getDepartments   = ()           => API.get("/admin/departments");
 export const addDepartment    = (data)        => API.post("/admin/departments", data);
 export const deleteDepartment = (id)          => API.delete(`/admin/departments/${id}`);
 export const updateDepartment = (id, data)   => API.put(`/admin/departments/${id}`, data);
-export const getReportsByPeriod = (period) => API.get(`/admin/reports/period?period=${period}`);
+export const getReportsByPeriod = (period) => API.get(`/admin/civic-issues/period?period=${period}`);
