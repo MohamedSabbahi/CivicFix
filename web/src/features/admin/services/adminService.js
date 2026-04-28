@@ -1,9 +1,8 @@
 import axios from "axios";
 
 const API = axios.create({
-baseURL: "http://localhost:5001/api",
-});
-
+    baseURL: import.meta.env.VITE_API_URL || 'https://civicfix-api-l5i5.onrender.com/api',
+})
 API.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -21,7 +20,7 @@ export const editReport          = (id, data)      => API.put(`/reports/${id}`, 
 
 //  Comments
 export const getComments         = (id)            => API.get(`/reports/${id}/comments`);
-export const addComment          = (id, text)      => API.post(`/reports/${id}/comments`, { content: text });
+export const addComment = (id, text) => API.post(`/reports/${id}/comments`, { text });
 export const deleteComment       = (id, commentId) => API.delete(`/reports/${id}/comments/${commentId}`);
 //  départements
 export const getDepartmentStats = () => API.get("/admin/stats/department");
