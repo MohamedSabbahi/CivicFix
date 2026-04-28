@@ -35,10 +35,10 @@ const AdminDashboard = () => {
 
       {/* STATS */}
       <div className="grid grid-cols-4 gap-4">
-        <CardStats icon="📋" label="Total"       value={stats?.totalReports      ?? "—"} delta={`+${stats?.totalReports ?? 0}`} deltaUp={true} />
-        <CardStats icon="🆕" label="Pending"     value={stats?.pendingReports    ?? "—"} delta="PENDING"                        deltaUp={true} />
-        <CardStats icon="🔄" label="In Progress" value={stats?.inProgressReports ?? "—"} delta="ACTIVE"                         deltaUp={true} />
-        <CardStats icon="✅" label="Resolved"    value={stats?.resolvedReports   ?? "—"} delta="DONE"                           deltaUp={true} />
+        <CardStats icon="📋" label="Total"       value={stats?.totalCivicIssues      ?? "—"} delta={`+${stats?.totalCivicIssues ?? 0}`} deltaUp={true} />
+        <CardStats icon="🆕" label="Pending"     value={stats?.pendingCivicIssues    ?? "—"} delta="PENDING"                            deltaUp={true} />
+        <CardStats icon="🔄" label="In Progress" value={stats?.inProgressCivicIssues ?? "—"} delta="ACTIVE"                             deltaUp={true} />
+        <CardStats icon="✅" label="Resolved"    value={stats?.resolvedCivicIssues   ?? "—"} delta="DONE"                               deltaUp={true} />
       </div>
 
       {/* SEARCH + FILTERS */}

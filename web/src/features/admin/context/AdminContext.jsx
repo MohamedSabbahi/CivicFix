@@ -38,9 +38,9 @@ const updateReportStatus = (id, newStatus) => {
     if (!report) return prev;
     return {
         ...prev,
-        pendingReports:     prev.pendingReports     + (newStatus === "PENDING"     ? 1 : report.status === "PENDING"     ? -1 : 0),
-        inProgressReports:  prev.inProgressReports  + (newStatus === "IN_PROGRESS" ? 1 : report.status === "IN_PROGRESS" ? -1 : 0),
-        resolvedReports:    prev.resolvedReports     + (newStatus === "RESOLVED"    ? 1 : report.status === "RESOLVED"    ? -1 : 0),
+        pendingCivicIssues:     prev.pendingCivicIssues     + (newStatus === "PENDING"     ? 1 : report.status === "PENDING"     ? -1 : 0),
+        inProgressCivicIssues:  prev.inProgressCivicIssues  + (newStatus === "IN_PROGRESS" ? 1 : report.status === "IN_PROGRESS" ? -1 : 0),
+        resolvedCivicIssues:   prev.resolvedCivicIssues     + (newStatus === "RESOLVED"    ? 1 : report.status === "RESOLVED"    ? -1 : 0),
     };
     });
 };
@@ -49,7 +49,7 @@ const removeReport = (id) => {
     setReports(prev => prev.filter(r => r.id !== parseInt(id)));
     setStats(prev => ({
     ...prev,
-    totalReports: prev.totalReports - 1,
+    totalCivicIssues: prev.totalCivicIssues - 1,
     }));
 };
 
