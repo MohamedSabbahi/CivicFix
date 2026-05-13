@@ -76,10 +76,13 @@ const Login = () => {
                 navigate('/');
             }
         } catch (err) {
-            const message =
-                err.response?.data?.message ||
-                err.message ||
-                "Login failed. Please check your credentials.";
+            const isTimeout = err.code === "ECONNABORTED" || err.message?.toLowerCase().includes("timeout");
+            const isNetworkError = err.code === "ERR_NETWORK" || !err.response;
+            const message = isTimeout || isNetworkError
+                ? "Server is not responding. Please make sure the backend is running."
+                : err.response?.data?.message ||
+                  err.message ||
+                  "Login failed. Please check your credentials.";
             toast.error(message);
             setError(message);
         } finally {
