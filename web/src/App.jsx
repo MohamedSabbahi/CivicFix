@@ -6,7 +6,7 @@ import Login            from './features/auth/pages/Login';
 import Register         from './features/auth/pages/Register';
 import PrivateRoute     from './features/auth/components/PrivateRoute';
 // ✅ FIX: AdminRoute au lieu de AdminRoutes
-import AdminRoute       from './features/auth/components/AdminRoute';
+import AdminRoute       from './features/auth/components/AdminRoutes';
 import Profile          from './features/profile/pages/Profile';
 import ForgotPassword   from './features/auth/pages/ForgotPassword';
 import ResetPassword    from './features/auth/pages/ResetPassword';

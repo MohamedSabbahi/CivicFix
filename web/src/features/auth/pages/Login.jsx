@@ -3,16 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
-import authService from '../services/authService';
 import AuthInput from '../../../components/ui/AuthInput';
 
 import bgImage from '../../../assets/background-CivicFix.img.png';
-
-const ADMIN_EMAILS = [
-    "admin@civicfix.com",
-    "superadmin@civicfix.com",
-    "manager@civicfix.com",
-];
 
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -24,11 +17,13 @@ const Login = () => {
     
     const navigate = useNavigate();
 
-    const { login } = useAuth();
+    const { login, user, loading: authLoading } = useAuth();
     
     useEffect(() => {
-        if (authService.isAuthenticated()) navigate('/');
-    }, [navigate]);
+        if (!authLoading && user) {
+            navigate(user.role === 'ADMIN' ? '/admin' : '/', { replace: true });
+        }
+    }, [authLoading, user, navigate]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -68,7 +63,7 @@ const Login = () => {
         setLoading(true);
         try {
             const user = await login({
-                email: formData.email,
+                email: formData.email.trim().toLowerCase(),
                 password: formData.password,
                 remember,
             });
