@@ -3,7 +3,7 @@ export const resolveImageUrl = (photo) => {
 
   if (photo.startsWith('http://') || photo.startsWith('https://')) return photo;
 
-  const base = (import.meta.env.VITE_API_URL || 'http://localhost:5001/api')
+  const base = (import.meta.env.VITE_API_URL || 'https://civicfix-api-l5i5.onrender.com/api')
     .replace(/\/api$/, '')   
     .replace(/\/+$/, '');    
 

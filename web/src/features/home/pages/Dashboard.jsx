@@ -8,7 +8,7 @@ import ReportCard from "../components/ReportCard";
 import CityMap from "../components/CityMap";
 import { getMyReports, getAllReports, getRecentReports } from "../services/homeService";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://civicfix-api-l5i5.onrender.com';
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);

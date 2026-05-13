@@ -7,7 +7,7 @@ import StatCard from '../components/report/StatCard';
 import reportService from '../services/reportService';
 import background from '../../../assets/background-dashbord.png';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://civicfix-api-l5i5.onrender.com';
 
 const PageShell = ({ children }) => (
   <div className="relative min-h-screen text-white">
