@@ -1,5 +1,3 @@
-import { resolveImageUrl } from "../../../reports/utils/reportUtils";
-
 const statusStyles = {
     "PENDING":     "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
     "IN_PROGRESS": "bg-blue-500/20   text-blue-400   border border-blue-500/30",
@@ -15,7 +13,7 @@ const ReportPhoto = ({ photoUrl, status }) => (
     </div>
     {photoUrl ? (
         <img
-        src={resolveImageUrl(photoUrl)}
+        src={`http://localhost:5001/uploads/${photoUrl.split('/').pop()}`}
         alt="report"
         className="w-full h-full object-cover"
         />

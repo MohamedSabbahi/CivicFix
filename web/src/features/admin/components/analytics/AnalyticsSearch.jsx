@@ -1,7 +1,6 @@
 import { useState }        from "react";
 import { useNavigate }     from "react-router-dom";
 import { Search }          from "lucide-react";
-import { resolveImageUrl } from "../../../reports/utils/reportUtils";
 
 const statusStyles = {
     "PENDING":     "text-yellow-400",
@@ -71,7 +70,7 @@ return (
                 <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-white/10">
                     {r.photoUrl ? (
                     <img
-                        src={resolveImageUrl(r.photoUrl)}
+                        src={`http://localhost:5001/uploads/${r.photoUrl.split('/').pop()}`}
                         alt={r.title}
                         className="w-full h-full object-cover"
                     />

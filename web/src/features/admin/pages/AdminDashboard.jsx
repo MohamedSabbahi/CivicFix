@@ -1,9 +1,9 @@
-import { useState }        from "react";
-import CardStats           from "../components/CardStats";
-import ReportTable         from "../components/ReportTable";
-import LiveMap             from "../components/LiveMap";
-import { useAdminContext } from "../context/AdminContext";
-import { Search }          from "lucide-react";
+import { useState }          from "react";
+import CardStats             from "../components/CardStats";
+import ReportTable           from "../components/ReportTable";
+import LiveMap               from "../components/LiveMap";
+import { useAdminContext }   from "../context/AdminContext";
+import { Search }            from "lucide-react";
 
 const ITEMS_PER_PAGE = 3;
 const filters = ["ALL", "PENDING", "IN_PROGRESS", "RESOLVED"];
@@ -35,11 +35,10 @@ const AdminDashboard = () => {
 
       {/* STATS */}
       <div className="grid grid-cols-4 gap-4">
-        {/* ✅ FIX: noms de champs corrects */}
         <CardStats icon="📋" label="Total"       value={stats?.totalCivicIssues      ?? "—"} delta={`+${stats?.totalCivicIssues ?? 0}`} deltaUp={true} />
-        <CardStats icon="🆕" label="Pending"     value={stats?.pendingCivicIssues    ?? "—"} delta="PENDING"                             deltaUp={true} />
-        <CardStats icon="🔄" label="In Progress" value={stats?.inProgressCivicIssues ?? "—"} delta="ACTIVE"                              deltaUp={true} />
-        <CardStats icon="✅" label="Resolved"    value={stats?.resolvedCivicIssues   ?? "—"} delta="DONE"                                deltaUp={true} />
+        <CardStats icon="🆕" label="Pending"     value={stats?.pendingCivicIssues    ?? "—"} delta="PENDING"                            deltaUp={true} />
+        <CardStats icon="🔄" label="In Progress" value={stats?.inProgressCivicIssues ?? "—"} delta="ACTIVE"                             deltaUp={true} />
+        <CardStats icon="✅" label="Resolved"    value={stats?.resolvedCivicIssues   ?? "—"} delta="DONE"                               deltaUp={true} />
       </div>
 
       {/* SEARCH + FILTERS */}

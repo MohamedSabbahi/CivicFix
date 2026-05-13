@@ -1,7 +1,7 @@
-import { useState, useEffect }    from "react";
-import CardStats                  from "../components/CardStats";
-import DepartmentCard             from "../components/department/DepartmentCard";
-import AddDepartmentModal         from "../components/department/AddDepartmentModal";
+import { useState, useEffect }   from "react";
+import CardStats                 from "../components/CardStats";
+import DepartmentCard    from "../components/department/DepartmentCard";
+import AddDepartmentModal from "../components/department/AddDepartmentModal";
 import { getDepartments, getDepartmentStats, deleteDepartment } from "../services/adminService";
 
 const Departments = () => {
@@ -62,7 +62,6 @@ const Departments = () => {
             key={s.department}
             icon="🏢"
             label={s.department}
-            // ✅ FIX: nom de champ correct
             value={s.resolvedCivicIssuesCount}
             delta={s.averageResolutionTime}
             deltaUp={true}

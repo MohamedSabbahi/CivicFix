@@ -49,11 +49,7 @@ export const AuthProvider = ({ children }) => {
     }, [initializeAuth]);
 
     const login = useCallback(async (credentials) => {
-        const payload = {
-            ...credentials,
-            email: credentials.email?.trim().toLowerCase(),
-        };
-        const { data } = await api.post("/auth/login", payload);
+        const { data } = await api.post("/auth/login", credentials);
         const { token, user } = data;
         localStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(USER_KEY, JSON.stringify(user));

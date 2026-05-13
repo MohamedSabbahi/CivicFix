@@ -3,9 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
+import authService from '../services/authService';
 import AuthInput from '../../../components/ui/AuthInput';
 
 import bgImage from '../../../assets/background-CivicFix.img.png';
+
+const ADMIN_EMAILS = [
+    "admin@civicfix.com",
+    "superadmin@civicfix.com",
+    "manager@civicfix.com",
+];
 
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -17,13 +24,11 @@ const Login = () => {
     
     const navigate = useNavigate();
 
-    const { login, user, loading: authLoading } = useAuth();
+    const { login } = useAuth();
     
     useEffect(() => {
-        if (!authLoading && user) {
-            navigate(user.role === 'ADMIN' ? '/admin' : '/', { replace: true });
-        }
-    }, [authLoading, user, navigate]);
+        if (authService.isAuthenticated()) navigate('/');
+    }, [navigate]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -63,7 +68,7 @@ const Login = () => {
         setLoading(true);
         try {
             const user = await login({
-                email: formData.email.trim().toLowerCase(),
+                email: formData.email,
                 password: formData.password,
                 remember,
             });
@@ -76,13 +81,10 @@ const Login = () => {
                 navigate('/');
             }
         } catch (err) {
-            const isTimeout = err.code === "ECONNABORTED" || err.message?.toLowerCase().includes("timeout");
-            const isNetworkError = err.code === "ERR_NETWORK" || !err.response;
-            const message = isTimeout || isNetworkError
-                ? "Server is not responding. Please make sure the backend is running."
-                : err.response?.data?.message ||
-                  err.message ||
-                  "Login failed. Please check your credentials.";
+            const message =
+                err.response?.data?.message ||
+                err.message ||
+                "Login failed. Please check your credentials.";
             toast.error(message);
             setError(message);
         } finally {

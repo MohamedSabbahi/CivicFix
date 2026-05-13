@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { resolveImageUrl } from "../../reports/utils/reportUtils";
 
 const statusStyles = {
   "PENDING":     "text-yellow-400",
@@ -33,7 +32,7 @@ const ReportTable = ({ reports = [] }) => {
             <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-white/10">
               {r.photoUrl ? (
                 <img
-                  src={resolveImageUrl(r.photoUrl)}
+                  src={`http://localhost:5001/uploads/${r.photoUrl.split('/').pop()}`}
                   alt={r.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
