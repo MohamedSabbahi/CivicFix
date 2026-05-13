@@ -7,16 +7,27 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(authService.getCurrentUser());
     const [token, setToken] = useState(localStorage.getItem('token'));
+    // ✅ FIX: Ajout du loading state manquant
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const login = async (credentials) => {
         try {
+            setLoading(true);
             const data = await authService.login(credentials);
             setUser(data.user);
             setToken(data.token);
-            navigate('/dashboard');
+            // ✅ FIX: Redirection selon le rôle
+            if (data.user.role === 'ADMIN') {
+                navigate('/admin');
+            } else {
+                navigate('/');
+            }
         } catch (error) {
             throw new Error(error.message);
+        } finally {
+            // ✅ FIX: finally pour éviter spinner infini
+            setLoading(false);
         }
     };
 
@@ -29,12 +40,16 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
+            setLoading(true);
             const data = await authService.register(userData);
             setUser(data.user);
             setToken(data.token);
-            navigate('/dashboard');
+            navigate('/');
         } catch (error) {
             throw new Error(error.message);
+        } finally {
+            // ✅ FIX: finally pour éviter spinner infini
+            setLoading(false);
         }
     };
 
@@ -53,13 +68,26 @@ export const AuthProvider = ({ children }) => {
             throw new Error(error.message);
         }
     };
-        const updateUser = (newData) => {
-    const updated = { ...user, ...newData };
-    setUser(updated);
-    localStorage.setItem('user', JSON.stringify(updated));
-        };
+
+    const updateUser = (newData) => {
+        const updated = { ...user, ...newData };
+        setUser(updated);
+        localStorage.setItem('user', JSON.stringify(updated));
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, register, forgotPassword, resetPassword, updateUser}}>
+        // ✅ FIX: loading exposé dans le Provider
+        <AuthContext.Provider value={{
+            user,
+            token,
+            loading,
+            login,
+            logout,
+            register,
+            forgotPassword,
+            resetPassword,
+            updateUser
+        }}>
             {children}
         </AuthContext.Provider>
     );
