@@ -14,8 +14,21 @@ const app = express();
 // Trust Render's proxy so rate limiting IP detection works correctly
 app.set('trust proxy', 1);
 
+/**
+ * Sets security headers. CSP is configured to allow image loading from
+ * Supabase storage and connections to the Supabase API for uploads.
+ */
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:", "https://*.supabase.co"],
+      connectSrc: ["'self'", "https://*.supabase.co"],
+    },
+  },
 }));
 
 // Use environment variable for production, fallback to localhost for development

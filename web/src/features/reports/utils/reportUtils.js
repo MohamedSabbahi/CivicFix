@@ -1,18 +1,16 @@
 export const resolveImageUrl = (photo) => {
   if (!photo) return null;
 
-  if (photo.startsWith('http://') || photo.startsWith('https://')) return photo;
+  const image = photo.trim();
+
+  if (image.startsWith('http://') || image.startsWith('https://')) return image;
 
   const base = (import.meta.env.VITE_API_URL || 'http://localhost:5001/api')
     .replace(/\/api$/, '')   
     .replace(/\/+$/, '');    
 
-  const path = photo.replace(/^\/+/, ''); 
-  if (import.meta.env.DEV) {
-    console.log('[resolveImageUrl] base:', base);
-    console.log('[resolveImageUrl] path:', path);
-    console.log('[resolveImageUrl] full:', `${base}/${path}`);
-  }
+  const normalizedPath = image.replace(/^\/+/, '');
+  const path = normalizedPath.includes('/') ? normalizedPath : `uploads/${normalizedPath}`;
 
   return `${base}/${path}`;
 };
