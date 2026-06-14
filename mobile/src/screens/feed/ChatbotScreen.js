@@ -98,13 +98,13 @@ export default function ChatbotScreen({ route, navigation }) {
         
         try {
             if (statType === 'performance') {
-                const response = await api.get('/admin/departments/stats'); 
+                const response = await api.get('/admin/stats/department'); 
                 const deptData = response.data;
 
                 let statText = "📊 **Department Performance:**\n\n";
                 deptData.forEach(dept => {
                     statText += `🏢 ${dept.department}\n`;
-                    statText += `✅ Resolved: ${dept.resolvedReportsCount}\n`;
+                    statText += `✅ Resolved: ${dept.resolvedCivicIssuesCount}\n`;
                     statText += `⏱️ Avg Time: ${dept.averageResolutionTime}\n\n`;
                 });
 
@@ -116,13 +116,13 @@ export default function ChatbotScreen({ route, navigation }) {
                 }]);
 
             } else if (statType === 'resolution') {
-                const response = await api.get('/admin/overview'); 
+                const response = await api.get('/chatbot/stats'); 
                 const overviewData = response.data.data;
 
                 let statText = "📈 **Global Resolution Rates:**\n\n";
-                statText += `📋 Total Reports: ${overviewData.totalReports}\n`;
-                statText += `✅ Resolved: ${overviewData.resolvedReports} (${overviewData.resolutionRate})\n`;
-                statText += `⏳ In Progress: ${overviewData.inProgressReports}\n`;
+                statText += `📋 Total Reports: ${overviewData.totalCivicIssues}\n`;
+                statText += `✅ Resolved: ${overviewData.resolvedCivicIssues} (${overviewData.resolutionRate})\n`;
+                statText += `⏳ In Progress: ${overviewData.inProgressCivicIssues}\n`;
                 statText += `⏱️ Platform Avg Time: ${overviewData.overallAverageTime}`;
 
                 setMessages((prev) => [...prev, {

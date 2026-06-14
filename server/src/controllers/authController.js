@@ -93,17 +93,19 @@ exports.getMe = async (req, res) => {
     });
 };
 
+/**
+ * Updates the authenticated user's display name.
+ * Accepts { name } in the request body and returns the updated user profile.
+ */
 exports.updateProfile = async (req, res) => {
     try {
-        const { name, username, location } = req.body;
+        const { name } = req.body;
         const userId = req.user.id;
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
             data: {
                 name,
-                username,
-                location,
             },
             select: {
                 id: true,

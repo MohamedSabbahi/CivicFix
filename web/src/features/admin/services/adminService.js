@@ -13,14 +13,14 @@ export const getOverviewStats    = ()              => API.get("/admin/stats/over
 export const getAllReports        = ()              => API.get("/reports");
 export const getReportById       = (id)            => API.get(`/reports/${id}`);
 export const deleteReport        = (id)            => API.delete(`/reports/${id}`);
-export const updateReportStatus  = (id, status)    => API.put(`/admin/reports/${id}/status`, { status });
+export const updateReportStatus  = (id, status)    => API.put(`/reports/${id}/status`, { status });
 
 //  Edit report
 export const editReport          = (id, data)      => API.put(`/reports/${id}`, data);
 
 //  Comments
 export const getComments         = (id)            => API.get(`/reports/${id}/comments`);
-export const addComment = (id, text) => API.post(`/reports/${id}/comments`, { text });
+export const addComment          = (id, text)      => API.post(`/reports/${id}/comments`, { content: text });
 export const deleteComment       = (id, commentId) => API.delete(`/reports/${id}/comments/${commentId}`);
 //  départements
 export const getDepartmentStats = () => API.get("/admin/stats/department");

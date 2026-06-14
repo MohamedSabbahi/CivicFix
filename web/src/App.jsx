@@ -16,7 +16,6 @@ import MyReports from './features/reports/pages/MyReports';
 import ReportDetails from './features/reports/pages/ReportDetails';
 import CreateReport from './features/reports/pages/CreateReport';
 import MapPage from './features/reports/pages/MapPage';
-import Admin from './features/admin/pages/AdminDashboard';
 // ✅ Admin — tous les imports nécessaires
 import AdminLayout    from './features/admin/layouts/AdminLayout';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
@@ -55,7 +54,6 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/settings"      element={<Settings />} />
-          <Route path="/admin" element={<Admin />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/my-reports" element={<MyReports />} />
           <Route path="/reports/:id" element={<ReportDetails />} />

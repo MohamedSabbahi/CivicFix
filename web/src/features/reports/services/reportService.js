@@ -56,8 +56,8 @@ const reportService = {
     return api.post(`/reports/${reportId}/comments`, data);
   },
   
-  deleteComment(commentId) {
-    return api.delete(`/comments/${commentId}`);
+  deleteComment(reportId, commentId) {
+    return api.delete(`/reports/${reportId}/comments/${commentId}`);
   },
 };
 
