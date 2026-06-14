@@ -1,4 +1,4 @@
-import { useAdminContext }   from "../context/AdminContext";
+import { useAdminContext }   from "../context/useAdminContext.js";
 import PeriodChart           from "../components/analytics/PeriodChart";
 import AnalyticsSearch       from "../components/analytics/AnalyticsSearch";
 

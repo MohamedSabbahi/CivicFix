@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '../../../context/useAuth.js';
 import authService from '../services/authService';
 import AuthInput from '../../../components/ui/AuthInput';
 

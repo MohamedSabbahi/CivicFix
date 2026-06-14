@@ -19,11 +19,9 @@ const ReportPhoto = ({ photoUrl, status }) => (
     </div>
     {photoUrl ? (
         <img
-<<<<<<< HEAD
+
         src={resolveImageUrl(photoUrl)}
-=======
-        src={photoUrl}
->>>>>>> 9da5d9e13873d899bbf8307eb56597c074fe2302
+
         alt="report"
         className="w-full h-full object-cover"
         />

@@ -48,7 +48,7 @@ return (
             ← View All Reports
         </button>
         <button
-            onClick={() => window.open(`https://www.google.com/maps?q=${latitude},${longitude}`, "_blank")}
+            onClick={openMap}
             className="w-full text-sm px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 transition text-left"
 >
         📍 Explore Map

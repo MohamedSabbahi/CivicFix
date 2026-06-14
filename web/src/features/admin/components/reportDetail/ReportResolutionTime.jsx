@@ -10,7 +10,7 @@ const calcTime = () => {
     return { hours, days, mins, diffMs };
 };
 
-const { hours, days, diffMs } = calcTime();
+const { hours, diffMs } = calcTime();
 
 const config = {
     "PENDING":     { color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20", label: "Waiting",     icon: "⏳" },

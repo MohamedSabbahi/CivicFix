@@ -2,11 +2,10 @@ import { useCallback, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import { ArrowLeft, MapPin, Edit2, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Edit2, ExternalLink, Loader2 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import Sidebar  from '../../home/components/Sidebar';
 import background   from '../../../assets/background-dashbord.png';
-import { statusConfig } from '../components/report/reportConstants';
 import { createMarkerIcon } from '../components/map/mapConstants';
 import useReportDetails  from '../hooks/useReportDetails';
 import ImageWithFallback  from '../components/ImageWithFallback.jsx';
@@ -107,7 +106,6 @@ const ReportDetails = () => {
     isUpdating,
     handleAddComment,
     handleUpdateReport,
-    handleDeleteReport,
     handleGoBack,
   } = useReportDetails();
 
@@ -115,10 +113,6 @@ const ReportDetails = () => {
     () => resolveImageUrl(report?.photoUrl),
     [report?.photoUrl],
   );
-
-  const status = report
-    ? (statusConfig[report.status] ?? statusConfig.NEW)
-    : statusConfig.NEW;
 
   const handleOpenMaps = useCallback(() => {
     if (report?.latitude && report?.longitude) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth }             from "../../../context/AuthContext";
+import { useAuth }             from "../../../context/useAuth.js";
 import api                     from "../../../services/api";
 import ProfileHero             from "../components/profile/ProfileHero";
 import ProfileInfo             from "../components/profile/ProfileInfo";

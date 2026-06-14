@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import api from "../services/api";
+import AuthContext from "./authContextCore.js";
 
-const AuthContext = createContext(null);
 const TOKEN_KEY = "token";
 const USER_KEY = "user";
 
@@ -86,12 +86,4 @@ export const AuthProvider = ({ children }) => {
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth must be used inside AuthProvider");
-    }
-    return context;
 };

@@ -1,6 +1,6 @@
 import { useState , useEffect } from "react";
 import api from "../../../services/api";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../../context/useAuth.js";
 import Sidebar from "../../home/components/Sidebar";
 import { User, Mail, MapPin, Calendar, Edit, Save, ChevronRight, Bell, Globe, ArrowLeft, Camera,} from "lucide-react";
 import background from "../../../assets/background-dashbord.png";

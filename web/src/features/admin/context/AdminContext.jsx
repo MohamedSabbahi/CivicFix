@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getAllReports, getOverviewStats } from "../services/adminService";
-
-const AdminContext = createContext();
+import AdminContext from "./adminContextCore.js";
 
 export const AdminProvider = ({ children }) => {
 const [reports, setReports] = useState([]);
@@ -66,5 +65,3 @@ return (
     </AdminContext.Provider>
 );
 };
-
-export const useAdminContext = () => useContext(AdminContext);

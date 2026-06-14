@@ -15,8 +15,6 @@ const [animated, setAnimated] = useState(false);
 const [hovered,  setHovered]  = useState(null);
 
 useEffect(() => {
-    setLoading(true);
-    setAnimated(false);
     getReportsByPeriod(period)
         .then(res => {
         setData(res.data.data);
@@ -46,7 +44,12 @@ return (
             {periods.map(p => (
             <button
                 key={p.key}
-                onClick={() => setPeriod(p.key)}
+                onClick={() => {
+                    if (p.key === period) return;
+                    setLoading(true);
+                    setAnimated(false);
+                    setPeriod(p.key);
+                }}
                 className={`text-xs px-4 py-2 rounded-lg transition font-medium
                 ${period === p.key
                     ? "bg-blue-500 text-white"

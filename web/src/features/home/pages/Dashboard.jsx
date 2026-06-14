@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import StatCard from "../components/StatCard";
 import ReportCard from "../components/ReportCard";
 import CityMap from "../components/CityMap";
-import { getMyReports, getAllReports, getRecentReports } from "../services/homeService";
+import { getAllReports } from "../services/homeService";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
@@ -44,21 +44,15 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
-  const [recentReports, setRecentReports] = useState([]);
 
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [myRes, allRes, recentRes] = await Promise.all([
-        getMyReports(),
-        getAllReports(),
-        getRecentReports(),
-      ]);
+      const allRes = await getAllReports();
 
       setReports(allRes.data.data || []);
-      setRecentReports(recentRes.data.data || []);
     } catch (err) {
       console.error('Error fetching reports:', err);
       setError(err.response?.data?.message || 'Failed to load reports. Please try again.');

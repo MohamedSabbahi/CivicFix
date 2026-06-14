@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '../../../context/useAuth.js';
 import profileService from '../services/profileService';
 import Sidebar from '../../home/components/Sidebar';
 import background from '../../../assets/background-dashbord.png';
@@ -64,7 +64,7 @@ const StatCard = ({ label, value }) => (
         <BarChart3 size={16} className="text-blue-400" />
       </div>
       <div>
-        <dt className="text-xs text-white/40 uppercase tracking-wide font-medium">Total Reports</dt>
+        <dt className="text-xs text-white/40 uppercase tracking-wide font-medium">{label}</dt>
         <dd className="text-sm text-white font-semibold">{value}</dd>
       </div>
     </div>

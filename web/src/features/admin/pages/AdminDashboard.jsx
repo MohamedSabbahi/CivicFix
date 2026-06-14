@@ -2,7 +2,7 @@ import { useState }          from "react";
 import CardStats             from "../components/CardStats";
 import ReportTable           from "../components/ReportTable";
 import LiveMap               from "../components/LiveMap";
-import { useAdminContext }   from "../context/AdminContext";
+import { useAdminContext }   from "../context/useAdminContext.js";
 import { Search }            from "lucide-react";
 
 const ITEMS_PER_PAGE = 3;

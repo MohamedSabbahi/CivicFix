@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"; 
 import { motion } from 'framer-motion';
-import { Plus, Loader2, MapPin } from "lucide-react";
+import { Plus, MapPin } from "lucide-react";
 import Sidebar from "../../home/components/Sidebar";
 import background from "../../../assets/background-dashbord.png";
 

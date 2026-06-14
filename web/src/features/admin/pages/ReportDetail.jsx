@@ -8,7 +8,7 @@ import ReportStatusUpdate          from "../components/reportDetail/ReportStatus
 import ReportEditModal             from "../components/reportDetail/ReportEditModal";
 import ReportComments              from "../components/reportDetail/ReportComments";
 import { getReportById, updateReportStatus, deleteReport } from "../services/adminService";
-import { useAdminContext }          from "../context/AdminContext";
+import { useAdminContext }          from "../context/useAdminContext.js";
 import ReportResolutionTime from "../components/reportDetail/ReportResolutionTime";
 
 

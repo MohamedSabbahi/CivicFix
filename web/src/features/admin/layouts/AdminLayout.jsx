@@ -2,7 +2,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar       from "../components/Sidebar";
 import Breadcrumb    from "../components/Breadcrumb";
 import { AdminProvider } from "../context/AdminContext";
-import { useAuth } from "../../../context/AuthContext"; // ← ajustez si besoin
+import { useAuth } from "../../../context/useAuth.js";
 import background    from "../../../assets/background-dashbord.png";
 
 const pageTitles = {

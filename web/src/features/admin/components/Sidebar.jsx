@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { FileText, ChartColumn, Building2, User, LogOut } from "lucide-react";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../../context/useAuth.js";
 
 const Sidebar = () => {
   const { logout } = useAuth();
