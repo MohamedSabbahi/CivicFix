@@ -9,8 +9,8 @@ const [loading,     setLoading]     = useState(false);
 const handleSave = async () => {
     try {
     setLoading(true);
-    await editReport(report.id, { title, description });
-    onSave({ title, description });
+    const res = await editReport(report.id, { title, description });
+    onSave(res.data.data);
     onClose();
     } catch (err) {
     console.error("Edit error:", err);

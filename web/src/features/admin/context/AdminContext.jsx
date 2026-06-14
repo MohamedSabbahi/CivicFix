@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { getAllReports, getOverviewStats } from "../services/adminService";
 import AdminContext from "./adminContextCore.js";
 
@@ -7,8 +7,9 @@ const [reports, setReports] = useState([]);
 const [stats,   setStats]   = useState(null);
 const [loading, setLoading] = useState(true);
 
-const fetchData = async () => {
+const fetchData = useCallback(async () => {
     try {
+    setLoading(true);
     const [statsRes, reportsRes] = await Promise.all([
         getOverviewStats(),
         getAllReports(),
@@ -20,37 +21,25 @@ const fetchData = async () => {
     } finally {
     setLoading(false);
     }
-};
+}, []);
 
 useEffect(() => {
     fetchData();
+}, [fetchData]);
+
+const upsertReport = useCallback((report) => {
+    setReports(prev => {
+    const reportId = parseInt(report.id);
+    const exists = prev.some(r => r.id === reportId);
+    if (!exists) return [report, ...prev];
+    return prev.map(r => r.id === reportId ? { ...r, ...report } : r);
+    });
 }, []);
 
-const updateReportStatus = (id, newStatus) => {
-    setReports(prev =>
-    prev.map(r => r.id === parseInt(id) ? { ...r, status: newStatus } : r)
-    );
-    // Update stats
-    setStats(prev => {
-    if (!prev) return prev;
-    const report = reports.find(r => r.id === parseInt(id));
-    if (!report) return prev;
-    return {
-        ...prev,
-        pendingCivicIssues:     prev.pendingCivicIssues     + (newStatus === "PENDING"     ? 1 : report.status === "PENDING"     ? -1 : 0),
-        inProgressCivicIssues:  prev.inProgressCivicIssues  + (newStatus === "IN_PROGRESS" ? 1 : report.status === "IN_PROGRESS" ? -1 : 0),
-        resolvedCivicIssues:   prev.resolvedCivicIssues     + (newStatus === "RESOLVED"    ? 1 : report.status === "RESOLVED"    ? -1 : 0),
-    };
-    });
-};
-
-const removeReport = (id) => {
-    setReports(prev => prev.filter(r => r.id !== parseInt(id)));
-    setStats(prev => ({
-    ...prev,
-    totalCivicIssues: prev.totalCivicIssues - 1,
-    }));
-};
+const removeReport = useCallback((id) => {
+    const reportId = parseInt(id);
+    setReports(prev => prev.filter(r => r.id !== reportId));
+}, []);
 
 return (
     <AdminContext.Provider value={{
@@ -58,7 +47,7 @@ return (
         stats,
         loading,
         fetchData,
-        updateReportStatus,
+        upsertReport,
         removeReport,
     }}>
         {children}

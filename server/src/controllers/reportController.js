@@ -622,7 +622,7 @@ const updateCivicIssueStatus = async (req, res) => {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
-  const validStatuses = ['IN_PROGRESS', 'RESOLVED'];
+  const validStatuses = ['PENDING', 'IN_PROGRESS', 'RESOLVED'];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ error: 'Invalid status' });
   }
@@ -631,30 +631,34 @@ const updateCivicIssueStatus = async (req, res) => {
     const civicIssue = await prisma.civicIssue.findUnique({ where: { id: civicIssueId } });
     if (!civicIssue) return res.status(404).json({ error: 'Civic issue not found' });
 
-    if (status === 'IN_PROGRESS' && civicIssue.status === 'RESOLVED') {
-      return res.status(400).json({ error: 'Cannot revert a resolved civic issue' });
-    }
-
-    await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx) => {
       await tx.intervention.updateMany({
         where: { civicIssueId },
         data: {
-          status: status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'COMPLETED',
+          status: status === 'RESOLVED'
+            ? 'COMPLETED'
+            : status === 'IN_PROGRESS'
+              ? 'IN_PROGRESS'
+              : 'PENDING',
           completedAt: status === 'RESOLVED' ? new Date() : null,
         },
       });
 
-      await tx.civicIssue.update({
+      return tx.civicIssue.update({
         where: { id: civicIssueId },
         data: {
           status,
           resolvedAt: status === 'RESOLVED' ? new Date() : null,
           accessSecret: status === 'RESOLVED' ? null : civicIssue.accessSecret,
         },
+        include: {
+          category: true,
+          user: { select: { name: true, email: true } },
+        },
       });
     });
 
-    res.json({ success: true, message: 'Status updated successfully', status });
+    res.json({ status: 'success', message: 'Status updated successfully', data: updated });
   } catch (error) {
     console.error('Status update error:', error);
     res.status(500).json({ error: 'Failed to update status' });

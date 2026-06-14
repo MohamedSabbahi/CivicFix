@@ -1,5 +1,5 @@
 import { useParams, useNavigate }  from "react-router-dom";
-import { useState, useEffect }     from "react";
+import { useCallback, useState, useEffect }     from "react";
 import ReportPhoto                 from "../components/reportDetail/ReportPhoto";
 import ReportInfo                  from "../components/reportDetail/ReportInfo";
 import ReportLocation              from "../components/reportDetail/ReportLocation";
@@ -16,37 +16,49 @@ import ReportResolutionTime from "../components/reportDetail/ReportResolutionTim
 const ReportDetail = () => {
   const { id }     = useParams();
   const navigate   = useNavigate();
-  const { updateReportStatus: updateStatusInContext, removeReport } = useAdminContext();
+  const { upsertReport, removeReport, fetchData } = useAdminContext();
   const [report,    setReport]    = useState(null);
   const [loading,   setLoading]   = useState(true);
   const [showEdit,  setShowEdit]  = useState(false); // ← modal edit
 
-  useEffect(() => {
+  const loadReport = useCallback(() => {
     getReportById(id)
-      .then(res  => setReport(res.data.data))
+      .then(res  => {
+        setReport(res.data.data);
+        upsertReport(res.data.data);
+      })
       .catch(err => console.error(err))
       .finally(  () => setLoading(false));
-  }, [id]);
+  }, [id, upsertReport]);
+
+  useEffect(() => {
+    loadReport();
+  }, [loadReport]);
 
   const handleDelete = async () => {
     if (!window.confirm("Delete this report?")) return;
     await deleteReport(id);
     removeReport(id);
+    await fetchData();
     navigate("/admin");
   };
 
   const handleStatus = async (newStatus) => {
     try {
-      await updateReportStatus(id, newStatus);
-      setReport(prev => ({ ...prev, status: newStatus }));
-      updateStatusInContext(id, newStatus);
+      const res = await updateReportStatus(id, newStatus);
+      const updatedReport = res.data.data || (await getReportById(id)).data.data;
+      setReport(updatedReport);
+      upsertReport(updatedReport);
+      await fetchData();
     } catch (err) {
       console.error("Error:", err.response?.data);
     }
   };
 
-  const handleSave = ({ title, description }) => {
-    setReport(prev => ({ ...prev, title, description }));
+  const handleSave = async (updatedReport) => {
+    setReport(updatedReport);
+    upsertReport(updatedReport);
+    await fetchData();
   };
 
   if (loading) return (
