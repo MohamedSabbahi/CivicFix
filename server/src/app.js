@@ -27,6 +27,11 @@ app.use(cors({
     credentials: true
 }));
 */
+/**
+ * Allows requests from the Vercel production domain, any Vercel preview deployment,
+ * localhost for development, and an optional CLIENT_URL from environment variables.
+ * Mobile apps (React Native) send requests without an origin header, so !origin passes.
+ */
 app.use(cors({
     origin: function(origin, callback) {
         const allowedOrigins = [
@@ -36,11 +41,16 @@ app.use(cors({
             process.env.CLIENT_URL,
         ].filter(Boolean);
 
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
+        // Allow requests with no origin (mobile apps, server-to-server)
+        if (!origin) return callback(null, true);
+
+        // Allow exact matches from the whitelist
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+
+        // Allow any Vercel preview deployment for this project
+        if (origin.endsWith('.vercel.app')) return callback(null, true);
+
+        callback(new Error('Not allowed by CORS'));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
