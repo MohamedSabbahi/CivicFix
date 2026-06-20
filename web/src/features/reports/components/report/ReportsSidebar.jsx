@@ -7,15 +7,14 @@ import { statusConfig } from './reportConstants';
 const ReportsSidebar = ({ reports, onCreateNew, onExploreMap }) => {
   const navigate = useNavigate();
   
-  // Get top 4 recent reports for activity feed
-  const recentReports = reports.slice(0, 4);
+  const recentReports = reports;
 
   const handleReportClick = (reportId) => {
     navigate(`/reports/${reportId}`);
   };
 
   return (
-    <aside className="fixed right-6 top-8 bottom-8 w-72 space-y-4">
+    <aside className="fixed right-6 top-8 bottom-8 w-72 flex flex-col gap-4">
       {/* Quick Actions Panel */}
       <div className="p-6 rounded-3xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
         <h3 className="text-sm font-bold uppercase tracking-widest text-white/50 mb-4">Quick Actions</h3>
@@ -34,9 +33,9 @@ const ReportsSidebar = ({ reports, onCreateNew, onExploreMap }) => {
       </div>
 
       {/* Live Updates Panel */}
-      <div className="flex-1 p-6 rounded-3xl bg-white/[0.03] border border-white/10 backdrop-blur-xl overflow-hidden">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-white/50 mb-4">Live Updates</h3>
-        <div className="space-y-4">
+      <div className="flex-1 min-h-0 flex flex-col p-6 rounded-3xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-white/50 mb-4 shrink-0">Live Updates</h3>
+        <div className="overflow-y-auto flex-1 space-y-4 pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
           {recentReports.map((r, i) => {
             const status = statusConfig[r.status] || statusConfig.PENDING;
             return (
