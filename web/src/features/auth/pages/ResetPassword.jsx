@@ -9,7 +9,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const inputRefs = useRef([]);
 
-  const email = location.state?.email;
+  const email = location.state?.email || sessionStorage.getItem('resetEmail');
 
   const [code, setCode] = useState(['', '', '', '']);
   const [password, setPassword] = useState('');
@@ -23,12 +23,13 @@ const ResetPassword = () => {
   const [canResend, setCanResend] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  // Redirect if no email
+  // Redirect if no email; clear sessionStorage once consumed
   useEffect(() => {
     if (!email) {
       navigate('/forgot-password', { replace: true });
       return;
     }
+    sessionStorage.removeItem('resetEmail');
     inputRefs.current[0]?.focus();
   }, [email, navigate]);
 

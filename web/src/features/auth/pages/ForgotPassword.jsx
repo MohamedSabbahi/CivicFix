@@ -20,7 +20,8 @@ const ForgotPassword = () => {
     try {
       const data = await authService.forgotPassword(email);
       setMessage(data.message || 'Reset code sent to your email!');
-      setTimeout(() => navigate('/verify-code', { state: { email } }), 1500);
+      sessionStorage.setItem('resetEmail', email);
+      setTimeout(() => navigate('/reset-password', { state: { email } }), 1500);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
