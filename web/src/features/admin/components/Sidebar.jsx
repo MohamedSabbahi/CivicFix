@@ -12,7 +12,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-56 p-5 flex flex-col bg-black/20 backdrop-blur-xl text-white z-50 border-r border-white/10">
+    <aside className="fixed left-0 top-0 bottom-0 w-56 p-5 flex flex-col text-white z-50">
 
       {/* HEADER */}
       <div className="flex items-center gap-3 mb-8">

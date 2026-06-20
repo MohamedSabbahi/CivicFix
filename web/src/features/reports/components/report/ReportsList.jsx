@@ -4,7 +4,7 @@ import { statusConfig } from './reportConstants';
 
 const ReportsList = ({ reports, selectedReport, onReportClick }) => {
   return (
-    <div className="w-80 flex flex-col rounded-2xl bg-white/[0.04] border border-white/10 overflow-hidden">
+    <div className="w-80 h-full flex flex-col rounded-2xl bg-white/[0.04] border border-white/10 overflow-hidden">
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold">Reports ({reports.length})</h3>
