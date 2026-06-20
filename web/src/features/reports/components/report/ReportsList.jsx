@@ -12,7 +12,7 @@ const ReportsList = ({ reports, selectedReport, onReportClick }) => {
         <p className="text-xs text-white/40">Click a marker on the map or browse below</p>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-2">
         {reports.length === 0 ? (
           <div className="text-center py-8 text-white/30">
             <MapPin className="w-12 h-12 mx-auto mb-2 opacity-30" />

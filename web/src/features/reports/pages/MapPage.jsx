@@ -139,7 +139,7 @@ const MapPage = () => {
             </div>
 
             {/* Reports List Sidebar */}
-            <div className="w-80 h-full">
+            <div className="w-80 h-full min-h-0 flex flex-col">
               <ReportsList
                 reports={filteredReports}
                 selectedReport={selectedReport}
