@@ -1,36 +1,17 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, ScrollView, Image,
+  ActivityIndicator, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { AuthContext } from '../../context/AuthContext';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loginWithGoogle, isLoading } = useContext(AuthContext);
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      if (authentication?.accessToken) {
-        loginWithGoogle(authentication.accessToken);
-      }
-    }
-  }, [response]);
+  const { login, isLoading } = useContext(AuthContext);
 
   return (
     <SafeAreaView className="flex-1 bg-background-dark">
@@ -107,27 +88,6 @@ export default function LoginScreen({ navigation }) {
           ) : (
             <Text className="text-white font-bold text-lg">Login</Text>
           )}
-        </TouchableOpacity>
-
-        {/* ── Divider ── */}
-        <View className="flex-row items-center my-5">
-          <View className="flex-1 h-px bg-slate-700" />
-          <Text className="text-slate-500 mx-3 text-sm">OR</Text>
-          <View className="flex-1 h-px bg-slate-700" />
-        </View>
-
-        {/* ── Google Sign In ── */}
-        <TouchableOpacity
-          onPress={() => promptAsync()}
-          disabled={!request || isLoading}
-          className="flex-row items-center justify-center bg-white h-14 rounded-xl gap-3"
-          style={{ opacity: !request || isLoading ? 0.6 : 1 }}
-        >
-          <Image
-            source={{ uri: 'https://www.svgrepo.com/show/475656/google-color.svg' }}
-            style={{ width: 22, height: 22 }}
-          />
-          <Text className="text-black font-semibold text-base">Continue with Google</Text>
         </TouchableOpacity>
 
         {/* ── Register Link ── */}

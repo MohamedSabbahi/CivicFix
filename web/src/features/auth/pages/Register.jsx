@@ -6,8 +6,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
-import { useGoogleLogin } from "@react-oauth/google";
-
 import authService from "../services/authService";
 import AuthInput from "../../../components/ui/AuthInput";
 import bgImage from "../../../assets/background-CivicFix.img.png";
@@ -46,22 +44,6 @@ const Register = () => {
     confirmPassword: "",
     },
 });
-
-    const googleLogin = useGoogleLogin({
-        onSuccess: async (tokenResponse) => {
-            try {
-                setIsLoading(true);
-                await authService.googleLogin(tokenResponse.access_token);
-                toast.success('Signed in with Google!');
-                navigate('/');
-            } catch (err) {
-                toast.error(err.message || 'Google login failed');
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        onError: () => toast.error('Google login failed. Please try again.'),
-    });
 
     useEffect(() => {
     window.scrollTo(0, 0);
@@ -185,26 +167,6 @@ const Register = () => {
             className="w-full py-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-500 transition"
                 >
             {isLoading ? "Creating..." : "Create Account"}
-                </button>
-          {/* Divider */}
-            <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px bg-slate-700"></div>
-            <span className="text-slate-400 text-sm">OR</span>
-            <div className="flex-1 h-px bg-slate-700"></div>
-            </div>
-          {/* Google Login */}
-                <button
-            type="button"
-            className="w-full bg-white text-black py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition disabled:opacity-60"
-            onClick={() => googleLogin()}
-            disabled={isLoading}
-                >
-            <img
-                    src="https://www.svgrepo.com/show/475656/google-color.svg"
-                    alt="google"
-                    className="w-5 h-5"
-            />
-            Continue with Google
                 </button>
         </form>
         {/* Footer */}

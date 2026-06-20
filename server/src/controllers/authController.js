@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const crypto = require('crypto');
-const axios = require('axios');
 const sendEmail = require('../utils/sendEmail');
 
 const generateToken = (id) => {
@@ -285,39 +284,5 @@ exports.changePassword = async (req, res) => {
   } catch (error) {
     console.error("Change password error:", error);
     res.status(500).json({ message: "Server error." });
-  }
-};
-exports.googleAuth = async (req, res) => {
-  try {
-    const { accessToken } = req.body;
-    if (!accessToken) return res.status(400).json({ message: 'Access token required' });
-
-    const { data: googleUser } = await axios.get(
-      'https://www.googleapis.com/oauth2/v2/userinfo',
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-
-    if (!googleUser.email) return res.status(400).json({ message: 'Could not retrieve email from Google' });
-
-    let user = await prisma.user.findUnique({ where: { email: googleUser.email } });
-
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email: googleUser.email,
-          name: googleUser.name || googleUser.email.split('@')[0],
-          password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
-          role: 'CITIZEN',
-        },
-      });
-    }
-
-    res.json({
-      token: generateToken(user.id),
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
-    });
-  } catch (error) {
-    console.error('Google Auth Error:', error.response?.data || error.message);
-    res.status(500).json({ message: 'Google authentication failed' });
   }
 };
