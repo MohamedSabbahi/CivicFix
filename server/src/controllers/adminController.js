@@ -36,25 +36,25 @@ const getDepartmentStats = async (req, res) => {
 // Provides a high-level overview of system activity and user distribution
 const getOverviewStats = async (req, res) => {
     try {
-        // Groups civic issues by their status enum to provide a quick summary
-        const statusCounts = await prisma.civicIssue.groupBy({
-            by: ['status'],
-            _count: true
-        });
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Run all independent queries in parallel to avoid sequential round-trips
+        const [statusCounts, totalUsers, citizensCount, resolvedWithTime, todayCivicIssues] = await Promise.all([
+            prisma.civicIssue.groupBy({ by: ['status'], _count: true }),
+            prisma.user.count(),
+            prisma.user.count({ where: { role: 'CITIZEN' } }),
+            prisma.civicIssue.findMany({
+                where: { status: 'RESOLVED', resolvedAt: { not: null } },
+                select: { createdAt: true, resolvedAt: true }
+            }),
+            prisma.civicIssue.count({ where: { createdAt: { gte: today } } }),
+        ]);
 
         const totalCivicIssues = statusCounts.reduce((sum, s) => sum + s._count, 0);
         const pendingCivicIssues = statusCounts.find(s => s.status === 'PENDING')?._count || 0;
         const inProgressCivicIssues = statusCounts.find(s => s.status === 'IN_PROGRESS')?._count || 0;
         const resolvedCivicIssues = statusCounts.find(s => s.status === 'RESOLVED')?._count || 0;
-
-        const totalUsers = await prisma.user.count();
-        const citizensCount = await prisma.user.count({ where: { role: 'CITIZEN' } });
-
-        // Calculates the overall system average resolution speed
-        const resolvedWithTime = await prisma.civicIssue.findMany({
-            where: { status: 'RESOLVED', resolvedAt: { not: null } },
-            select: { createdAt: true, resolvedAt: true }
-        });
 
         let overallAvgHours = 0;
         if (resolvedWithTime.length > 0) {
@@ -63,10 +63,6 @@ const getOverviewStats = async (req, res) => {
         }
 
         const resolutionRate = totalCivicIssues > 0 ? ((resolvedCivicIssues / totalCivicIssues) * 100).toFixed(2) : '0.00';
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayCivicIssues = await prisma.civicIssue.count({ where: { createdAt: { gte: today } } });
 
         res.status(200).json({
             status: 'success',
@@ -96,13 +92,11 @@ const addDepartment = async (req, res) => {
             create: { name, email }
         });
 
-        // Iteratively adds categories associated with the department
-        if (categories && Array.isArray(categories)) {
-            for (const catName of categories) {
-                await prisma.category.create({
-                    data: { name: catName, departmentId: department.id }
-                });
-            }
+        if (categories && Array.isArray(categories) && categories.length > 0) {
+            await prisma.category.createMany({
+                data: categories.map(catName => ({ name: catName, departmentId: department.id })),
+                skipDuplicates: true,
+            });
         }
 
         res.status(201).json({ status: "success", message: "Département configuré", data: department });
@@ -228,13 +222,11 @@ const updateDepartment = async (req, res) => {
             });
         }
 
-        // Ajoute les nouvelles catégories
         if (categoriesToAdd && categoriesToAdd.length > 0) {
-            for (const catName of categoriesToAdd) {
-                await prisma.category.create({
-                    data: { name: catName, departmentId: updated.id }
-                });
-            }
+            await prisma.category.createMany({
+                data: categoriesToAdd.map(catName => ({ name: catName, departmentId: updated.id })),
+                skipDuplicates: true,
+            });
         }
 
         const result = await prisma.department.findUnique({

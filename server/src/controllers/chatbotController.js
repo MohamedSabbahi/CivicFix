@@ -18,15 +18,22 @@ exports.handleChatMessage = async (req, res) => {
         }
 
         // Forward message to the Python/FastAPI microservice
+        // 15s timeout prevents silent hangs when Render cold-starts the Python service
         const pythonResponse = await axios.post(`${process.env.PYTHON_AI_URL}/parse`, {
             message: userMessage
-        });
+        }, { timeout: 15000 });
 
         // Return the parsed JSON response to the client
         return res.json(pythonResponse.data);
 
     } catch (error) {
-        console.error("Chatbot Controller Error:", error.message);
+        if (error.response) {
+            console.error("Chatbot AI Error — Python service responded with:", error.response.status, JSON.stringify(error.response.data));
+        } else if (error.code === 'ECONNABORTED') {
+            console.error("Chatbot Timeout: AI service did not respond within 15 seconds.");
+        } else {
+            console.error("Chatbot Controller Error:", error.code || error.message);
+        }
         
         // Provide a structured fallback response matching the expected schema
         res.status(500).json({ 

@@ -239,6 +239,23 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+exports.savePushToken = async (req, res) => {
+    try {
+        const { pushToken } = req.body;
+        if (!pushToken) {
+            return res.status(400).json({ message: 'Push token is required' });
+        }
+        await prisma.user.update({
+            where: { id: req.user.id },
+            data: { pushToken },
+        });
+        res.status(200).json({ message: 'Push token saved' });
+    } catch (error) {
+        console.error('Save push token error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;

@@ -7,8 +7,7 @@ import StatCard from "../components/StatCard";
 import ReportCard from "../components/ReportCard";
 import CityMap from "../components/CityMap";
 import { getAllReports } from "../services/homeService";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
+import { resolveImageUrl } from "../../reports/utils/reportUtils";
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -170,7 +169,6 @@ const Dashboard = () => {
               <>
                 {displayReports.length > 0 ? (
                   displayReports.map((report) => {
-                    console.log("image field:", report.photoUrl);
                     return (
                       <ReportCard
                         key={report.id}
@@ -178,7 +176,7 @@ const Dashboard = () => {
                         status={report.status === 'IN_PROGRESS' ? 'In Progress' : report.status}
                         address={report.category?.name || "Downtown Area"}
                         date={formatDate(report.createdAt)}
-                        image={report.photoUrl ? `${API_BASE_URL}${report.photoUrl}` : null}
+                        image={resolveImageUrl(report.photoUrl)}
                         onView={() => handleViewDetails(report.id)}
                       />
                     );

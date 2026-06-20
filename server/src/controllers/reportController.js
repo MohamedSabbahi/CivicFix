@@ -2,6 +2,7 @@ const prisma = require('../utils/prisma');
 const { generateMagicLinks } = require('../utils/linkGenerator');
 const { sendStatusEmail } = require('../utils/mailer');
 const { calculateDistance } = require('../utils/geoUtils');
+const { sendPushNotification } = require('../utils/pushNotification');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -193,9 +194,10 @@ const getAllCivicIssues = async (req, res) => {
       status: "success",
       results: finalData.length,
       metadata: {
-        total: totalCivicIssues,
-        page: pageNum,
+        currentPage: pageNum,
         totalPages: Math.ceil(totalCivicIssues / limitNum),
+        totalReports: totalCivicIssues,
+        hasNextPage: pageNum < Math.ceil(totalCivicIssues / limitNum),
       },
       data: finalData,
     });
@@ -452,6 +454,23 @@ const updateStatusByMagicLink = async (req, res) => {
       }
     });
 
+    // Notify the citizen who filed the report
+    try {
+      const owner = await prisma.user.findUnique({
+        where: { id: civicIssue.userId },
+        select: { pushToken: true },
+      });
+      if (owner?.pushToken) {
+        await sendPushNotification(
+          owner.pushToken,
+          'Report Status Updated',
+          `Your report "${civicIssue.title}" is now ${status.replace('_', ' ')}.`
+        );
+      }
+    } catch (pushErr) {
+      console.error('Push notification failed:', pushErr.message);
+    }
+
     const deptType = isPrimaryDept ? "Primary" : "Secondary";
     res.send(`
       <div style="font-family:sans-serif; text-align:center; padding-top:50px;">
@@ -657,6 +676,23 @@ const updateCivicIssueStatus = async (req, res) => {
         },
       });
     });
+
+    // Notify the citizen who filed the report
+    try {
+      const owner = await prisma.user.findUnique({
+        where: { id: civicIssue.userId },
+        select: { pushToken: true },
+      });
+      if (owner?.pushToken) {
+        await sendPushNotification(
+          owner.pushToken,
+          'Report Status Updated',
+          `Your report "${civicIssue.title}" is now ${status.replace('_', ' ')}.`
+        );
+      }
+    } catch (pushErr) {
+      console.error('Push notification failed:', pushErr.message);
+    }
 
     res.json({ status: 'success', message: 'Status updated successfully', data: updated });
   } catch (error) {

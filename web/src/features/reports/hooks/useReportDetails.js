@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import reportService from '../services/reportService';
 import toast from 'react-hot-toast';
+import supabase from '../../../lib/supabaseClient';
 
 const useReportDetails = () => {
   const { id } = useParams();
@@ -67,6 +68,33 @@ const useReportDetails = () => {
       fetchComments();
     }
   }, [id, fetchReport, fetchComments]);
+
+  // Subscribe to real-time status changes for this report via Supabase Realtime
+  useEffect(() => {
+    if (!id || !supabase) return;
+
+    const channel = supabase
+      .channel(`report-status-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'CivicIssue',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          const { status, resolvedAt } = payload.new;
+          setReport(prev => prev ? { ...prev, status, resolvedAt } : prev);
+          toast.success(`Report status updated to ${status.replace('_', ' ')}`);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
 
   const handleAddComment = useCallback(async () => {
     if (!newComment.trim()) return;

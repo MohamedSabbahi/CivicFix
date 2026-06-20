@@ -1,6 +1,25 @@
 import React, { createContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import api from '../services/api';
+
+async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) return null;
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') return null;
+
+  const tokenData = await Notifications.getExpoPushTokenAsync();
+  return tokenData.data;
+}
 
 export const AuthContext = createContext();
 
@@ -31,6 +50,11 @@ export const AuthProvider = ({ children }) => {
         if (userInfo) {
             setUserInfo(JSON.parse(userInfo));
         }
+        // Re-register push token on each app launch so stale tokens get refreshed
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          api.put('/auth/push-token', { pushToken }).catch(() => {});
+        }
       }
     } catch (e) {
       console.log(`isLogged in error ${e}`);
@@ -59,6 +83,14 @@ export const AuthProvider = ({ children }) => {
       // Save to device storage
       await SecureStore.setItemAsync('userToken', token);
       await SecureStore.setItemAsync('userInfo', JSON.stringify(user));
+
+      // Register device push token so the server can notify this user
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        api.put('/auth/push-token', { pushToken }).catch(err =>
+          console.error('Failed to save push token:', err.message)
+        );
+      }
 
     } catch (error) {
       console.log(error);

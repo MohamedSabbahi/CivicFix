@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const sanitizeHtml = require('sanitize-html');
 
 const getCivicIssueComments = async (req, res) => {
     try{
@@ -73,6 +74,17 @@ const createComment = async (req, res) => {
                 message: "Comment is too long. Maximum length is 500 characters"
             });
         }
+
+        // Strip all HTML tags — no markup is allowed in comments
+        const sanitizedContent = sanitizeHtml(content, { allowedTags: [], allowedAttributes: {} });
+
+        if (sanitizedContent.trim().length === 0) {
+            return res.status(400).json({
+                status: "error",
+                message: "Comment content cannot be empty after sanitization"
+            });
+        }
+
         const civicIssue = await prisma.civicIssue.findUnique({
             where: { id: civicIssueId },
             select: { id: true },
@@ -85,7 +97,7 @@ const createComment = async (req, res) => {
         }
         const newComment = await prisma.comment.create({
             data: {
-                text: content,
+                text: sanitizedContent,
                 civicIssueId : parseInt(id),
                 userId: userId
             },
