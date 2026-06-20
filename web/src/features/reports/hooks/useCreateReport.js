@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import reportService from '../services/reportService';
 import useGeolocation from './useGeolocation';
 import useCreateReportForm from './useCreateReportForm';
@@ -8,8 +8,10 @@ import toast from 'react-hot-toast';
 
 const useCreateReport = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = location.state?.prefill;
   const fileInputRef = useRef(null);
-  
+
   const {
     formData,
     image,
@@ -18,6 +20,7 @@ const useCreateReport = () => {
     showMap,
     setShowMap,
     setErrors,
+    setFormData,
     handleInputChange,
     handleImageChange,
     removeImage,
@@ -45,6 +48,20 @@ const useCreateReport = () => {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // Pre-fill form when navigated from the chatbot widget
+  useEffect(() => {
+    if (!prefill || categories.length === 0) return;
+    const matched = categories.find(
+      c => c.name.toLowerCase() === prefill.category?.toLowerCase()
+    );
+    setFormData(prev => ({
+      ...prev,
+      title: prefill.title || prev.title,
+      description: prefill.description || prev.description,
+      ...(matched ? { categoryId: matched.id.toString() } : {}),
+    }));
+  }, [categories, prefill, setFormData]);
 
   const handleGetCurrentLocation = useCallback(async () => {
     try {

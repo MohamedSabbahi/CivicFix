@@ -16,6 +16,7 @@ import MyReports from './features/reports/pages/MyReports';
 import ReportDetails from './features/reports/pages/ReportDetails';
 import CreateReport from './features/reports/pages/CreateReport';
 import MapPage from './features/reports/pages/MapPage';
+import ChatbotWidget from './features/chatbot/ChatbotWidget';
 // ✅ Admin — tous les imports nécessaires
 import AdminLayout    from './features/admin/layouts/AdminLayout';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
@@ -74,6 +75,9 @@ function App() {
         <Route path="/404" element={<NotFound />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
+
+      {/* Floating AI chatbot — guards itself against admin routes */}
+      <ChatbotWidget />
       </>
   );
 }

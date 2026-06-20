@@ -23,5 +23,10 @@ api.interceptors.response.use(
 
 );
 
+export const sendChatMessage = async (message) => {
+    const { data } = await api.post('/chatbot/chat', { message });
+    return data;
+};
+
 export default api;
 
