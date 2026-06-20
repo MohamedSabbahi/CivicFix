@@ -4,15 +4,15 @@ import { statusConfig } from './reportConstants';
 
 const ReportsList = ({ reports, selectedReport, onReportClick }) => {
   return (
-    <div className="w-80 h-full flex flex-col rounded-2xl bg-white/[0.04] border border-white/10 overflow-hidden">
-      <div className="p-4 border-b border-white/10">
+    <div className="w-80 flex flex-col rounded-2xl bg-white/[0.04] border border-white/10 overflow-hidden" style={{ height: 'calc(100vh - 190px)' }}>
+      <div className="shrink-0 p-4 border-b border-white/10">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold">Reports ({reports.length})</h3>
         </div>
         <p className="text-xs text-white/40">Click a marker on the map or browse below</p>
       </div>
-      
-      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-2">
+
+      <div className="overflow-y-auto p-2 space-y-2">
         {reports.length === 0 ? (
           <div className="text-center py-8 text-white/30">
             <MapPin className="w-12 h-12 mx-auto mb-2 opacity-30" />
