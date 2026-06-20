@@ -1,17 +1,4 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.BREVO_USER,
-        pass: process.env.BREVO_PASS,
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-});
+const axios = require('axios');
 
 const buildEmailHtml = (report, links) => {
     const lat = report.latitude;
@@ -53,7 +40,6 @@ const buildEmailHtml = (report, links) => {
     </div>
 
     <div style="padding:32px;">
-
       <h2 style="color:#1e293b; font-size:18px; margin:0 0 8px;">${report.title}</h2>
       <p style="color:#64748b; font-size:14px; line-height:1.6; margin:0 0 4px;">
         <strong>Category:</strong> ${report.category?.name || 'N/A'}
@@ -101,15 +87,29 @@ const buildEmailHtml = (report, links) => {
 };
 
 const sendStatusEmail = async (deptEmail, report, links) => {
-    const info = await transporter.sendMail({
-        from: `"CivicFix" <${process.env.BREVO_USER}>`,
-        to: deptEmail,
-        subject: `[CivicFix] New Report Assigned: ${report.title}`,
-        html: buildEmailHtml(report, links),
-    });
+    if (!process.env.BREVO_API_KEY) {
+        throw new Error('Email service not configured (BREVO_API_KEY missing)');
+    }
 
-    console.log('✅ Email sent:', info.messageId, '→', deptEmail);
-    return info;
+    const response = await axios.post(
+        'https://api.brevo.com/v3/smtp/email',
+        {
+            sender: { name: 'CivicFix', email: process.env.BREVO_SENDER },
+            to: [{ email: deptEmail }],
+            subject: `[CivicFix] New Report Assigned: ${report.title}`,
+            htmlContent: buildEmailHtml(report, links),
+        },
+        {
+            headers: {
+                'api-key': process.env.BREVO_API_KEY,
+                'Content-Type': 'application/json',
+            },
+            timeout: 15000,
+        }
+    );
+
+    console.log('✅ Dept email sent via Brevo API →', deptEmail, response.data);
+    return response.data;
 };
 
 module.exports = { sendStatusEmail };
