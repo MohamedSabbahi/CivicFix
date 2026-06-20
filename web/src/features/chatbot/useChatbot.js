@@ -6,19 +6,29 @@ import api from '../../services/api';
 
 const makeId = () => `${Date.now()}-${Math.random()}`;
 
-export const useChatbot = (isOpen) => {
-    const { user } = useAuth();
-    const navigate = useNavigate();
-    const firstName = user?.name?.split(' ')[0] || 'Citizen';
-    const bottomRef = useRef(null);
-
-    const [messages, setMessages] = useState(() => [{
+const GREETING = (firstName) => [
+    {
         id: makeId(),
-        text: `Hi ${firstName}! I'm the CivicFix AI. Describe a municipal issue to report it, or ask me for city statistics.`,
         sender: 'bot',
         type: 'text',
-    }]);
-    const [input, setInput] = useState('');
+        text: `Hi ${firstName}! I'm the CivicFix AI assistant. How can I help you today?`,
+    },
+    {
+        id: makeId(),
+        sender: 'bot',
+        type: 'quick_reply',
+    },
+];
+
+export const useChatbot = (isOpen) => {
+    const { user } = useAuth();
+    const navigate  = useNavigate();
+    const firstName = user?.name?.split(' ')[0] || 'Citizen';
+    const bottomRef = useRef(null);
+    const inputRef  = useRef(null);
+
+    const [messages,  setMessages]  = useState(() => GREETING(firstName));
+    const [input,     setInput]     = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -29,6 +39,30 @@ export const useChatbot = (isOpen) => {
         setMessages(prev => [...prev, ...msgs]);
     }, []);
 
+    // ── Route A: direct analytics — no Groq involved ────────────────────────
+    const handleAnalyticsSummary = useCallback(async () => {
+        addMessages([{ id: makeId(), sender: 'user', type: 'text', text: '📊 View Analytics Summary' }]);
+        setIsLoading(true);
+        try {
+            const { data } = await api.get('/chatbot/analytics');
+            addMessages([{ id: makeId(), sender: 'bot', type: 'analytics_summary', payload: data }]);
+        } catch {
+            addMessages([{ id: makeId(), sender: 'bot', type: 'text', text: 'Failed to load analytics. Please try again.' }]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [addMessages]);
+
+    // ── Route B: engage reporting flow — prompts user to type naturally ──────
+    const handleReportMode = useCallback(() => {
+        addMessages([
+            { id: makeId(), sender: 'user', type: 'text', text: '📝 Report a Municipal Issue' },
+            { id: makeId(), sender: 'bot',  type: 'text', text: 'Sure! Describe the issue in your own words and I\'ll identify the category, generate a title, and guide you through reporting it.' },
+        ]);
+        setTimeout(() => inputRef.current?.focus(), 50);
+    }, [addMessages]);
+
+    // ── Route C: free-text → FastAPI/Groq pipeline ──────────────────────────
     const handleSend = useCallback(async () => {
         const text = input.trim();
         if (!text || isLoading) return;
@@ -67,6 +101,7 @@ export const useChatbot = (isOpen) => {
         }
     }, [input, isLoading, addMessages]);
 
+    // ── Legacy stats picker (still used by GET_STATS intent cards) ───────────
     const handleFetchStats = useCallback(async (statType) => {
         setIsLoading(true);
         try {
@@ -94,5 +129,10 @@ export const useChatbot = (isOpen) => {
         navigate('/create-report', { state: { prefill: payload } });
     }, [navigate]);
 
-    return { messages, input, setInput, isLoading, handleSend, handleFetchStats, handleStartReport, bottomRef };
+    return {
+        messages, input, setInput, isLoading,
+        inputRef, bottomRef,
+        handleSend, handleFetchStats, handleStartReport,
+        handleAnalyticsSummary, handleReportMode,
+    };
 };

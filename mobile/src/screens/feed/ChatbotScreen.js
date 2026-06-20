@@ -12,11 +12,16 @@ export default function ChatbotScreen({ route, navigation }) {
 
     // --- State Management ---
     const [messages, setMessages] = useState([
-        { 
-            id: '1', 
-            text: `Hi ${firstName}! I'm the CivicFix AI. What issue would you like to report, or what statistics would you like to see today?`, 
+        {
+            id: '1',
+            text: `Hi ${firstName}! I'm the CivicFix AI assistant. How can I help you today?`,
             sender: 'bot',
             type: 'text'
+        },
+        {
+            id: '2',
+            sender: 'bot',
+            type: 'quick_reply',
         }
     ]);
     const [inputText, setInputText] = useState('');
@@ -24,6 +29,38 @@ export default function ChatbotScreen({ route, navigation }) {
     
     const [requiresPhoto, setRequiresPhoto] = useState(false); 
     const [pendingReportData, setPendingReportData] = useState(null); 
+
+    // ── Route A: direct analytics bypass (no Groq) ───────────────────────────
+    const handleAnalyticsSummary = async () => {
+        setMessages(prev => [...prev, {
+            id: Date.now().toString(), sender: 'user', type: 'text', text: '📊 View Analytics Summary'
+        }]);
+        setIsLoading(true);
+        try {
+            const { data } = await api.get('/chatbot/analytics');
+            setMessages(prev => [...prev, {
+                id: (Date.now() + 1).toString(), sender: 'bot', type: 'analytics_summary', payload: data
+            }]);
+        } catch {
+            setMessages(prev => [...prev, {
+                id: (Date.now() + 1).toString(), sender: 'bot', type: 'text',
+                text: 'Failed to load analytics. Please try again.'
+            }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // ── Route B: engage reporting flow ───────────────────────────────────────
+    const handleReportMode = () => {
+        setMessages(prev => [...prev,
+            { id: Date.now().toString(), sender: 'user', type: 'text', text: '📝 Report a Municipal Issue' },
+            {
+                id: (Date.now() + 1).toString(), sender: 'bot', type: 'text',
+                text: "Sure! Describe the issue in your own words and I'll identify the category, generate a title, and guide you through reporting it."
+            },
+        ]);
+    };
 
     /**
      * Transmits user input to the AI microservice and routes the structured JSON response.
@@ -204,13 +241,75 @@ export default function ChatbotScreen({ route, navigation }) {
                     if (msg.type === 'text') {
                         return (
                             <View key={msg.id} className={`mb-4 max-w-[80%] rounded-2xl p-4 ${
-                                msg.sender === 'user' 
-                                ? 'bg-blue-600 self-end rounded-br-sm shadow-md shadow-blue-900/20' 
+                                msg.sender === 'user'
+                                ? 'bg-blue-600 self-end rounded-br-sm shadow-md shadow-blue-900/20'
                                 : 'bg-[#1e293b] self-start rounded-bl-sm border border-slate-700 shadow-md shadow-black/20'
                             }`}>
                                 <Text className={msg.sender === 'user' ? 'text-white' : 'text-slate-200 text-base leading-6'}>
                                     {msg.text}
                                 </Text>
+                            </View>
+                        );
+                    }
+
+                    if (msg.type === 'quick_reply') {
+                        return (
+                            <View key={msg.id} className="bg-[#1e293b] border border-slate-700 p-4 rounded-xl self-start mb-4 shadow-md shadow-black/20 w-full">
+                                <Text className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Quick options</Text>
+                                <TouchableOpacity
+                                    onPress={handleAnalyticsSummary}
+                                    className="bg-blue-600 p-3 rounded-lg mb-2 flex-row items-center"
+                                >
+                                    <Text className="text-white font-medium">📊  View Analytics Summary</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={handleReportMode}
+                                    className="bg-slate-700 p-3 rounded-lg flex-row items-center"
+                                >
+                                    <Text className="text-white font-medium">📝  Report a Municipal Issue</Text>
+                                </TouchableOpacity>
+                            </View>
+                        );
+                    }
+
+                    if (msg.type === 'analytics_summary') {
+                        const { overview, departments } = msg.payload;
+                        return (
+                            <View key={msg.id} className="bg-[#1e293b] border border-slate-700 p-4 rounded-xl self-start mb-4 shadow-md shadow-black/20 w-full">
+                                <Text className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">Municipal Analytics</Text>
+                                <View className="flex-row flex-wrap gap-2 mb-3">
+                                    <View className="bg-slate-800 rounded-lg p-3 flex-1 items-center">
+                                        <Text className="text-white text-xl font-bold">{overview.total}</Text>
+                                        <Text className="text-slate-400 text-xs mt-1">Total Issues</Text>
+                                    </View>
+                                    <View className="bg-emerald-950 border border-emerald-800 rounded-lg p-3 flex-1 items-center">
+                                        <Text className="text-emerald-400 text-xl font-bold">{overview.resolutionRate}</Text>
+                                        <Text className="text-slate-400 text-xs mt-1">Resolution Rate</Text>
+                                    </View>
+                                </View>
+                                <View className="flex-row gap-2 mb-3">
+                                    <View className="bg-slate-800 rounded-lg p-3 flex-1">
+                                        <Text className="text-emerald-400 font-semibold">{overview.resolved} resolved</Text>
+                                    </View>
+                                    <View className="bg-slate-800 rounded-lg p-3 flex-1">
+                                        <Text className="text-amber-400 font-semibold">{overview.inProgress} in progress</Text>
+                                    </View>
+                                </View>
+                                <Text className="text-slate-500 text-xs mb-3">
+                                    <Text className="text-blue-400">{overview.todayCount}</Text> new report{overview.todayCount !== 1 ? 's' : ''} today
+                                </Text>
+                                {departments?.length > 0 && (
+                                    <>
+                                        <Text className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">By Department</Text>
+                                        {departments.map((d, i) => (
+                                            <View key={i} className="flex-row justify-between py-1.5 border-b border-slate-700/50">
+                                                <Text className="text-slate-300 text-sm flex-1 mr-2" numberOfLines={1}>{d.name}</Text>
+                                                <Text className="text-emerald-400 text-xs">{d.resolved} ✓</Text>
+                                                <Text className="text-slate-500 text-xs ml-3">{d.avgTime}</Text>
+                                            </View>
+                                        ))}
+                                    </>
+                                )}
                             </View>
                         );
                     }
