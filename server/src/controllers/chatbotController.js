@@ -85,15 +85,15 @@ exports.handleChatMessage = async (req, res) => {
             console.error("Chatbot Controller Error:", error.code || error.message);
         }
         
-        // Provide a structured fallback response matching the expected schema
-        res.status(500).json({ 
+        // Return 200 so the frontend receives the bot_reply gracefully instead of throwing
+        res.json({
             intent: "UNKNOWN",
             confidence: 0,
-            bot_reply: "My AI connection is currently offline. Please try again later or use the manual report button.",
+            bot_reply: "My AI assistant is temporarily offline (the service may be waking up). Please try again in 30 seconds, or describe your issue directly and I'll do my best.",
             category: "UNKNOWN",
             title: null,
             description: null,
-            requires_photo: false 
+            requires_photo: false
         });
     }
 };
