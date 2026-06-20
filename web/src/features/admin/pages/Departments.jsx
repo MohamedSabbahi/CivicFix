@@ -1,24 +1,18 @@
 import { useState, useEffect }   from "react";
-import CardStats                 from "../components/CardStats";
 import DepartmentCard    from "../components/department/DepartmentCard";
 import AddDepartmentModal from "../components/department/AddDepartmentModal";
-import { getDepartments, getDepartmentStats, deleteDepartment } from "../services/adminService";
+import { getDepartments, deleteDepartment } from "../services/adminService";
 
 const Departments = () => {
   const [departments, setDepartments] = useState([]);
-  const [stats,       setStats]       = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [showModal,   setShowModal]   = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [depsRes, statsRes] = await Promise.all([
-          getDepartments(),
-          getDepartmentStats(),
-        ]);
-        setDepartments(depsRes.data.data);
-        setStats(statsRes.data);
+        const res = await getDepartments();
+        setDepartments(res.data.data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -54,20 +48,6 @@ const Departments = () => {
           onAdd={handleAdd}
         />
       )}
-
-      {/* STATS CARDS */}
-      <div className="grid grid-cols-4 gap-4">
-        {stats.map(s => (
-          <CardStats
-            key={s.department}
-            icon="🏢"
-            label={s.department}
-            value={s.resolvedCivicIssuesCount}
-            delta={s.averageResolutionTime}
-            deltaUp={true}
-          />
-        ))}
-      </div>
 
       {/* HEADER + ADD BUTTON */}
       <div className="flex items-center justify-between">
