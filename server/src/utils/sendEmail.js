@@ -1,16 +1,18 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false,
     auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS,
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
     },
 });
 
 const sendEmail = async (options) => {
     const info = await transporter.sendMail({
-        from: `"CivicFix" <${process.env.GMAIL_USER}>`,
+        from: `"CivicFix" <${process.env.BREVO_USER}>`,
         to: options.email,
         subject: options.subject,
         html: options.html,
