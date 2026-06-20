@@ -59,21 +59,25 @@ return (
         )}
     </div>
 
-      {/* PROGRESS BAR — seulement si pas encore résolu */}
-        {status !== "RESOLVED" && (
+      {/* PROGRESS BAR */}
         <div className="space-y-1">
             <div className="flex justify-between text-xs text-white/30">
-            <span>0h</span>
-            <span>72h max</span>
+                <span>0h</span>
+                <span>{hours}h</span>
             </div>
             <div className="w-full bg-white/10 rounded-full h-1.5">
-            <div
-                className={`h-1.5 rounded-full ${status === "IN_PROGRESS" ? "bg-blue-500" : "bg-yellow-500"}`}
-              style={{ width: `${Math.min((diffMs / (1000 * 60 * 60 * 72)) * 100, 100)}%` }}
-            />
+                <div
+                    className={`h-1.5 rounded-full transition-all duration-700 ${
+                        status === "RESOLVED"    ? "bg-green-500 w-full" :
+                        status === "IN_PROGRESS" ? "bg-blue-500"         :
+                                                   "bg-yellow-500"
+                    }`}
+                    style={status !== "RESOLVED" ? {
+                        width: `${Math.min((diffMs / (1000 * 60 * 60 * 72)) * 100, 100)}%`
+                    } : undefined}
+                />
+            </div>
         </div>
-        </div>
-    )}
 
     </div>
 );
