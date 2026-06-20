@@ -32,7 +32,11 @@ export const useChatbot = (isOpen) => {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        if (isOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (isOpen) {
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+            // Silently ping the Python service so it starts waking up immediately
+            api.get('/chatbot/warmup').catch(() => {});
+        }
     }, [messages, isOpen]);
 
     const addMessages = useCallback((msgs) => {

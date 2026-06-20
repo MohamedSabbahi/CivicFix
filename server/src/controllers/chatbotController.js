@@ -50,6 +50,14 @@ exports.getAnalyticsSummary = async (req, res) => {
     }
 };
 
+// Fire-and-forget ping to wake the Python service before the user sends a message
+exports.warmupAiService = async (req, res) => {
+    res.json({ status: 'warmup_initiated' });
+    if (process.env.PYTHON_AI_URL) {
+        axios.get(`${process.env.PYTHON_AI_URL}/health`, { timeout: 65000 }).catch(() => {});
+    }
+};
+
 exports.handleChatMessage = async (req, res) => {
     try {
         const userMessage = req.body.message;
@@ -68,10 +76,10 @@ exports.handleChatMessage = async (req, res) => {
         }
 
         // Forward message to the Python/FastAPI microservice
-        // 15s timeout prevents silent hangs when Render cold-starts the Python service
+        // 65s timeout: Render free tier cold starts take up to 60s
         const pythonResponse = await axios.post(`${process.env.PYTHON_AI_URL}/parse`, {
             message: userMessage
-        }, { timeout: 15000 });
+        }, { timeout: 65000 });
 
         // Return the parsed JSON response to the client
         return res.json(pythonResponse.data);
