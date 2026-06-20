@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../../context/useAuth.js';
 import authService from '../services/authService';
 import AuthInput from '../../../components/ui/AuthInput';
@@ -25,7 +26,24 @@ const Login = () => {
     const navigate = useNavigate();
 
     const { login } = useAuth();
-    
+
+    const googleLogin = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                setLoading(true);
+                const data = await authService.googleLogin(tokenResponse.access_token);
+                const isAdmin = ADMIN_EMAILS.includes(data.user.email);
+                login(data.user, data.token);
+                navigate(isAdmin ? '/admin' : '/');
+            } catch (err) {
+                setError(err.message || 'Google login failed');
+            } finally {
+                setLoading(false);
+            }
+        },
+        onError: () => setError('Google login failed. Please try again.'),
+    });
+
     useEffect(() => {
         if (authService.isAuthenticated()) navigate('/');
     }, [navigate]);
@@ -276,7 +294,9 @@ return (
                     {/* GOOGLE LOGIN */}
                     <button
                         type="button"
-                        className="w-full bg-white text-black py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition"
+                        onClick={() => googleLogin()}
+                        disabled={loading}
+                        className="w-full bg-white text-black py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition disabled:opacity-60"
                     >
                         <img
                             src="https://www.svgrepo.com/show/475656/google-color.svg"

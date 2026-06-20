@@ -120,6 +120,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (accessToken) => {
+    setIsLoading(true);
+    try {
+      const response = await api.post('/auth/google', { accessToken });
+      const { token, user } = response.data;
+
+      setUserToken(token);
+      setUserInfo(user);
+
+      await SecureStore.setItemAsync('userToken', token);
+      await SecureStore.setItemAsync('userInfo', JSON.stringify(user));
+    } catch (error) {
+      alert('Google Login Failed: ' + (error.response?.data?.message || 'Something went wrong'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // The Logout Function
   const logout = async () => {
     setIsLoading(true);
@@ -131,7 +149,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ login, logout, register, isLoading, userToken, userInfo, isSplashLoading }}>
+    <AuthContext.Provider value={{ login, logout, register, loginWithGoogle, isLoading, userToken, userInfo, isSplashLoading }}>
       {children}
     </AuthContext.Provider>
   );

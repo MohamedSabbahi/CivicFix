@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { useGoogleLogin } from "@react-oauth/google";
 
 import authService from "../services/authService";
 import AuthInput from "../../../components/ui/AuthInput";
@@ -45,6 +46,22 @@ const Register = () => {
     confirmPassword: "",
     },
 });
+
+    const googleLogin = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                setIsLoading(true);
+                await authService.googleLogin(tokenResponse.access_token);
+                toast.success('Signed in with Google!');
+                navigate('/');
+            } catch (err) {
+                toast.error(err.message || 'Google login failed');
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        onError: () => toast.error('Google login failed. Please try again.'),
+    });
 
     useEffect(() => {
     window.scrollTo(0, 0);
@@ -178,8 +195,9 @@ const Register = () => {
           {/* Google Login */}
                 <button
             type="button"
-            className="w-full bg-white text-black py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition"
-            onClick={() => toast("Google login coming soon 🚀")}
+            className="w-full bg-white text-black py-3 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-gray-200 transition disabled:opacity-60"
+            onClick={() => googleLogin()}
+            disabled={isLoading}
                 >
             <img
                     src="https://www.svgrepo.com/show/475656/google-color.svg"

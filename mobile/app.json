@@ -2,6 +2,7 @@
   "expo": {
     "name": "CivicFix",
     "slug": "civicfix-mobile-app",
+    "scheme": "civicfix",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -37,7 +38,8 @@
           "photosPermission": "The app needs to access your photos to attach them to civic reports.",
           "cameraPermission": "Allow CivicFix to take photos of city issues."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

@@ -91,6 +91,22 @@ const authService = {
         }
     },
 
+    googleLogin: async (accessToken) => {
+        try {
+            const response = await api.post('/auth/google', { accessToken });
+            const { token, user } = response.data;
+            if (token) {
+                localStorage.setItem(TOKEN_KEY, token);
+                localStorage.setItem(USER_KEY, JSON.stringify(user));
+                localStorage.setItem('lastActivity', Date.now());
+            }
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message || 'Google login failed';
+            throw new Error(errorMessage);
+        }
+    },
+
     logout: () => {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
