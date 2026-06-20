@@ -48,8 +48,6 @@ model User {
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
 
-  pushToken            String?
-
   // Relationships
   civicIssues          CivicIssue[]
   comments             Comment[]
