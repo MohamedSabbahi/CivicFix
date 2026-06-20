@@ -31,13 +31,15 @@ export const useChatbot = (isOpen) => {
     const [input,     setInput]     = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Scroll to bottom on every new message
     useEffect(() => {
-        if (isOpen) {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-            // Silently ping the Python service so it starts waking up immediately
-            api.get('/chatbot/warmup').catch(() => {});
-        }
+        if (isOpen) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isOpen]);
+
+    // Warmup fires ONCE when the widget is opened, not on every message
+    useEffect(() => {
+        if (isOpen) api.get('/chatbot/warmup').catch(() => {});
+    }, [isOpen]);
 
     const addMessages = useCallback((msgs) => {
         setMessages(prev => [...prev, ...msgs]);
