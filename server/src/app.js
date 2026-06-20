@@ -87,8 +87,12 @@ app.use('/api/auth/forgotpassword', authLimiter);
 app.use('/api/auth/resetpassword', authLimiter); // Added to protect the 4-digit PIN
 
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 500 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  // Exempt the categories endpoint — it's public read-only data fetched by the
+  // Python AI service on startup, and Render's shared NAT IP would exhaust the
+  // bucket across all tenants on the same outbound IP.
+  skip: (req) => req.method === 'GET' && req.path === '/api/reports/categories',
 });
 app.use(generalLimiter);
 
