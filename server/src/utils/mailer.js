@@ -8,6 +8,9 @@ const transporter = nodemailer.createTransport({
         user: process.env.BREVO_USER,
         pass: process.env.BREVO_PASS,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
 });
 
 const buildEmailHtml = (report, links) => {
