@@ -19,6 +19,9 @@ export default function ReportDetailScreen({ route, navigation }) {
     const currentUserId = userInfo?.id || userInfo?.user?.id;
     const isOwner = currentUserId === currentReport.userId;
 
+    // Departments / interventions
+    const [departments, setDepartments] = useState([]);
+
     // Comments State
     const [comments, setComments] = useState([]);
     const [isLoadingComments, setIsLoadingComments] = useState(true);
@@ -90,8 +93,18 @@ export default function ReportDetailScreen({ route, navigation }) {
         }
     };
 
+    const fetchDepartments = async () => {
+        try {
+            const response = await api.get(`/reports/${currentReport.id}/interventions`);
+            setDepartments(response.data.data || []);
+        } catch (error) {
+            console.error("Failed to fetch departments", error);
+        }
+    };
+
     useEffect(() => {
         fetchComments();
+        fetchDepartments();
     }, []);
 
     const handleSendComment = async () => {
@@ -152,8 +165,69 @@ export default function ReportDetailScreen({ route, navigation }) {
         });
     };
 
+    // ── Tracking Timeline ─────────────────────────────────────────────────────
+    const ISSUE_STEPS = [
+        { key: 'PENDING',     label: 'Pending',     icon: 'schedule',      color: '#f97316' },
+        { key: 'IN_PROGRESS', label: 'In Progress', icon: 'local-shipping', color: '#3b82f6' },
+        { key: 'RESOLVED',    label: 'Resolved',    icon: 'check-circle',  color: '#22c55e' },
+    ];
+    const DEPT_STEPS = [
+        { key: 'PENDING',     label: 'Pending',     icon: 'schedule',     color: '#f59e0b' },
+        { key: 'IN_PROGRESS', label: 'In Progress', icon: 'build',        color: '#3b82f6' },
+        { key: 'COMPLETED',   label: 'Completed',   icon: 'check-circle', color: '#22c55e' },
+    ];
+    const getStepIndex = (steps, status = '') =>
+        Math.max(0, steps.findIndex(s => s.key === status));
+
+    const StepTimeline = ({ steps, currentIndex }) => (
+        <View className="flex-row items-center">
+            {steps.map((step, index) => {
+                const isActive    = index === currentIndex;
+                const isDone      = index < currentIndex;
+                const isLast      = index === steps.length - 1;
+                const activeColor = step.color;
+                const dimColor    = 'rgba(255,255,255,0.15)';
+
+                return (
+                    <React.Fragment key={step.key}>
+                        <View className="items-center" style={{ flex: isLast ? 0 : 1 }}>
+                            <View style={{
+                                width: 38, height: 38, borderRadius: 19,
+                                borderWidth: 2,
+                                borderColor: index <= currentIndex ? activeColor : dimColor,
+                                backgroundColor: index <= currentIndex ? `${activeColor}20` : 'rgba(255,255,255,0.04)',
+                                alignItems: 'center', justifyContent: 'center',
+                                shadowColor: isActive ? activeColor : 'transparent',
+                                shadowRadius: isActive ? 10 : 0, shadowOpacity: isActive ? 0.8 : 0, elevation: isActive ? 6 : 0,
+                            }}>
+                                <MaterialIcons
+                                    name={step.icon}
+                                    size={17}
+                                    color={index <= currentIndex ? activeColor : 'rgba(255,255,255,0.3)'}
+                                />
+                            </View>
+                            <Text style={{
+                                marginTop: 6, fontSize: 10, fontWeight: '600', textAlign: 'center',
+                                color: isActive ? activeColor : isDone ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)',
+                            }}>
+                                {step.label}
+                            </Text>
+                        </View>
+                        {!isLast && (
+                            <View style={{
+                                flex: 1, height: 2, marginBottom: 16, marginHorizontal: 4,
+                                backgroundColor: isDone ? activeColor : dimColor,
+                                borderRadius: 1,
+                            }} />
+                        )}
+                    </React.Fragment>
+                );
+            })}
+        </View>
+    );
+
     return (
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             className="flex-1 bg-background-dark"
         >
@@ -305,7 +379,39 @@ export default function ReportDetailScreen({ route, navigation }) {
                         </View>
                     </View>
 
-                    <View className="h-[1px] bg-slate-800 my-8" />
+                    {/* ── Tracking Status ── */}
+                    <View className="bg-[#1e293b] rounded-2xl border border-slate-800 p-4 mt-4">
+                        <View className="flex-row items-center gap-2 mb-4">
+                            <View style={{ width: 3, height: 18, borderRadius: 2, backgroundColor: '#3b82f6' }} />
+                            <Text className="text-white font-bold text-sm">Tracking Status</Text>
+                        </View>
+                        <StepTimeline steps={ISSUE_STEPS} currentIndex={getStepIndex(ISSUE_STEPS, currentReport.status)} />
+
+                        {departments.length > 0 && (
+                            <View className="mt-5">
+                                <View className="flex-row items-center gap-2 mb-3">
+                                    <View style={{ width: 3, height: 18, borderRadius: 2, backgroundColor: '#8b5cf6' }} />
+                                    <Text className="text-white font-bold text-sm">
+                                        Department Work
+                                        <Text className="text-slate-500 font-normal"> ({departments.length} assigned)</Text>
+                                    </Text>
+                                </View>
+                                {departments.map((item) => (
+                                    <View key={item.id} className="bg-slate-900/60 rounded-xl p-3 mb-2 border border-slate-700/50">
+                                        <View className="flex-row justify-between items-center mb-3">
+                                            <Text className="text-white text-xs font-semibold">{item.department?.name}</Text>
+                                            <Text className="text-slate-500 text-xs">
+                                                {new Date(item.assignedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                            </Text>
+                                        </View>
+                                        <StepTimeline steps={DEPT_STEPS} currentIndex={getStepIndex(DEPT_STEPS, item.status)} />
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+                    </View>
+
+                    <View className="h-[1px] bg-slate-800 my-6" />
 
                     {/* Comments Section */}
                     <View className="mb-6">
