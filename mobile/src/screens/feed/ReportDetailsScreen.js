@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { 
-    View, Text, Image, ScrollView, TouchableOpacity, 
-    TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, Linking 
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import {
+    View, Text, Image, ScrollView, TouchableOpacity,
+    TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
+    Alert, Modal, Linking, Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { WebView } from 'react-native-webview'; // Replaced Google Maps with WebView
+import { WebView } from 'react-native-webview';
 import api from '../../services/api';
 import { AuthContext } from '../../context/AuthContext';
+import supabase from '../../lib/supabaseClient';
 
 export default function ReportDetailScreen({ route, navigation }) {
     // We store the report in state so we can instantly update the UI after an edit
@@ -22,6 +24,37 @@ export default function ReportDetailScreen({ route, navigation }) {
     const [isLoadingComments, setIsLoadingComments] = useState(true);
     const [newComment, setNewComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Realtime status banner
+    const [statusBanner, setStatusBanner] = useState(null);
+    const bannerAnim = useRef(new Animated.Value(-60)).current;
+
+    const showBanner = (newStatus) => {
+        setStatusBanner(newStatus);
+        Animated.sequence([
+            Animated.spring(bannerAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }),
+            Animated.delay(3000),
+            Animated.timing(bannerAnim, { toValue: -60, duration: 300, useNativeDriver: true }),
+        ]).start(() => setStatusBanner(null));
+    };
+
+    useEffect(() => {
+        if (!supabase || !currentReport?.id) return;
+        const channel = supabase
+            .channel(`report-status-${currentReport.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'CivicIssue',
+                filter: `id=eq.${currentReport.id}`,
+            }, (payload) => {
+                const { status, resolvedAt } = payload.new;
+                setCurrentReport(prev => ({ ...prev, status, resolvedAt }));
+                showBanner(status);
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [currentReport?.id]);
 
     // Menu & Edit State
     const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -124,6 +157,33 @@ export default function ReportDetailScreen({ route, navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             className="flex-1 bg-background-dark"
         >
+            {/* ── Realtime Status Banner ── */}
+            {statusBanner && (
+                <Animated.View
+                    style={{ transform: [{ translateY: bannerAnim }] }}
+                    className="absolute top-0 left-0 right-0 z-50 items-center pt-14 pb-3 px-4"
+                    pointerEvents="none"
+                >
+                    <View className={`flex-row items-center gap-2 px-4 py-2.5 rounded-full border shadow-lg ${
+                        statusBanner === 'RESOLVED'    ? 'bg-emerald-950 border-emerald-500/40' :
+                        statusBanner === 'IN_PROGRESS' ? 'bg-orange-950 border-orange-500/40'  :
+                                                         'bg-slate-900 border-slate-600'
+                    }`}>
+                        <MaterialIcons
+                            name={statusBanner === 'RESOLVED' ? 'check-circle' : statusBanner === 'IN_PROGRESS' ? 'build' : 'pending'}
+                            size={15}
+                            color={statusBanner === 'RESOLVED' ? '#34d399' : statusBanner === 'IN_PROGRESS' ? '#fb923c' : '#94a3b8'}
+                        />
+                        <Text className={`text-xs font-bold tracking-wide ${
+                            statusBanner === 'RESOLVED' ? 'text-emerald-400' :
+                            statusBanner === 'IN_PROGRESS' ? 'text-orange-400' : 'text-slate-300'
+                        }`}>
+                            Status updated · {statusBanner === 'IN_PROGRESS' ? 'In Progress' : statusBanner.charAt(0) + statusBanner.slice(1).toLowerCase()}
+                        </Text>
+                    </View>
+                </Animated.View>
+            )}
+
             {/* ── Floating Header ── */}
             <View className="absolute top-12 left-4 right-4 z-20 flex-row justify-between">
                 <TouchableOpacity 

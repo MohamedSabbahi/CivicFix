@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,8 +27,9 @@ export default function ChatbotScreen({ route, navigation }) {
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
-    const [requiresPhoto, setRequiresPhoto] = useState(false); 
-    const [pendingReportData, setPendingReportData] = useState(null); 
+    const [requiresPhoto, setRequiresPhoto] = useState(false);
+    const [pendingReportData, setPendingReportData] = useState(null);
+    const scrollRef = useRef(null);
 
     // ── Route A: direct analytics bypass (no Groq) ───────────────────────────
     const handleAnalyticsSummary = async () => {
@@ -227,14 +228,24 @@ export default function ChatbotScreen({ route, navigation }) {
 
     return (
         <SafeAreaView className="flex-1 bg-[#0f172a]">
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-            
-            {/* Header Module */}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                className="flex-1"
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+            >
+
+            {/* Header */}
             <View className="items-center justify-center py-4 border-b border-slate-800">
                 <Text className="text-white text-lg font-bold tracking-wide">CivicFix Assistant</Text>
             </View>
 
-            <ScrollView className="flex-1 p-4 mb-20" contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 10 }}>
+            <ScrollView
+                ref={scrollRef}
+                className="flex-1 p-4"
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 10 }}
+                onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+                keyboardShouldPersistTaps="handled"
+            >
                 
                 {/* Dynamic Chat Rendering Engine */}
                 {messages.map((msg) => {
@@ -360,7 +371,7 @@ export default function ChatbotScreen({ route, navigation }) {
             </ScrollView>
 
             {/* Input Interface */}
-            <View className="absolute bottom-0 w-full flex-row items-center bg-[#0f172a] p-4 border-t border-slate-800">
+            <View className="flex-row items-center bg-[#0f172a] p-4 border-t border-slate-800">
                 <TextInput
                     className="flex-1 bg-[#1e293b] text-white rounded-full px-5 py-3 border border-slate-700 text-base"
                     placeholder="Type your issue or query..."
