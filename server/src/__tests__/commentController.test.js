@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 jest.mock('../utils/prisma', () => ({
-  report: {
+  civicIssue: {
     findUnique: jest.fn(),
   },
   comment: {
@@ -25,16 +25,40 @@ const mockAuth = (req, res, next) => {
   next();
 };
 
-app.get('/api/reports/:id/comments', commentController.getReportComments);
+app.get('/api/reports/:id/comments', commentController.getCivicIssueComments);
 app.post('/api/reports/:id/comments', mockAuth, commentController.createComment);
 app.delete('/api/reports/:id/comments/:commentId', mockAuth, commentController.deleteComment);
 
 describe('Comment Controller Tests', () => {
   afterEach(() => jest.clearAllMocks());
 
+  describe('GET /api/reports/:id/comments', () => {
+    it('should return 404 if civic issue does not exist', async () => {
+      prisma.civicIssue.findUnique.mockResolvedValue(null);
+
+      const response = await request(app).get('/api/reports/999/comments');
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe('Civic issue not found');
+    });
+
+    it('should return comments list for a valid civic issue', async () => {
+      prisma.civicIssue.findUnique.mockResolvedValue({ id: 1 });
+      prisma.comment.findMany.mockResolvedValue([
+        { id: 1, text: 'Nice report', user: { name: 'Alice' } }
+      ]);
+
+      const response = await request(app).get('/api/reports/1/comments');
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+      expect(response.body.data.length).toBe(1);
+    });
+  });
+
   describe('POST /api/reports/:id/comments', () => {
     it('should block user if they exceed the anti-spam limit of 5 comments/hour', async () => {
-      prisma.comment.count.mockResolvedValue(5); // Simulate 5 recent comments
+      prisma.comment.count.mockResolvedValue(5);
 
       const response = await request(app)
         .post('/api/reports/1/comments')
@@ -45,7 +69,7 @@ describe('Comment Controller Tests', () => {
     });
 
     it('should return 400 if comment content is empty', async () => {
-      prisma.comment.count.mockResolvedValue(1); 
+      prisma.comment.count.mockResolvedValue(1);
 
       const response = await request(app)
         .post('/api/reports/1/comments')
@@ -57,7 +81,7 @@ describe('Comment Controller Tests', () => {
 
     it('should create a comment if validation passes', async () => {
       prisma.comment.count.mockResolvedValue(1);
-      prisma.report.findUnique.mockResolvedValue({ id: 1 });
+      prisma.civicIssue.findUnique.mockResolvedValue({ id: 1 });
       prisma.comment.create.mockResolvedValue({ text: 'Good report!' });
 
       const response = await request(app)
@@ -71,8 +95,7 @@ describe('Comment Controller Tests', () => {
 
   describe('DELETE /api/reports/:id/comments/:commentId', () => {
     it('should prevent deletion if user is not the owner or admin', async () => {
-      // Database says comment belongs to user 99, but mock auth is user 1
-      prisma.comment.findUnique.mockResolvedValue({ id: 5, reportId: 1, userId: 99 });
+      prisma.comment.findUnique.mockResolvedValue({ id: 5, civicIssueId: 1, userId: 99 });
 
       const response = await request(app).delete('/api/reports/1/comments/5');
 
@@ -81,7 +104,7 @@ describe('Comment Controller Tests', () => {
     });
 
     it('should delete comment if user is the owner', async () => {
-      prisma.comment.findUnique.mockResolvedValue({ id: 5, reportId: 1, userId: 1 });
+      prisma.comment.findUnique.mockResolvedValue({ id: 5, civicIssueId: 1, userId: 1 });
       prisma.comment.delete.mockResolvedValue({});
 
       const response = await request(app).delete('/api/reports/1/comments/5');

@@ -40,9 +40,15 @@ const prisma = require('../utils/prisma');
 const bcrypt = require('bcryptjs');
 const authController = require('../controllers/authController');
 
+const mockAuth = (req, res, next) => { req.user = { id: 1 }; next(); };
+
 app.post('/api/auth/register', authController.register);
 app.post('/api/auth/login', authController.login);
 app.post('/api/auth/forgotpassword', authController.forgotPassword);
+app.put('/api/auth/resetPassword/:resettoken', authController.resetPassword);
+app.put('/api/auth/changePassword', mockAuth, authController.changePassword);
+app.put('/api/auth/profileUpdate', mockAuth, authController.updateProfile);
+app.put('/api/auth/push-token', mockAuth, authController.savePushToken);
 
 describe('Auth Controller Tests', () => {
   afterEach(() => jest.clearAllMocks());
@@ -130,6 +136,104 @@ describe('Auth Controller Tests', () => {
 
       expect(response.status).toBe(404);
       expect(response.body.message).toBe('There is no user with that email');
+    });
+  });
+
+  describe('PUT /api/auth/resetPassword/:resettoken', () => {
+    it('should return 400 if token is invalid or expired', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      const response = await request(app)
+        .put('/api/auth/resetPassword/badtoken')
+        .send({ password: 'NewPass123' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Invalid token or expired token');
+    });
+
+    it('should reset password and return 200 on valid token', async () => {
+      prisma.user.findFirst.mockResolvedValue({ id: 1 });
+      prisma.user.update.mockResolvedValue({ id: 1 });
+
+      const response = await request(app)
+        .put('/api/auth/resetPassword/validtoken')
+        .send({ password: 'NewPass123' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toBe('Password updated successfully');
+      expect(prisma.user.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('PUT /api/auth/changePassword', () => {
+    it('should return 400 if current password is wrong', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, password: 'hashed_password' });
+      bcrypt.compare.mockResolvedValue(false);
+
+      const response = await request(app)
+        .put('/api/auth/changePassword')
+        .send({ currentPassword: 'wrong', newPassword: 'NewPass123' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Current password is incorrect.');
+    });
+
+    it('should return 200 on successful password change', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 1, password: 'hashed_password' });
+      bcrypt.compare.mockResolvedValue(true);
+      prisma.user.update.mockResolvedValue({ id: 1 });
+
+      const response = await request(app)
+        .put('/api/auth/changePassword')
+        .send({ currentPassword: 'OldPass123', newPassword: 'NewPass456' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Password changed successfully.');
+    });
+  });
+
+  describe('PUT /api/auth/profileUpdate', () => {
+    it('should return 200 with updated user on successful name update', async () => {
+      const updatedUser = { id: 1, name: 'New Name', email: 'test@test.com', role: 'CITIZEN', createdAt: new Date().toISOString() };
+      prisma.user.update.mockResolvedValue(updatedUser);
+
+      const response = await request(app)
+        .put('/api/auth/profileUpdate')
+        .send({ name: 'New Name' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe('New Name');
+      expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 1 },
+        data: { name: 'New Name' },
+      }));
+    });
+  });
+
+  describe('PUT /api/auth/push-token', () => {
+    it('should return 400 if push token is missing', async () => {
+      const response = await request(app)
+        .put('/api/auth/push-token')
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Push token is required');
+    });
+
+    it('should return 200 on successful push token save', async () => {
+      prisma.user.update.mockResolvedValue({ id: 1 });
+
+      const response = await request(app)
+        .put('/api/auth/push-token')
+        .send({ pushToken: 'ExponentPushToken[xxx]' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Push token saved');
+      expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 1 },
+        data: { pushToken: 'ExponentPushToken[xxx]' },
+      }));
     });
   });
 });
