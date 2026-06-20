@@ -556,7 +556,8 @@ const assignDepartment = async (req, res) => {
     if (!departmentId) return res.status(400).send("Missing departmentId");
 
     const civicIssue = await prisma.civicIssue.findUnique({
-      where: { id: parseInt(civicIssueId) }
+      where: { id: parseInt(civicIssueId) },
+      include: { category: true },
     });
 
     if (!civicIssue || civicIssue.accessSecret !== secret) {
