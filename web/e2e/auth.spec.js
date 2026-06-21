@@ -27,7 +27,7 @@ test.describe('Login page', () => {
     await page.fill('input[name="password"]', 'wrongpassword');
     await page.click('button[type="submit"]');
 
-    await expect(page.locator('text=Invalid email or password')).toBeVisible();
+    await expect(page.locator('text=Invalid email or password').first()).toBeVisible();
   });
 
   test('redirects to dashboard on successful login', async ({ page }) => {
@@ -102,7 +102,7 @@ test.describe('Register page', () => {
     await expect(page.locator('input[id="email"]')).toBeVisible();
     await expect(page.locator('input[id="password"]')).toBeVisible();
     await expect(page.locator('input[id="confirmPassword"]')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create Account' })).toBeVisible();
   });
 
   test('shows validation error for mismatched passwords', async ({ page }) => {
@@ -111,7 +111,7 @@ test.describe('Register page', () => {
     await page.fill('input[id="email"]', 'new@test.com');
     await page.fill('input[id="password"]', 'Password1');
     await page.fill('input[id="confirmPassword"]', 'DifferentPass1');
-    await page.click('button[type="submit"]');
+    await page.getByRole('button', { name: 'Create Account' }).click();
 
     await expect(page.locator('text=Passwords do not match')).toBeVisible();
   });
@@ -133,7 +133,7 @@ test.describe('Register page', () => {
     await page.fill('input[id="email"]', 'existing@test.com');
     await page.fill('input[id="password"]', 'Password1');
     await page.fill('input[id="confirmPassword"]', 'Password1');
-    await page.click('button[type="submit"]');
+    await page.getByRole('button', { name: 'Create Account' }).click();
 
     await expect(page.locator('text=Email already in use')).toBeVisible();
   });
@@ -165,7 +165,7 @@ test.describe('Register page', () => {
     await page.fill('input[id="email"]', 'new@test.com');
     await page.fill('input[id="password"]', 'Password1');
     await page.fill('input[id="confirmPassword"]', 'Password1');
-    await page.click('button[type="submit"]');
+    await page.getByRole('button', { name: 'Create Account' }).click();
 
     await expect(page).toHaveURL('/');
   });

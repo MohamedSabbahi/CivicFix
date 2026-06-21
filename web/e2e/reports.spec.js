@@ -75,7 +75,7 @@ test.describe('Reports list page', () => {
 
   test('shows all reports page heading', async ({ page }) => {
     await page.goto('/reports');
-    await expect(page.locator('text=All Reports')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'All Reports' })).toBeVisible();
   });
 
   test('shows new report button', async ({ page }) => {
@@ -166,6 +166,9 @@ test.describe('Create report page', () => {
   });
 
   test('submits form and creates a report', async ({ page }) => {
+    await page.context().grantPermissions(['geolocation']);
+    await page.context().setGeolocation({ latitude: 36.75, longitude: 3.05 });
+
     await page.route(`${API_BASE}/reports`, async route => {
       if (route.request().method() === 'POST') {
         await route.fulfill({
@@ -173,8 +176,8 @@ test.describe('Create report page', () => {
           json: {
             data: {
               id: 99,
-              title: 'New Test Report',
-              description: 'A test description',
+              title: 'New Test Report Title',
+              description: 'A detailed test description for the report',
               status: 'PENDING',
               category: MOCK_CATEGORIES[0],
               createdAt: new Date().toISOString(),
@@ -190,16 +193,25 @@ test.describe('Create report page', () => {
     });
 
     await page.goto('/create-report');
-    await page.fill('input[name="title"]', 'New Test Report');
-    await page.fill('textarea[name="description"]', 'A test description for the report');
 
-    const categorySelect = page.locator('select[name="categoryId"]');
-    if (await categorySelect.isVisible()) {
-      await categorySelect.selectOption({ index: 1 });
-    }
+    await page.fill('input[name="title"]', 'New Test Report Title');
+    await page.fill('textarea[name="description"]', 'A detailed test description for the report');
+    await page.locator('select[name="categoryId"]').selectOption({ index: 1 });
+
+    await page.getByRole('button', { name: 'Current' }).click();
+    await page.waitForTimeout(600);
+
+    const pngBuffer = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    );
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'test.png',
+      mimeType: 'image/png',
+      buffer: pngBuffer,
+    });
 
     await page.locator('button[type="submit"]').click();
-
     await expect(page).toHaveURL('/reports');
   });
 });
@@ -243,6 +255,6 @@ test.describe('Map page', () => {
 
   test('shows map container element', async ({ page }) => {
     await page.goto('/map');
-    await expect(page.locator('.leaflet-container').or(page.locator('[class*="leaflet"]'))).toBeVisible();
+    await expect(page.locator('.leaflet-container').first()).toBeVisible();
   });
 });

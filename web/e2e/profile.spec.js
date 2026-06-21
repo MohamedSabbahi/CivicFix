@@ -64,10 +64,7 @@ test.describe('Profile page', () => {
 
     await page.goto('/profile');
 
-    const editButton = page.locator('button', { hasText: 'Edit Profile' }).or(
-      page.locator('button').filter({ has: page.locator('svg') }).first()
-    );
-    await editButton.first().click();
+    await page.getByRole('button', { name: 'Edit Profile' }).click();
 
     const nameInput = page.locator('input[name="name"]');
     await expect(nameInput).toBeVisible();
@@ -83,8 +80,6 @@ test.describe('Profile page', () => {
 
     await page.locator('button', { hasText: 'Edit Profile' }).first().click();
 
-    await expect(page.locator('button', { hasText: 'Cancel' }).or(
-      page.locator('button', { hasText: 'Save Changes' })
-    )).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save Changes' })).toBeVisible();
   });
 });

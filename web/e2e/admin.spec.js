@@ -86,22 +86,22 @@ test.describe('Admin dashboard', () => {
 
   test('shows stats cards with overview numbers', async ({ page }) => {
     await page.goto('/admin');
-    await expect(page.locator('text=42')).toBeVisible();
+    await expect(page.getByText('42', { exact: true })).toBeVisible();
   });
 
   test('shows pending stat card', async ({ page }) => {
     await page.goto('/admin');
-    await expect(page.locator('text=Pending')).toBeVisible();
+    await expect(page.getByText('Pending', { exact: true }).first()).toBeVisible();
   });
 
   test('shows in progress stat card', async ({ page }) => {
     await page.goto('/admin');
-    await expect(page.locator('text=In Progress')).toBeVisible();
+    await expect(page.getByText('In Progress', { exact: true }).first()).toBeVisible();
   });
 
   test('shows resolved stat card', async ({ page }) => {
     await page.goto('/admin');
-    await expect(page.locator('text=Resolved')).toBeVisible();
+    await expect(page.getByText('Resolved', { exact: true }).first()).toBeVisible();
   });
 
   test('shows reports table with data', async ({ page }) => {
