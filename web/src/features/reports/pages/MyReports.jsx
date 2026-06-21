@@ -106,6 +106,10 @@ const MyReports = () => {
     navigate(`/reports/${report.id}`);
   };
 
+  const handleEditReport = (report) => {
+    navigate(`/reports/${report.id}?edit=true`);
+  };
+
   return (
     <PageShell>
       <div className="max-w-6xl mx-auto space-y-8">
@@ -163,6 +167,7 @@ const MyReports = () => {
                       key={report.id}
                       report={report}
                       onView={onView}
+                      onEdit={handleEditReport}
                     />
                   ))}
                 </div>

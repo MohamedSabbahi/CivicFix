@@ -25,9 +25,10 @@ const ReportCard = ({ title, status, address, date, image, onView }) => {
   const statusStyles = getStatusStyles(status);
   return (
     <div
+      onClick={onView}
       className="
         relative flex items-center gap-4 p-4
-        rounded-2xl
+        rounded-2xl cursor-pointer
         bg-white/[0.09]
         border border-white/[0.08]
         shadow-[inset_0_1px_0_rgba(255,255,255,0.05),_0_0_20px_rgba(59,130,246,0.05)]
@@ -63,12 +64,9 @@ const ReportCard = ({ title, status, address, date, image, onView }) => {
         >
           {status}
         </span>
-        <button 
-          onClick={onView}
-          className="text-xs text-white/30 cursor-pointer hover:text-white/60 transition"
-        >
-          View Details
-        </button>
+        <span className="text-xs text-white/30 group-hover:text-white/60 transition">
+          View Details →
+        </span>
       </div>
     </div>
   );

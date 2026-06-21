@@ -43,20 +43,22 @@ const ReportCard = ({ report, onView, onEdit }) => {
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button 
-            onClick={(e) => { e.stopPropagation(); onView(report); }} 
+          <button
+            onClick={(e) => { e.stopPropagation(); onView(report); }}
             className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white/60 hover:text-blue-400 transition"
             title="View"
           >
             <Eye size={16} />
           </button>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onEdit(report); }} 
-            className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white/60 hover:text-yellow-400 transition"
-            title="Edit"
-          >
-            <Edit size={16} />
-          </button>
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(report); }}
+              className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white/60 hover:text-yellow-400 transition"
+              title="Edit"
+            >
+              <Edit size={16} />
+            </button>
+          )}
         </div>
       </div>
     </div>
