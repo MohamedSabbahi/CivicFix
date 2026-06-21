@@ -7,6 +7,7 @@ const useReports = () => {
   const navigate = useNavigate();
   
   const [reports, setReports] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,6 +17,7 @@ const useReports = () => {
       setLoading(true);
       const { data } = await reportService.getReports();
       setReports(data.data || []);
+      setTotalCount(data.metadata?.totalReports ?? (data.data?.length || 0));
     } catch (err) {
       console.error("Failed to fetch reports:", err);
     } finally {
@@ -42,11 +44,11 @@ const useReports = () => {
   }, [reports, filter, searchQuery]);
 
   const stats = useMemo(() => ({
-    total: reports.length,
+    total: totalCount,
     new: reports.filter(r => r.status === "PENDING").length,
     inProgress: reports.filter(r => r.status === "IN_PROGRESS").length,
     resolved: reports.filter(r => r.status === "RESOLVED").length,
-  }), [reports]);
+  }), [reports, totalCount]);
 
   const handleViewReport = useCallback((report) => {
     navigate(`/reports/${report.id}`);
@@ -75,6 +77,7 @@ const useReports = () => {
 
   return {
     reports,
+    totalCount,
     filteredReports,
     loading,
     filter,

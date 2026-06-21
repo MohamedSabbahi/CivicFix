@@ -40,6 +40,7 @@ const ErrorMessage = ({ message, onRetry }) => (
 const Dashboard = () => {
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
+  const [totalReports, setTotalReports] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -52,6 +53,7 @@ const Dashboard = () => {
       const allRes = await getAllReports();
 
       setReports(allRes.data.data || []);
+      setTotalReports(allRes.data.metadata?.totalReports ?? (allRes.data.data?.length || 0));
     } catch (err) {
       console.error('Error fetching reports:', err);
       setError(err.response?.data?.message || 'Failed to load reports. Please try again.');
@@ -64,7 +66,6 @@ const Dashboard = () => {
     fetchAllData();
   }, []);
 
-  const totalReports = reports.length;
   const inProgressCount = reports.filter(r => r.status === 'IN_PROGRESS').length;
   const resolvedCount = reports.filter(r => r.status === 'RESOLVED').length;
 

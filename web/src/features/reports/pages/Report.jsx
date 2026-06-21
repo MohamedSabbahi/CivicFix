@@ -10,8 +10,9 @@ import ReportCard from "../components/report/ReportCard";
 const Report = () => {
   const navigate = useNavigate();
   
-  const { 
-    reports, 
+  const {
+    reports,
+    totalCount,
     loading,
     handleViewReport,
   } = useReports();
@@ -36,7 +37,7 @@ const Report = () => {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-2">
                 All Reports
               </h1>
-              <p className="text-white/60">All civic reports ({reports.length})</p>
+              <p className="text-white/60">All civic reports ({totalCount})</p>
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
