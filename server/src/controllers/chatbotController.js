@@ -7,42 +7,46 @@ exports.getAnalyticsSummary = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const [statusCounts, deptStats, todayCount] = await Promise.all([
+        const [statusCounts, departments, todayCount] = await Promise.all([
             prisma.civicIssue.groupBy({ by: ['status'], _count: true }),
-            prisma.$queryRaw`
-                SELECT
-                    d.name AS department,
-                    COUNT(ci.id) AS "resolvedCount",
-                    AVG(EXTRACT(EPOCH FROM (ci."resolvedAt" - ci."createdAt")) / 3600) AS "avgHours"
-                FROM "CivicIssue" ci
-                JOIN "Category" c ON ci."categoryId" = c.id
-                JOIN "Department" d ON c."departmentId" = d.id
-                WHERE ci.status = 'RESOLVED'
-                GROUP BY d.name
-                ORDER BY "resolvedCount" DESC
-            `,
+            prisma.department.findMany({
+                include: {
+                    interventions: {
+                        where: { civicIssue: { status: 'RESOLVED' } },
+                        include: {
+                            civicIssue: { select: { createdAt: true, resolvedAt: true } }
+                        }
+                    }
+                }
+            }),
             prisma.civicIssue.count({ where: { createdAt: { gte: today } } }),
         ]);
 
-        const total    = statusCounts.reduce((s, x) => s + x._count, 0);
+        const total      = statusCounts.reduce((s, x) => s + x._count, 0);
         const resolved   = statusCounts.find(s => s.status === 'RESOLVED')?._count    || 0;
         const inProgress = statusCounts.find(s => s.status === 'IN_PROGRESS')?._count || 0;
         const pending    = statusCounts.find(s => s.status === 'PENDING')?._count     || 0;
 
+        const deptStats = departments
+            .filter(d => d.interventions.length > 0)
+            .map(dept => {
+                const times = dept.interventions
+                    .filter(i => i.civicIssue?.resolvedAt)
+                    .map(i => (new Date(i.civicIssue.resolvedAt) - new Date(i.civicIssue.createdAt)) / 3600000);
+                return {
+                    name:     dept.name,
+                    resolved: dept.interventions.length,
+                    avgTime:  times.length > 0
+                        ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) + 'h'
+                        : '—',
+                };
+            })
+            .sort((a, b) => b.resolved - a.resolved);
+
         return res.json({
-            overview: {
-                total,
-                resolved,
-                inProgress,
-                pending,
-                todayCount,
-                resolutionRate: total > 0 ? ((resolved / total) * 100).toFixed(1) + '%' : '0%',
-            },
-            departments: deptStats.map(d => ({
-                name:     d.department,
-                resolved: Number(d.resolvedCount),
-                avgTime:  d.avgHours ? parseFloat(d.avgHours).toFixed(1) + 'h' : '—',
-            })),
+            overview: { total, resolved, inProgress, pending, todayCount,
+                resolutionRate: total > 0 ? ((resolved / total) * 100).toFixed(1) + '%' : '0%' },
+            departments: deptStats,
         });
     } catch (error) {
         console.error('Analytics Summary Error:', error);

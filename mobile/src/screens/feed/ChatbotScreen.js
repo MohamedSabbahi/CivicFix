@@ -42,7 +42,8 @@ export default function ChatbotScreen({ route, navigation }) {
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(), sender: 'bot', type: 'analytics_summary', payload: data
             }]);
-        } catch {
+        } catch (error) {
+            console.error('Analytics Summary Error:', error?.response?.data || error?.message || error);
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(), sender: 'bot', type: 'text',
                 text: 'Failed to load analytics. Please try again.'
