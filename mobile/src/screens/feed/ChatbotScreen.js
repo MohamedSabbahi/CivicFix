@@ -136,7 +136,7 @@ export default function ChatbotScreen({ route, navigation }) {
         
         try {
             if (statType === 'performance') {
-                const response = await api.get('/admin/stats/department'); 
+                const response = await api.get('/chatbot/department-stats');
                 const deptData = response.data;
 
                 let statText = "📊 **Department Performance:**\n\n";

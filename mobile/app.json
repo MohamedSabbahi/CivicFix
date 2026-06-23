@@ -25,7 +25,11 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.civicfix.mobile",
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -45,6 +49,12 @@
       "eas": {
         "projectId": "5b6979ef-7322-49d2-af80-849627180194"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5b6979ef-7322-49d2-af80-849627180194"
     }
   }
 }
