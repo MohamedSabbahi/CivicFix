@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     View, Text, Image, ScrollView, TouchableOpacity,
     TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -59,6 +60,22 @@ export default function ReportDetailScreen({ route, navigation }) {
         return () => { supabase.removeChannel(channel); };
     }, [currentReport?.id]);
 
+    useEffect(() => {
+        if (!supabase || !currentReport?.id) return;
+        const channel = supabase
+            .channel(`interventions-${currentReport.id}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'Intervention',
+                filter: `civicIssueId=eq.${currentReport.id}`,
+            }, () => {
+                fetchDepartments();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [currentReport?.id]);
+
     // Menu & Edit State
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -102,10 +119,12 @@ export default function ReportDetailScreen({ route, navigation }) {
         }
     };
 
-    useEffect(() => {
-        fetchComments();
-        fetchDepartments();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchComments();
+            fetchDepartments();
+        }, [])
+    );
 
     const handleSendComment = async () => {
         if (!newComment.trim()) return;
